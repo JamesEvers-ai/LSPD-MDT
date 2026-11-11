@@ -566,3 +566,262 @@ html,body,#pageContainer,.main,.content,.dashboard,.agents-page,.patrols-page,
 .classification-page .classification-card{background:#fff!important;color:#1b2d43!important;border-color:#d5deea!important}
 .classification-page .classification-card-title,.classification-page .classification-detail-value{color:#17395f!important}
 .records-page .records-detail-content,.records-page .records-detail-panel{background:#fff!important;color:#1b2d43!important}
+
+/* =====================================================================
+   LSPD 3.67 — COMPLETE PAGE / PANEL NORMALIZATION
+   Last cascade layer. Audited against every public/pages/*.html module.
+   Identity: seal navy + seal gold; neutral white / cool-grey work surfaces.
+   ===================================================================== */
+:root{
+ --lspd-navy:#10284b!important; --lspd-navy-2:#173b68!important;
+ --lspd-blue:#24568a!important; --lspd-blue-soft:#eaf1f8!important;
+ --lspd-gold:#e3c52b!important; --lspd-paper:#eef2f7!important;
+ --lspd-surface:#fff!important; --lspd-line:#d5deea!important;
+ --lspd-muted:#64758a!important; --lspd-text:#1b2d43!important;
+ --fib-bg:#eef2f7!important; --fib-panel:#fff!important;
+ --fib-panel-2:#f5f8fb!important; --fib-line:#d5deea!important;
+ --fib-line-strong:#b9c8d9!important; --fib-text:#1b2d43!important;
+ --fib-muted:#64758a!important; --fib-blue:#24568a!important;
+ --fib-blue-soft:#eaf1f8!important;
+ --fib-shadow:0 5px 18px rgba(16,40,75,.075)!important;
+ color-scheme:light;
+}
+html,body,#pageContainer,.main,.content{background:#eef2f7!important;color:#1b2d43!important}
+#pageContainer{min-height:calc(100vh - 76px)!important}
+/* Each page root receives the same predictable canvas and text baseline. */
+:is(.dashboard,.agents-page,.patrols-page,.classifications-page,.classification-page,
+.wanted-page,.warrants-page,.records-page,.vehicle-catalog-page,.ifines-page,
+.mdt-module,.system-page,.fines-page,.logs-page,.gangs-page,.bonuses-page,
+.calendar-page,.announcements-page,.lawyers-page,.vacations-page){
+ color:#1b2d43!important;background:transparent!important;
+}
+:is(.dashboard,.agents-page,.patrols-page,.classifications-page,.classification-page,
+.wanted-page,.warrants-page,.records-page,.vehicle-catalog-page,.ifines-page,
+.mdt-module,.system-page,.fines-page,.logs-page,.gangs-page,.bonuses-page,
+.calendar-page,.announcements-page,.lawyers-page,.vacations-page) :is(h1,h2,h3,h4,h5,h6,.title,.heading){color:#173b68!important}
+/* Common panel/card families across all modules. */
+:is(.dashboard,.agents-page,.patrols-page,.classifications-page,.classification-page,
+.wanted-page,.warrants-page,.records-page,.vehicle-catalog-page,.ifines-page,
+.mdt-module,.system-page,.fines-page,.logs-page,.gangs-page,.bonuses-page,
+.calendar-page,.announcements-page,.lawyers-page,.vacations-page)
+:is([class*="-card"],[class*="-panel"],[class*="-section"],[class*="-detail-card"],
+[class*="-stat"],[class*="-item"],[class*="-box"],[class*="-list"],[class*="-table-wrap"]):not([class*="-badge"]):not([class*="-status"]):not([class*="-icon"]){
+ background-color:#fff!important;color:#1b2d43!important;
+ border-color:#d5deea!important;box-shadow:0 4px 15px rgba(16,40,75,.055)!important;
+}
+/* Toolbar, filter bars and section headers must never inherit dark legacy fills. */
+:is(.agents-toolbar,.patrol-toolbar,.classifications-toolbar,.wanted-toolbar,
+.warrants-toolbar,.vc-toolbar,.system-toolbar,.mdt-module .toolbar,
+.records-toolbar,.ifines-toolbar,.dashboard-card-header,
+.agents-list-header,.classifications-panel-header,.wanted-section-header,
+.warrants-analysis-header,.system-section-header){
+ background:#eaf0f6!important;color:#294663!important;
+ border-color:#d5deea!important;
+}
+/* Headers with explicit LSPD brand are navy with gold separator. */
+:is(.agents-system-modal-header,.fib-global-modal-header,.ifines-top){
+ background:#10284b!important;color:#fff!important;border-color:#e3c52b!important;
+}
+:is(.agents-system-modal-header,.fib-global-modal-header,.ifines-top) *{color:inherit!important}
+/* Every page's text roles use a single contrast hierarchy. */
+:is(.agents-page,.patrols-page,.classifications-page,.classification-page,
+.wanted-page,.warrants-page,.records-page,.vehicle-catalog-page,.ifines-page,
+.mdt-module,.system-page,.fines-page,.logs-page,.gangs-page,.bonuses-page,
+.calendar-page,.announcements-page,.lawyers-page,.vacations-page)
+:is(p,span,label,small,td,th,li,.description,.subtitle,.meta,.muted,.empty,.help-text){
+ text-shadow:none!important;
+}
+:is(.agents-page,.patrols-page,.classifications-page,.classification-page,
+.wanted-page,.warrants-page,.records-page,.vehicle-catalog-page,.ifines-page,
+.mdt-module,.system-page,.fines-page,.logs-page,.gangs-page,.bonuses-page,
+.calendar-page,.announcements-page,.lawyers-page,.vacations-page)
+:is(.subtitle,.sub,.meta,.muted,.description,.help,.hint,.empty,.empty-text,
+[class*="-subtitle"],[class*="-meta"],[class*="-muted"],[class*="-description"],
+[class*="-help"],[class*="-hint"],[class*="-empty"]){color:#65788e!important}
+/* Buttons: primary navy, secondary cool grey, danger reserved for destructive action. */
+:is(.agents-page,.patrols-page,.classifications-page,.classification-page,
+.wanted-page,.warrants-page,.records-page,.vehicle-catalog-page,.ifines-page,
+.mdt-module,.system-page,.fines-page,.logs-page,.gangs-page,.bonuses-page,
+.calendar-page,.announcements-page,.lawyers-page,.vacations-page)
+:is(button,.button,[class*="-button"],[class*="-btn"]):not(.danger):not(.delete):not(.remove):not(.reject):not(.terminate):not(.is-danger){
+ border-color:#cbd7e4;
+}
+:is(.agents-page,.patrols-page,.classifications-page,.classification-page,
+.wanted-page,.warrants-page,.records-page,.vehicle-catalog-page,.ifines-page,
+.mdt-module,.system-page,.fines-page,.logs-page,.gangs-page,.bonuses-page,
+.calendar-page,.announcements-page,.lawyers-page,.vacations-page)
+:is(button.primary,.primary-button,.btn-primary,.wanted-btn.primary,
+.classifications-button.primary,.vc-button.primary,.system-button.primary,
+.patrol-header-button,.agents-small-button.primary){
+ background:#173b68!important;color:#fff!important;border:1px solid #173b68!important;
+}
+:is(.agents-page,.patrols-page,.classifications-page,.classification-page,
+.wanted-page,.warrants-page,.records-page,.vehicle-catalog-page,.ifines-page,
+.mdt-module,.system-page,.fines-page,.logs-page,.gangs-page,.bonuses-page,
+.calendar-page,.announcements-page,.lawyers-page,.vacations-page)
+:is(button.secondary,.secondary-button,.btn-secondary,.system-action-button,
+.patrol-action-button,.patrol-join-button,.agents-system-button,.agents-small-button,
+.classification-action:not(.primary),.vc-filter,.wanted-filter){
+ background:#f0f4f8!important;color:#294663!important;border:1px solid #d5deea!important;
+}
+/* Inputs and native/custom select controls across every view. */
+:is(.agents-page,.patrols-page,.classifications-page,.classification-page,
+.wanted-page,.warrants-page,.records-page,.vehicle-catalog-page,.ifines-page,
+.mdt-module,.system-page,.fines-page,.logs-page,.gangs-page,.bonuses-page,
+.calendar-page,.announcements-page,.lawyers-page,.vacations-page)
+:is(input:not([type="checkbox"]):not([type="radio"]):not([type="color"]),select,textarea,
+[class*="-search"],.classifications-select,.wanted-search,.warrants-search,.vc-field){
+ background:#fff!important;color:#1b2d43!important;border:1px solid #cbd7e4!important;
+}
+:is(.agents-page,.patrols-page,.classifications-page,.classification-page,
+.wanted-page,.warrants-page,.records-page,.vehicle-catalog-page,.ifines-page,
+.mdt-module,.system-page,.fines-page,.logs-page,.gangs-page,.bonuses-page,
+.calendar-page,.announcements-page,.lawyers-page,.vacations-page)
+:is(input,select,textarea,button):focus-visible{
+ outline:2px solid rgba(227,197,43,.65)!important;outline-offset:2px!important;
+}
+:is(.agents-page,.patrols-page,.classifications-page,.classification-page,
+.wanted-page,.warrants-page,.records-page,.vehicle-catalog-page,.ifines-page,
+.mdt-module,.system-page,.fines-page,.logs-page,.gangs-page,.bonuses-page,
+.calendar-page,.announcements-page,.lawyers-page,.vacations-page)
+input::placeholder, :is(.agents-page,.patrols-page,.classifications-page,.classification-page,
+.wanted-page,.warrants-page,.records-page,.vehicle-catalog-page,.ifines-page,
+.mdt-module,.system-page,.fines-page,.logs-page,.gangs-page,.bonuses-page,
+.calendar-page,.announcements-page,.lawyers-page,.vacations-page) textarea::placeholder{color:#8998a8!important}
+/* Tables: consistent header band, white rows, readable hover. */
+:is(.agents-page,.patrols-page,.classifications-page,.classification-page,
+.wanted-page,.warrants-page,.records-page,.vehicle-catalog-page,.ifines-page,
+.mdt-module,.system-page,.fines-page,.logs-page,.gangs-page,.bonuses-page,
+.calendar-page,.announcements-page,.lawyers-page,.vacations-page) table{
+ width:100%;border-collapse:separate;border-spacing:0;background:#fff!important;
+ color:#1b2d43!important;border-color:#d5deea!important;
+}
+:is(.agents-page,.patrols-page,.classifications-page,.classification-page,
+.wanted-page,.warrants-page,.records-page,.vehicle-catalog-page,.ifines-page,
+.mdt-module,.system-page,.fines-page,.logs-page,.gangs-page,.bonuses-page,
+.calendar-page,.announcements-page,.lawyers-page,.vacations-page) table th{
+ background:#eaf0f6!important;color:#294663!important;border-color:#d5deea!important;
+}
+:is(.agents-page,.patrols-page,.classifications-page,.classification-page,
+.wanted-page,.warrants-page,.records-page,.vehicle-catalog-page,.ifines-page,
+.mdt-module,.system-page,.fines-page,.logs-page,.gangs-page,.bonuses-page,
+.calendar-page,.announcements-page,.lawyers-page,.vacations-page) table td{
+ background:#fff!important;color:#344b63!important;border-color:#e2e8ef!important;
+}
+:is(.agents-page,.patrols-page,.classifications-page,.classification-page,
+.wanted-page,.warrants-page,.records-page,.vehicle-catalog-page,.ifines-page,
+.mdt-module,.system-page,.fines-page,.logs-page,.gangs-page,.bonuses-page,
+.calendar-page,.announcements-page,.lawyers-page,.vacations-page) table tbody tr:hover td{background:#f4f7fb!important}
+/* Personnel page — full file, all tabs, records, training and sanctions. */
+.agents-list,.agents-system-modal,.agents-system-modal-body,.agents-section-card,
+.agents-entry-item,.agents-note-list,.agents-training-list,.agents-form,
+.agents-personnel-tabs{background:#fff!important;color:#1b2d43!important;border-color:#d5deea!important}
+.agents-list-header{background:#eaf0f6!important}
+.agents-list-header-cell,.agents-section-title,.agents-form-label{color:#294663!important}
+.agents-list-row{background:#fff!important;border-color:#e2e8ef!important}
+.agents-list-row:hover{background:#f4f7fb!important}
+.agents-agent-name,.agents-entry-title{color:#173b68!important}
+.agents-agent-rank,.agents-agent-username,.agents-service-number,.agents-entry-meta,.agents-entry-content{color:#65788e!important}
+.agents-section-card,.agents-entry-item{background:#f8fafc!important}
+.agents-personnel-tab{color:#526981!important;background:transparent!important}
+.agents-personnel-tab.active{background:#fff!important;color:#173b68!important;border-color:#e3c52b!important}
+.agents-system-modal-overlay{background:rgba(9,25,45,.68)!important}
+.agents-system-modal{background:#fff!important;border:1px solid #cbd7e4!important}
+.agents-system-modal-header{background:#10284b!important;border-bottom:3px solid #e3c52b!important}
+.agents-system-modal-body{background:#fff!important}
+.agents-system-modal-actions{background:#f0f4f8!important;border-color:#d5deea!important}
+.agents-form-input,.agents-form-select,.agents-form-textarea,.agents-rank-select-button{background:#fff!important;color:#1b2d43!important;border-color:#cbd7e4!important}
+.agents-rank-select-menu{background:#fff!important;color:#1b2d43!important;border-color:#cbd7e4!important}
+.agents-rank-option{color:#294663!important}
+.agents-rank-option:hover,.agents-rank-option.selected{background:#eaf1f8!important;color:#173b68!important}
+/* Dispatch — status colors remain meaningful; all surrounding panels are neutral. */
+.patrol-own-status,.patrol-toolbar,.patrol-display-config,.patrol-card,.patrol-empty,
+.fib-duty-picker{background:#fff!important;color:#1b2d43!important;border:1px solid #d5deea!important}
+.patrol-card{box-shadow:0 4px 14px rgba(16,40,75,.06)!important}
+.patrol-card-title,.patrol-member-name,.patrol-location,.patrol-vehicle,
+.patrol-own-status-name,.patrol-own-status-value{color:#173b68!important}
+.patrol-toolbar-section,.patrol-own-status-label,.patrol-own-status-caption,
+.patrol-member-rank,.patrol-member-callsign{color:#65788e!important}
+.patrol-member{background:#f0f4f8!important;color:#294663!important;border-color:#dce4ed!important}
+.patrol-activity-status{background:#eaf1f8!important;color:#244f7b!important;border-color:#cbdbea!important}
+.patrol-join-button,.patrol-action-button{background:#f0f4f8!important;color:#294663!important;border-color:#d5deea!important}
+.fib-duty-picker-head,.fib-duty-picker-footer{background:#f0f4f8!important;color:#294663!important;border-color:#d5deea!important}
+.fib-duty-picker-label{color:#65788e!important}
+/* Classification dashboard and individual requests. */
+.classifications-overview,.classifications-stat,.classifications-tabs-wrap,
+.classifications-toolbar,.classifications-panel,.classification-card,
+.classification-card-header,.classification-card-body,.classification-card-footer,
+.classification-reason,.classification-review,.classification-confirm-box{
+ background:#fff!important;color:#1b2d43!important;border-color:#d5deea!important;
+}
+.classifications-stat-label,.classifications-panel-subtitle,.classifications-panel-meta,
+.classification-detail-label,.classification-meta{color:#65788e!important}
+.classifications-stat-value,.classifications-panel-title,.classification-card-title,
+.classification-detail-value{color:#173b68!important}
+.classifications-tab{color:#526981!important}
+.classifications-tab.active{color:#173b68!important;background:#fff!important;border-bottom:3px solid #e3c52b!important}
+.classification-reason,.classification-review{background:#f4f7fa!important}
+.classification-action.primary,.classifications-button.primary{background:#173b68!important;color:#fff!important}
+/* Wanted / warrants / records / vehicle catalog. */
+.wanted-toolbar,.wanted-section,.wanted-table-wrap,.wanted-detail-card,
+.warrants-analysis,.warrants-analysis-card,.warrant-card-details,
+.records-detail-content,.records-detail-panel,.vc-card,.vc-admin,
+.vc-form-grid,.vc-image,.vc-card-body{background:#fff!important;color:#1b2d43!important;border-color:#d5deea!important}
+.wanted-section-header,.warrants-analysis-header,.vc-card-top{background:#eaf0f6!important;color:#294663!important}
+.wanted-title,.warrants-title,.vc-title,.vc-name,.records-detail-content h1,
+.records-detail-content h2,.records-detail-content h3{color:#173b68!important}
+.wanted-stat,.warrants-stat-card{background:#fff!important;border-color:#d5deea!important}
+.wanted-stat-value,.warrants-stat-value{color:#173b68!important}
+.wanted-table th,.system-table th{background:#eaf0f6!important;color:#294663!important}
+.wanted-table td,.system-table td{background:#fff!important;color:#344b63!important}
+.wanted-search,.warrants-search,.vc-search,.vc-field{background:#fff!important;color:#1b2d43!important}
+.vc-filter{background:#f0f4f8!important;color:#294663!important}
+.vc-filter.active{background:#173b68!important;color:#fff!important;border-color:#173b68!important}
+.vc-tag{background:#eaf1f8!important;color:#244f7b!important}
+/* Generic modules: announcements, calendar, vacations, lawyers, bonuses, logs, gangs. */
+.mdt-module{background:transparent!important;color:#1b2d43!important}
+.mdt-module .toolbar,.mdt-module .form,.mdt-module .items,.mdt-module .item,
+.mdt-module .itemhead,.mdt-module .message,.mdt-module .empty{
+ background:#fff!important;color:#1b2d43!important;border-color:#d5deea!important;
+}
+.mdt-module .itemhead{background:#eaf0f6!important;color:#294663!important}
+.mdt-module h2,.mdt-module h3,.mdt-module .item h3{color:#173b68!important}
+.mdt-module .sub,.mdt-module .meta,.mdt-module .desc{color:#65788e!important}
+.mdt-module input,.mdt-module textarea,.mdt-module select{background:#fff!important;color:#1b2d43!important;border-color:#cbd7e4!important}
+.mdt-module button{background:#173b68!important;color:#fff!important;border-color:#173b68!important}
+.mdt-module button.secondary{background:#f0f4f8!important;color:#294663!important;border-color:#d5deea!important}
+.mdt-module button.danger{background:#a63b3b!important;color:#fff!important;border-color:#a63b3b!important}
+/* System settings, fines and internal fine catalog. */
+.system-section,.system-toolbar,.system-table-wrapper,.system-table,
+.ifines-card,.ifines-lawbook-table,.ifines-category,.ifines-entry,
+.fines-card,.fines-table-wrapper{background:#fff!important;color:#1b2d43!important;border-color:#d5deea!important}
+.system-section.active{background:#fff!important}
+.system-toolbar-title,.system-table td,.system-table-muted{color:#344b63!important}
+.system-button,.system-action-button{background:#f0f4f8!important;color:#294663!important;border-color:#d5deea!important}
+.system-button.primary{background:#173b68!important;color:#fff!important}
+.system-button.danger{background:#a63b3b!important;color:#fff!important}
+.ifines-top{background:#10284b!important;border-bottom:3px solid #e3c52b!important}
+.ifines-title{color:#fff!important}.ifines-eyebrow{color:#e3c52b!important}.ifines-subtitle{color:#d6e0ec!important}
+.ifines-tabs{border-color:#d5deea!important}.ifines-tab{color:#526981!important}
+.ifines-tab.active{background:#eaf1f8!important;color:#173b68!important;border-bottom-color:#e3c52b!important}
+.ifines-card,.ifines-lawbook-table{background:#fff!important;color:#1b2d43!important}
+.ifines-table th{background:#eaf0f6!important;color:#294663!important}
+.ifines-table td{background:#fff!important;color:#344b63!important}
+.ifines-category-row td{background:#edf3f8!important;color:#173b68!important}
+/* Shared dialogs, overlays, popovers and dropdown menus. */
+:is(.modal-content,.fib-global-modal-content,.fib-duty-picker,
+.agents-rank-select-menu,.dropdown-menu,[role="listbox"],.popover-content){
+ background:#fff!important;color:#1b2d43!important;border:1px solid #cbd7e4!important;
+ box-shadow:0 18px 48px rgba(16,40,75,.18)!important;
+}
+:is(.modal-content,.fib-global-modal-content,.fib-duty-picker,
+.agents-rank-select-menu,.dropdown-menu,[role="listbox"],.popover-content) :is(label,p,span,div){color:inherit}
+:is(.modal-header,.fib-global-modal-header){background:#10284b!important;color:#fff!important;border-bottom:3px solid #e3c52b!important}
+:is(.modal-header,.fib-global-modal-header) *{color:#fff!important}
+/* Avoid accidental white text on white panels from legacy inherited declarations. */
+:is(.agents-page,.patrols-page,.classifications-page,.classification-page,
+.wanted-page,.warrants-page,.records-page,.vehicle-catalog-page,.ifines-page,
+.mdt-module,.system-page,.fines-page,.logs-page,.gangs-page,.bonuses-page,
+.calendar-page,.announcements-page,.lawyers-page,.vacations-page)
+:is(.text-white,.text-light,.light-text){color:#294663!important}
+@media(max-width:900px){.sidebar{background:#10284b!important}.main{padding-left:68px!important}}
