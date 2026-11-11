@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="alternate icon" type="image/png" href="/assets/lspd-icon-32.png">
+<link rel="apple-touch-icon" href="/assets/lspd-icon-180.png">
+<title>LSPD – Antrag auf Klassifizierung</title>
+<style>
+:root{color-scheme:dark;--bg:#090e15;--panel:#111a26;--line:#26384d;--blue:#3987c9;--text:#e7eef7;--muted:#91a1b5}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 50% -20%,#183653 0,transparent 55%),var(--bg);color:var(--text);font:14px/1.55 Inter,system-ui,Segoe UI,sans-serif;padding:28px 16px}
+.shell{max-width:900px;margin:4vh auto}
+.brand{display:flex;align-items:center;gap:11px;font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:#82b9e8;font-weight:800}
+.brand img{width:34px;height:34px;object-fit:contain;border-radius:8px}
+.card{margin-top:14px;background:linear-gradient(145deg,rgba(21,34,49,.98),rgba(13,21,31,.98));border:1px solid var(--line);border-radius:16px;padding:clamp(20px,4vw,34px);box-shadow:0 24px 70px #0008}
+h1{font-size:clamp(24px,4vw,32px);margin:4px 0 8px;letter-spacing:-.03em}
+.intro{color:var(--muted);margin:0 0 24px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.wide{grid-column:1/-1}
+label{font-size:11px;color:#b7c7d9;font-weight:700}
+input,select,textarea{width:100%;border:1px solid #30445a;background:#0a121d;color:var(--text);border-radius:8px;padding:11px 12px;font:inherit;outline:none;min-height:44px}
+input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px #3987c926}
+textarea{min-height:105px;resize:vertical}
+.hint{font-size:10px;color:#778ba2}
+.section-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:24px 0 10px}
+.section-title{font-size:12px;font-weight:800;color:#dce8f5;letter-spacing:.04em;text-transform:uppercase}
+.counter{font-size:10px;color:#7f93aa}
+.person-list{display:grid;gap:12px}
+.person-card{border:1px solid #26384d;border-radius:10px;background:#0c1521;padding:14px}
+.person-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+.person-title{font-size:11px;color:#9fc8ec;font-weight:800}
+.person-fields{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.person-fields .full{grid-column:1/-1}
+button{border:1px solid #397fba;background:linear-gradient(180deg,#286ca5,#1b4e7a);color:white;padding:10px 15px;border-radius:8px;font-weight:750;cursor:pointer;font:inherit;font-size:11px}
+button.secondary{background:#111d2b;border-color:#34485f;color:#c4d3e3}
+button.remove{padding:6px 9px;background:#26171d;border-color:#673541;color:#f0b6bd;font-size:10px}
+button:disabled{opacity:.55;cursor:wait}
+.actions{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:20px}
+.notice{display:none;margin-top:16px;padding:12px;border-radius:8px;background:#122a24;border:1px solid #28634d;color:#a8e2c4;white-space:pre-wrap}
+.notice.error{background:#301b20;border-color:#793b45;color:#ffc0c5}
+.foot{margin-top:14px;color:#687c91;font-size:10px;text-align:center}
+@media(max-width:600px){.grid,.person-fields{grid-template-columns:1fr}.wide,.person-fields .full{grid-column:auto}.actions{align-items:stretch;flex-direction:column}.actions button{width:100%}}
+</style>
+</head>
+<body>
+<main class="shell">
+ <div class="brand"><img src="/assets/lspd-logo.svg" alt="LSPD Logo"><span>Los Santos Police Department · San Andreas</span></div>
+ <section class="card">
+  <h1>Antrag auf Klassifizierung</h1>
+  <p class="intro">Über dieses externe Dokument kann die Aufnahme einer oder mehrerer Personen in das Klassifizierungsregister des LSPD beantragt werden. Jede Person wird intern als eigenständiger Antrag geführt und kann separat genehmigt oder abgelehnt werden.</p>
+  <form id="requestForm">
+   <div class="grid">
+    <div class="field wide">
+     <label for="applicant">ANTRAGSTELLER / KONTAKTPERSON *</label>
+     <input id="applicant" name="applicant" maxlength="160" required autocomplete="name" placeholder="Vor- und Nachname des Antragstellers">
+    </div>
+    <div class="field wide">
+     <label for="organization">ORGANISATION / GRUPPIERUNG *</label>
+     <select id="organization" name="organization" required><option value="">Organisationen werden geladen …</option></select>
+     <span class="hint">Es stehen ausschließlich die Organisationen der internen Klassifizierungsverwaltung zur Auswahl.</span>
+    </div>
+   </div>
+   <div class="section-head">
+    <div class="section-title">Zu klassifizierende Personen</div>
+    <div class="counter" id="personCounter">1 / 30 Personen</div>
+   </div>
+   <div class="person-list" id="personList"></div>
+   <div style="margin-top:10px"><button class="secondary" id="addPerson" type="button">＋ Weitere Person hinzufügen</button></div>
+   <div class="actions">
+    <span class="hint">Für jede Person sind Rang/Funktion und eine individuelle Begründung anzugeben.</span>
+    <button id="submit" type="submit">Antrag übermitteln</button>
+   </div>
+   <div id="notice" class="notice" role="status" aria-live="polite"></div>
+  </form>
+ </section>
+ <div class="foot">Die Übermittlung speichert einzelne Anträge zur internen Prüfung. Es erfolgt keine automatische Klassifizierung.</div>
+</main>
+<script>
+(function(){
+ "use strict";
+ const form=document.getElementById("requestForm");
+ const list=document.getElementById("personList");
+ const counter=document.getElementById("personCounter");
+ const addButton=document.getElementById("addPerson");
+ const submitButton=document.getElementById("submit");
+ const organization=document.getElementById("organization");
+ const notice=document.getElementById("notice");
+ const MAX_PERSONS=30;
+ let nextPersonId=0;
+
+ function showNotice(message,isError){
+  notice.className="notice"+(isError?" error":"");
+  notice.textContent=message;
+  notice.style.display="block";
+ }
+ function updateCounter(){
+  const count=list.querySelectorAll(".person-card").length;
+  counter.textContent=count+" / "+MAX_PERSONS+" Personen";
+  addButton.disabled=count>=MAX_PERSONS;
+  addButton.textContent=count>=MAX_PERSONS?"Maximale Personenanzahl erreicht":"＋ Weitere Person hinzufügen";
+  list.querySelectorAll(".person-card").forEach((card,index)=>{
+   const title=card.querySelector(".person-title");
+   if(title)title.textContent="PERSON "+(index+1);
+   const remove=card.querySelector(".remove");
+   if(remove)remove.hidden=count<=1;
+  });
+ }
+ function addPerson(){
+  const count=list.querySelectorAll(".person-card").length;
+  if(count>=MAX_PERSONS)return;
+  const id=++nextPersonId;
+  const card=document.createElement("section");
+  card.className="person-card";
+  card.dataset.personId=String(id);
+  card.innerHTML='<div class="person-head"><span class="person-title">PERSON</span><button class="remove" type="button">Person entfernen</button></div><div class="person-fields"><div class="field"><label for="personName'+id+'">VOLLSTÄNDIGER NAME *</label><input id="personName'+id+'" data-field="name" maxlength="120" required autocomplete="off" placeholder="Vor- und Nachname"></div><div class="field"><label for="passport'+id+'">REISEPASSNUMMER *</label><input id="passport'+id+'" data-field="passport" maxlength="40" required autocomplete="off" placeholder="Reisepassnummer"></div><div class="field full"><label for="rankFunction'+id+'">RANG / FUNKTION *</label><input id="rankFunction'+id+'" data-field="rankFunction" maxlength="160" required autocomplete="off" placeholder="z. B. Präsident, Vizepräsident, Mitglied, Sergeant at Arms …"></div><div class="field full"><label for="reason'+id+'">INDIVIDUELLE BEGRÜNDUNG *</label><textarea id="reason'+id+'" data-field="reason" maxlength="5000" required placeholder="Begründung für die Klassifizierung dieser Person …"></textarea><span class="hint">Die Begründung gilt ausschließlich für diese Person.</span></div></div>';
+  card.querySelector(".remove").addEventListener("click",()=>{card.remove();updateCounter();});
+  list.appendChild(card);
+  updateCounter();
+ }
+ function getPersons(){
+  return Array.from(list.querySelectorAll(".person-card")).map(card=>({
+   person_name:card.querySelector('[data-field="name"]').value.trim(),
+   passport_number:card.querySelector('[data-field="passport"]').value.trim(),
+   rank_function:card.querySelector('[data-field="rankFunction"]').value.trim(),
+   reason:card.querySelector('[data-field="reason"]').value.trim()
+  }));
+ }
+ async function loadOrganizations(){
+  try{
+   const response=await fetch("/api/public/classification-request",{headers:{Accept:"application/json"}});
+   const result=await response.json();
+   if(!response.ok||!result.success||!Array.isArray(result.organizations))throw new Error("Die Organisationsliste konnte nicht geladen werden.");
+   organization.replaceChildren(new Option("Organisation auswählen …",""));
+   result.organizations.forEach(name=>organization.add(new Option(name,name)));
+  }catch(error){
+   organization.replaceChildren(new Option("Organisationsliste nicht verfügbar",""));
+   organization.disabled=true;
+   showNotice(error.message||"Die Organisationsliste konnte nicht geladen werden. Bitte lade die Seite erneut.",true);
+  }
+ }
+ addButton.addEventListener("click",addPerson);
+ form.addEventListener("submit",async event=>{
+  event.preventDefault();
+  notice.style.display="none";
+  if(!form.reportValidity())return;
+  const persons=getPersons();
+  const passports=persons.map(person=>person.passport_number.toLocaleLowerCase());
+  if(new Set(passports).size!==passports.length){
+   showNotice("Eine Reisepassnummer wurde mehrfach eingetragen. Bitte prüfe die Personenliste.",true);
+   return;
+  }
+  submitButton.disabled=true;
+  addButton.disabled=true;
+  submitButton.textContent="Wird übermittelt …";
+  const payload={applicant:document.getElementById("applicant").value.trim(),organization:organization.value,persons};
+  try{
+   const response=await fetch("/api/public/classification-request",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify(payload)});
+   const result=await response.json();
+   if(!response.ok||!result.success)throw new Error(result.message||"Der Antrag konnte nicht übermittelt werden.");
+   const lines=(result.requests||[]).map(item=>item.person_name+": "+item.id);
+   showNotice(result.count+" Einzelantrag/Einzelanträge wurden erfolgreich übermittelt. Jeder Antrag kann intern separat geprüft werden."+(lines.length?"\n\n"+lines.join("\n"):""),false);
+   form.reset();
+   list.replaceChildren();
+   addPerson();
+  }catch(error){showNotice(error.message||"Übermittlung fehlgeschlagen.",true);}
+  finally{
+   submitButton.disabled=false;
+   addButton.disabled=list.querySelectorAll(".person-card").length>=MAX_PERSONS;
+   submitButton.textContent="Antrag übermitteln";
+  }
+ });
+ addPerson();
+ loadOrganizations();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,8337 @@
+<!DOCTYPE html>
+<style>
+
+/* =========================================================
+   MDT NOTIFICATION FRAMEWORK
+   ========================================================= */
+
+.mdt-notification-container {
+  position: fixed;
+
+  top: 18px;
+  right: 18px;
+
+  width: min(390px, calc(100vw - 36px));
+
+  display: flex;
+  flex-direction: column;
+
+  gap: 10px;
+
+  z-index: 100000;
+
+  pointer-events: none;
+}
+
+
+.mdt-notification {
+  width: 100%;
+
+  display: flex;
+  align-items: flex-start;
+
+  gap: 12px;
+
+  padding: 13px 14px;
+
+  background: #151b23;
+
+  border: 1px solid #29323e;
+
+  border-radius: 11px;
+
+  box-shadow:
+    0 15px 40px rgba(0, 0, 0, 0.38);
+
+  color: #f8fafc;
+
+  pointer-events: auto;
+
+  opacity: 0;
+
+  transform:
+    translateX(24px)
+    scale(.98);
+
+  animation:
+    mdtNotificationEnter
+    .22s
+    ease
+    forwards;
+}
+
+
+.mdt-notification.removing {
+  animation:
+    mdtNotificationExit
+    .20s
+    ease
+    forwards;
+}
+
+
+/* =========================================================
+   ICON
+   ========================================================= */
+
+.mdt-notification-icon {
+  width: 24px;
+  height: 24px;
+
+  min-width: 24px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 50%;
+
+  font-size: 12px;
+  font-weight: 700;
+}
+
+
+/* =========================================================
+   CONTENT
+   ========================================================= */
+
+.mdt-notification-content {
+  min-width: 0;
+  flex: 1;
+}
+
+
+.mdt-notification-title {
+  font-size: 12px;
+  line-height: 1.35;
+  font-weight: 650;
+
+  color: #f8fafc;
+}
+
+
+.mdt-notification-message {
+  margin-top: 3px;
+
+  color: #94a3b8;
+
+  font-size: 11px;
+  line-height: 1.5;
+
+  word-break: break-word;
+}
+
+
+/* =========================================================
+   CLOSE
+   ========================================================= */
+
+.mdt-notification-close {
+  width: 24px;
+  height: 24px;
+
+  min-width: 24px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 0;
+
+  border: none;
+  border-radius: 5px;
+
+  background: transparent;
+
+  color: #64748b;
+
+  font-size: 15px;
+  line-height: 1;
+
+  cursor: pointer;
+}
+
+
+.mdt-notification-close:hover {
+  background: #1e293b;
+  color: #f8fafc;
+}
+
+
+/* =========================================================
+   TYPES
+   ========================================================= */
+
+.mdt-notification--success {
+  border-color:
+    rgba(34, 197, 94, .22);
+}
+
+.mdt-notification--success
+.mdt-notification-icon {
+  background:
+    rgba(34, 197, 94, .12);
+
+  color: #4ade80;
+}
+
+
+.mdt-notification--error {
+  border-color:
+    rgba(239, 68, 68, .25);
+}
+
+.mdt-notification--error
+.mdt-notification-icon {
+  background:
+    rgba(239, 68, 68, .12);
+
+  color: #f87171;
+}
+
+
+.mdt-notification--warning {
+  border-color:
+    rgba(245, 158, 11, .25);
+}
+
+.mdt-notification--warning
+.mdt-notification-icon {
+  background:
+    rgba(245, 158, 11, .12);
+
+  color: #fbbf24;
+}
+
+
+.mdt-notification--info {
+  border-color:
+    rgba(59, 130, 246, .25);
+}
+
+.mdt-notification--info
+.mdt-notification-icon {
+  background:
+    rgba(59, 130, 246, .12);
+
+  color: #60a5fa;
+}
+
+
+/* =========================================================
+   ANIMATION
+   ========================================================= */
+
+@keyframes mdtNotificationEnter {
+
+  from {
+    opacity: 0;
+
+    transform:
+      translateX(24px)
+      scale(.98);
+  }
+
+  to {
+    opacity: 1;
+
+    transform:
+      translateX(0)
+      scale(1);
+  }
+
+}
+
+
+@keyframes mdtNotificationExit {
+
+  from {
+    opacity: 1;
+
+    transform:
+      translateX(0)
+      scale(1);
+  }
+
+  to {
+    opacity: 0;
+
+    transform:
+      translateX(18px)
+      scale(.98);
+  }
+
+}
+
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (max-width: 600px) {
+
+  .mdt-notification-container {
+    top: 12px;
+    right: 12px;
+
+    width:
+      calc(100vw - 24px);
+  }
+
+}
+
+</style>
+
+
+<script>
+
+/* =========================================================
+   MDT NOTIFICATION FRAMEWORK
+   ========================================================= */
+
+(function () {
+
+  "use strict";
+
+
+  window.MDT =
+    window.MDT || {};
+
+
+  /*
+   * Framework nicht doppelt registrieren.
+   */
+
+  if (
+    typeof window.MDT.notify ===
+    "function"
+  ) {
+    return;
+  }
+
+
+  let notificationCounter = 0;
+
+  const notifications = {};
+
+
+  const icons = {
+
+    success: "✓",
+
+    error: "×",
+
+    warning: "!",
+
+    info: "i"
+
+  };
+
+
+  const defaults = {
+
+    type: "info",
+
+    title: "Hinweis",
+
+    message: "",
+
+    duration: 3500,
+
+    closable: true
+
+  };
+
+
+  /* =======================================================
+     CONTAINER
+     ======================================================= */
+
+  function getContainer() {
+
+    let container =
+      document.getElementById(
+        "mdtNotificationContainer"
+      );
+
+
+    if (container) {
+      return container;
+    }
+
+
+    container =
+      document.createElement("div");
+
+
+    container.id =
+      "mdtNotificationContainer";
+
+
+    container.className =
+      "mdt-notification-container";
+
+
+    document.body.appendChild(
+      container
+    );
+
+
+    return container;
+
+  }
+
+
+  /* =======================================================
+     REMOVE
+     ======================================================= */
+
+  function remove(id) {
+
+    const notification =
+      notifications[id];
+
+
+    if (!notification) {
+      return;
+    }
+
+
+    if (notification.timer) {
+
+      clearTimeout(
+        notification.timer
+      );
+
+    }
+
+
+    notification.element.classList.add(
+      "removing"
+    );
+
+
+    setTimeout(() => {
+
+      if (
+        notification.element &&
+        notification.element.parentNode
+      ) {
+
+        notification.element.parentNode.removeChild(
+          notification.element
+        );
+
+      }
+
+
+      delete notifications[id];
+
+    }, 210);
+
+  }
+
+
+  /* =======================================================
+     CLEAR
+     ======================================================= */
+
+  function clear() {
+
+    Object.keys(
+      notifications
+    ).forEach(id => {
+
+      remove(id);
+
+    });
+
+  }
+
+
+  /* =======================================================
+     SHOW
+     ======================================================= */
+
+  function show(options = {}) {
+
+    const settings = {
+      ...defaults,
+      ...options
+    };
+
+
+    if (
+      !icons[settings.type]
+    ) {
+
+      settings.type =
+        "info";
+
+    }
+
+
+    notificationCounter++;
+
+
+    const id =
+      "mdt-notification-" +
+      Date.now() +
+      "-" +
+      notificationCounter;
+
+
+    const container =
+      getContainer();
+
+
+    const element =
+      document.createElement("div");
+
+
+    element.className =
+      "mdt-notification " +
+      "mdt-notification--" +
+      settings.type;
+
+
+    element.dataset.id =
+      id;
+
+
+    /* -----------------------------------------------------
+       ICON
+       ----------------------------------------------------- */
+
+    const icon =
+      document.createElement("div");
+
+
+    icon.className =
+      "mdt-notification-icon";
+
+
+    icon.textContent =
+      icons[settings.type];
+
+
+    /* -----------------------------------------------------
+       CONTENT
+       ----------------------------------------------------- */
+
+    const content =
+      document.createElement("div");
+
+
+    content.className =
+      "mdt-notification-content";
+
+
+    const title =
+      document.createElement("div");
+
+
+    title.className =
+      "mdt-notification-title";
+
+
+    title.textContent =
+      settings.title;
+
+
+    content.appendChild(
+      title
+    );
+
+
+    if (
+      settings.message !==
+      ""
+    ) {
+
+      const message =
+        document.createElement("div");
+
+
+      message.className =
+        "mdt-notification-message";
+
+
+      message.textContent =
+        settings.message;
+
+
+      content.appendChild(
+        message
+      );
+
+    }
+
+
+    /* -----------------------------------------------------
+       CLOSE
+       ----------------------------------------------------- */
+
+    if (
+      settings.closable
+    ) {
+
+      const close =
+        document.createElement("button");
+
+
+      close.type =
+        "button";
+
+
+      close.className =
+        "mdt-notification-close";
+
+
+      close.textContent =
+        "×";
+
+
+      close.setAttribute(
+        "aria-label",
+        "Benachrichtigung schließen"
+      );
+
+
+      close.onclick =
+        () => remove(id);
+
+
+      element.appendChild(
+        icon
+      );
+
+      element.appendChild(
+        content
+      );
+
+      element.appendChild(
+        close
+      );
+
+    } else {
+
+      element.appendChild(
+        icon
+      );
+
+      element.appendChild(
+        content
+      );
+
+    }
+
+
+    container.appendChild(
+      element
+    );
+
+
+    const notification = {
+
+      id,
+
+      element,
+
+      timer: null
+
+    };
+
+
+    notifications[id] =
+      notification;
+
+
+    /* -----------------------------------------------------
+       AUTO CLOSE
+       ----------------------------------------------------- */
+
+    if (
+      settings.duration !== 0 &&
+      settings.duration !== null &&
+      settings.duration !== false
+    ) {
+
+      notification.timer =
+        setTimeout(
+          () => remove(id),
+          settings.duration
+        );
+
+    }
+
+
+    return id;
+
+  }
+
+
+  /* =======================================================
+     API
+     ======================================================= */
+
+  show.success =
+    function (
+      title,
+      message,
+      options = {}
+    ) {
+
+      return show({
+
+        ...options,
+
+        type:
+          "success",
+
+        title,
+
+        message
+
+      });
+
+    };
+
+
+  show.error =
+    function (
+      title,
+      message,
+      options = {}
+    ) {
+
+      return show({
+
+        ...options,
+
+        type:
+          "error",
+
+        title,
+
+        message,
+
+        duration:
+          options.duration ??
+          5000
+
+      });
+
+    };
+
+
+  show.warning =
+    function (
+      title,
+      message,
+      options = {}
+    ) {
+
+      return show({
+
+        ...options,
+
+        type:
+          "warning",
+
+        title,
+
+        message
+
+      });
+
+    };
+
+
+  show.info =
+    function (
+      title,
+      message,
+      options = {}
+    ) {
+
+      return show({
+
+        ...options,
+
+        type:
+          "info",
+
+        title,
+
+        message
+
+      });
+
+    };
+
+
+  show.remove =
+    function (id) {
+
+      remove(id);
+
+    };
+
+
+  show.clear =
+    function () {
+
+      clear();
+
+    };
+
+
+  window.MDT.notify =
+    show;
+
+
+})();
+
+</script>
+<html lang="de">
+
+<head>
+
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <title>LSPD Mobile Data Terminal</title>
+
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="alternate icon" type="image/png" href="/assets/lspd-icon-32.png">
+  <link rel="apple-touch-icon" href="/assets/lspd-icon-180.png">
+
+  <link
+    rel="preconnect"
+    href="https://fonts.googleapis.com"
+  >
+
+  <link
+    rel="preconnect"
+    href="https://fonts.gstatic.com"
+    crossorigin
+  >
+
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+    rel="stylesheet"
+  >
+
+  
+
+  <style>
+
+    * {
+      box-sizing: border-box;
+    }
+
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+    }
+
+
+    body {
+      font-family: "Inter", sans-serif;
+      background: #080b10;
+      color: #f1f5f9;
+      overflow: hidden;
+    }
+
+
+    button,
+    input,
+    select,
+    textarea {
+      font-family: inherit;
+    }
+
+
+    /* =====================================================
+       LOGIN
+       ===================================================== */
+
+    #loginScreen {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+
+      background:
+        radial-gradient(
+          circle at 50% 35%,
+          rgba(37, 99, 235, 0.10),
+          transparent 40%
+        ),
+        #080b10;
+
+      z-index: 1000;
+    }
+
+
+    .login-wrapper {
+      width: 100%;
+      max-width: 410px;
+      padding: 30px;
+    }
+
+
+    .login-card {
+      background: rgba(15, 23, 42, 0.96);
+      border: 1px solid #1e293b;
+      border-radius: 14px;
+      padding: 35px;
+
+      box-shadow:
+        0 25px 80px rgba(0, 0, 0, 0.45);
+    }
+
+
+    .login-logo {
+      width: 82px;
+      height: 82px;
+      margin: 0 auto 22px;
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: transparent;
+      border: 0;
+      overflow: hidden;
+    }
+    .login-logo img { width: 100%; height: 100%; object-fit: contain; }
+
+
+    .login-title {
+      text-align: center;
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 7px;
+    }
+
+
+    .login-subtitle {
+      text-align: center;
+      color: #64748b;
+      font-size: 13px;
+      margin-bottom: 30px;
+    }
+
+
+    .input-group {
+      margin-bottom: 17px;
+    }
+
+
+    .input-group label {
+      display: block;
+      margin-bottom: 7px;
+      font-size: 12px;
+      color: #94a3b8;
+      font-weight: 500;
+    }
+
+
+    .input-group input {
+      width: 100%;
+      height: 44px;
+      padding: 0 13px;
+
+      border-radius: 7px;
+      border: 1px solid #334155;
+      background: #0b1120;
+      color: #f8fafc;
+      outline: none;
+
+      transition: 0.15s;
+    }
+
+
+    .input-group input:focus {
+      border-color: #3b82f6;
+
+      box-shadow:
+        0 0 0 3px rgba(59, 130, 246, 0.10);
+    }
+
+
+    .login-button {
+      width: 100%;
+      height: 44px;
+      margin-top: 5px;
+
+      border: none;
+      border-radius: 7px;
+
+      background: #2563eb;
+      color: white;
+
+      font-weight: 600;
+      cursor: pointer;
+
+      transition: 0.15s;
+    }
+
+
+    .login-button:hover {
+      background: #1d4ed8;
+    }
+
+
+    .login-button:disabled {
+      opacity: 0.6;
+      cursor: wait;
+    }
+
+
+    .login-error {
+      display: none;
+
+      margin-top: 15px;
+      padding: 10px 12px;
+
+      border-radius: 6px;
+
+      background: rgba(220, 38, 38, 0.10);
+      border: 1px solid rgba(220, 38, 38, 0.25);
+
+      color: #fca5a5;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+
+    .login-success {
+      display: none;
+
+      margin-top: 15px;
+      padding: 10px 12px;
+
+      border-radius: 6px;
+
+      background: rgba(34, 197, 94, 0.09);
+      border: 1px solid rgba(34, 197, 94, 0.22);
+
+      color: #86efac;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+
+    .login-secondary-button {
+      width: 100%;
+      height: 40px;
+      margin-top: 9px;
+
+      border: 1px solid #263244;
+      border-radius: 7px;
+
+      background: rgba(15, 23, 42, 0.35);
+      color: #94a3b8;
+
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+
+      transition: 0.15s;
+    }
+
+
+    .login-secondary-button:hover {
+      background: rgba(30, 41, 59, 0.55);
+      border-color: #334155;
+      color: #e2e8f0;
+    }
+
+
+    .login-info {
+      margin-top: 13px;
+      color: #64748b;
+      font-size: 11px;
+      line-height: 1.55;
+      text-align: center;
+    }
+
+
+    .login-back-button {
+      margin-top: 11px;
+      width: 100%;
+      height: 38px;
+      border: 0;
+      background: transparent;
+      color: #64748b;
+      font-size: 11px;
+      cursor: pointer;
+    }
+
+
+    .login-back-button:hover {
+      color: #cbd5e1;
+    }
+
+
+    #registrationView {
+      display: none;
+    }
+
+
+    /* =====================================================
+       APPLICATION
+       ===================================================== */
+
+    #app {
+      display: none;
+      width: 100%;
+      height: 100%;
+    }
+
+
+    /* =====================================================
+       SIDEBAR
+       ===================================================== */
+
+    .sidebar {
+      position: fixed;
+
+      top: 0;
+      left: 0;
+      bottom: 0;
+
+      width: 72px;
+
+      background: #0b0f16;
+      border-right: 1px solid #1e293b;
+
+      display: flex;
+      flex-direction: column;
+
+      z-index: 100;
+
+      transition: width 0.2s ease;
+
+      overflow: hidden;
+    }
+
+
+    .sidebar:hover {
+      width: 245px;
+    }
+
+
+    .sidebar-header {
+      height: 72px;
+
+      display: flex;
+      align-items: center;
+
+      padding: 0 17px;
+
+      border-bottom: 1px solid #1e293b;
+
+      flex-shrink: 0;
+    }
+
+
+    .brand-icon {
+      width: 42px;
+      height: 42px;
+      flex-shrink: 0;
+      border-radius: 8px;
+      background: transparent;
+      border: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    .brand-icon img { width: 100%; height: 100%; object-fit: contain; }
+
+
+    .brand-text {
+      margin-left: 13px;
+
+      white-space: nowrap;
+
+      opacity: 0;
+
+      transition: opacity 0.15s ease;
+    }
+
+
+    .sidebar:hover .brand-text {
+      opacity: 1;
+    }
+
+
+    .brand-title {
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+
+    .brand-subtitle {
+      margin-top: 2px;
+      color: #64748b;
+      font-size: 10px;
+    }
+
+
+    /* =====================================================
+       NAVIGATION
+       ===================================================== */
+
+    .sidebar-nav {
+      flex: 1;
+
+      padding: 13px 10px;
+
+      overflow-y: auto;
+      overflow-x: hidden;
+    }
+
+
+    .nav-section {
+      margin-bottom: 20px;
+    }
+
+
+    .nav-section-title {
+      padding: 0 12px;
+      margin-bottom: 7px;
+
+      color: #475569;
+
+      font-size: 10px;
+      font-weight: 600;
+
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+
+      white-space: nowrap;
+
+      opacity: 0;
+
+      transition: opacity 0.15s;
+    }
+
+
+    .sidebar:hover .nav-section-title {
+      opacity: 1;
+    }
+
+
+    .nav-item {
+      width: 100%;
+      height: 44px;
+
+      display: flex;
+      align-items: center;
+
+      border: none;
+      background: transparent;
+
+      color: #94a3b8;
+
+      border-radius: 7px;
+
+      padding: 0 12px;
+
+      cursor: pointer;
+
+      margin-bottom: 3px;
+
+      text-align: left;
+
+      transition:
+        background 0.15s,
+        color 0.15s;
+    }
+
+
+    .nav-item:hover {
+      background: #111827;
+      color: #f8fafc;
+    }
+
+
+    .nav-item.active {
+      background: rgba(37, 99, 235, 0.13);
+      color: #60a5fa;
+    }
+
+
+    .nav-icon {
+      width: 25px;
+      min-width: 25px;
+
+      text-align: center;
+
+      font-size: 16px;
+    }
+
+
+    .nav-label {
+      margin-left: 13px;
+
+      white-space: nowrap;
+
+      font-size: 13px;
+
+      opacity: 0;
+
+      transition: opacity 0.15s;
+    }
+
+
+    .sidebar:hover .nav-label {
+      opacity: 1;
+    }
+
+
+    /* =====================================================
+       USER AREA
+       ===================================================== */
+
+    .sidebar-user {
+      border-top: 1px solid #1e293b;
+
+      padding: 12px 10px;
+
+      flex-shrink: 0;
+    }
+
+
+    .user-card {
+      display: flex;
+      align-items: center;
+
+      height: 48px;
+
+      padding: 0 7px;
+
+      border-radius: 7px;
+
+      white-space: nowrap;
+
+      cursor: pointer;
+
+      transition:
+        background 0.15s,
+        border-color 0.15s;
+    }
+
+
+    .user-card:hover {
+      background: #111827;
+    }
+
+
+    .user-avatar {
+      width: 34px;
+      height: 34px;
+
+      min-width: 34px;
+
+      border-radius: 50%;
+
+      background: #1e293b;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      font-size: 12px;
+      font-weight: 600;
+
+      color: #cbd5e1;
+
+      overflow: hidden;
+    }
+
+
+    .user-avatar img {
+      width: 100%;
+      height: 100%;
+
+      object-fit: cover;
+
+      display: block;
+    }
+
+
+    .user-info {
+      margin-left: 10px;
+
+      opacity: 0;
+
+      transition: opacity 0.15s;
+    }
+
+
+    .sidebar:hover .user-info {
+      opacity: 1;
+    }
+
+
+    .user-name {
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+
+    .user-rank {
+      color: #64748b;
+      font-size: 10px;
+      margin-top: 2px;
+    }
+
+
+    .logout-button {
+      width: 100%;
+      height: 38px;
+
+      margin-top: 7px;
+
+      border: none;
+
+      background: transparent;
+
+      color: #64748b;
+
+      border-radius: 6px;
+
+      cursor: pointer;
+
+      text-align: left;
+
+      padding-left: 12px;
+
+      white-space: nowrap;
+    }
+
+
+    .logout-button:hover {
+      background: rgba(220, 38, 38, 0.08);
+      color: #f87171;
+    }
+
+
+    /* =====================================================
+       MAIN
+       ===================================================== */
+
+    .main {
+      width: 100%;
+      height: 100%;
+
+      padding-left: 72px;
+
+      transition: padding-left 0.2s ease;
+    }
+
+
+    .content {
+      width: 100%;
+      height: 100%;
+
+      overflow-y: auto;
+      overflow-x: hidden;
+    }
+
+
+    /* =====================================================
+       TOP BAR
+       ===================================================== */
+
+    .topbar {
+      position: sticky;
+
+      top: 0;
+
+      height: 62px;
+
+      background: rgba(8, 11, 16, 0.92);
+
+      backdrop-filter: blur(10px);
+
+      border-bottom: 1px solid #1e293b;
+
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+
+      padding: 0 28px;
+
+      z-index: 50;
+    }
+
+
+    .page-title {
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+
+
+    /* Modularer persönlicher Status – dauerhaft in der globalen Topbar */
+    .fib-own-status-strip { display:flex; align-items:center; justify-content:flex-end; gap:7px; min-width:0; margin-left:auto; }
+    .fib-status-chip { background:var(--patrol-topbar-bg,linear-gradient(180deg,rgba(31,61,91,.9),rgba(17,35,54,.94))); color:var(--patrol-topbar-fg,#e3edf7); display:flex; align-items:center; gap:7px; min-height:29px; max-width:220px; padding:4px 9px; border:1px solid rgba(91,145,190,.25); border-radius:6px; background:linear-gradient(180deg,rgba(31,61,91,.9),rgba(17,35,54,.94)); color:#e3edf7; white-space:nowrap; min-width:0; }
+    .fib-status-chip-label { color:#86a9c9; font-family:inherit; font-size:9px; font-weight:800; letter-spacing:.07em; }
+    .fib-status-chip strong { overflow:hidden; text-overflow:ellipsis; font-family:inherit; font-size:11px; font-weight:750; }
+    .fib-status-chip-call { border-color:rgba(238,171,65,.42); background:linear-gradient(180deg,rgba(104,72,32,.65),rgba(52,39,26,.85)); }
+    .fib-status-chip-call .fib-status-chip-label { color:#f1bd68; }
+    .fib-status-chip.is-idle { background:rgba(40,48,60,.86); border-color:rgba(148,163,184,.18); }
+    .fib-own-status-strip .page-status { flex-shrink:0; margin-left:8px; }
+    @media (max-width: 900px) { .fib-own-status-strip { gap:4px; } .fib-status-chip { padding:4px 6px; gap:5px; max-width:145px; } .fib-status-chip-label { display:none; } }
+    @media (max-width: 650px) { .fib-own-status-strip { max-width:70%; } .fib-status-chip-unit { display:none; } .fib-own-status-strip .page-status { font-size:0; gap:0; margin-left:3px; } }
+
+    .page-status {
+      display: flex;
+      align-items: center;
+
+      gap: 8px;
+
+      color: #64748b;
+
+      font-size: 11px;
+    }
+
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+
+      border-radius: 50%;
+
+      background: #22c55e;
+
+      box-shadow:
+        0 0 8px rgba(34, 197, 94, 0.45);
+    }
+
+
+    /* =====================================================
+       PAGE CONTAINER
+       ===================================================== */
+
+    #pageContainer {
+      min-height: calc(100% - 62px);
+    }
+
+
+    .page-loading {
+      height: calc(100vh - 62px);
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      color: #64748b;
+
+      font-size: 13px;
+    }
+
+
+    .page-error {
+      margin: 30px;
+
+      padding: 20px;
+
+      border-radius: 10px;
+
+      background: rgba(220, 38, 38, 0.08);
+
+      border: 1px solid rgba(220, 38, 38, 0.20);
+
+      color: #fca5a5;
+    }
+
+
+    /* =====================================================
+       GENERAL TABLE
+       ===================================================== */
+
+    .system-table {
+      border: 1px solid #1e293b;
+
+      border-radius: 9px;
+
+      overflow: hidden;
+
+      background: #0f172a;
+    }
+
+
+    .system-table table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+
+    .system-table th {
+      background: #111827;
+
+      color: #64748b;
+
+      font-size: 11px;
+      font-weight: 600;
+
+      text-align: left;
+
+      padding: 12px 15px;
+
+      border-bottom: 1px solid #1e293b;
+    }
+
+
+    .system-table td {
+      padding: 12px 15px;
+
+      font-size: 12px;
+
+      border-bottom: 1px solid #1e293b;
+
+      color: #cbd5e1;
+    }
+
+
+    .system-table tr:last-child td {
+      border-bottom: none;
+    }
+
+
+    .system-table button {
+      border: 1px solid #334155;
+
+      background: #111827;
+
+      color: #cbd5e1;
+
+      border-radius: 5px;
+
+      padding: 6px 10px;
+
+      cursor: pointer;
+
+      font-size: 11px;
+    }
+
+
+    .system-table button:hover {
+      background: #1e293b;
+      color: white;
+    }
+
+
+    .status-active {
+      color: #4ade80;
+    }
+
+
+    .status-inactive {
+      color: #f87171;
+    }
+
+
+    .master-badge {
+      display: inline-block;
+
+      padding: 3px 7px;
+
+      border-radius: 4px;
+
+      background: rgba(168, 85, 247, 0.12);
+
+      border: 1px solid rgba(168, 85, 247, 0.20);
+
+      color: #c084fc;
+
+      font-size: 9px;
+
+      font-weight: 700;
+
+      letter-spacing: 0.04em;
+    }
+
+
+    code {
+      color: #93c5fd;
+      font-size: 11px;
+    }
+
+
+    /* =====================================================
+       GLOBAL MODAL
+       ===================================================== */
+
+    #fibGlobalModalOverlay {
+      position: fixed;
+      inset: 0;
+      z-index: 15000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: clamp(10px, 2.2vh, 24px);
+      background: rgba(0,0,0,.68);
+      backdrop-filter: blur(7px);
+      opacity: 0;
+      transition: opacity .12s ease;
+    }
+
+    #fibGlobalModalOverlay.open {
+      display: flex;
+      opacity: 1;
+    }
+
+    .fib-global-modal {
+      width: fit-content;
+      min-width: min(460px, 100%);
+      max-width: min(900px, 100%);
+      height: auto;
+      max-height: calc(100dvh - clamp(20px, 4.4vh, 48px));
+      overflow: hidden;
+      background: #0d131d;
+      border: 1px solid #263244;
+      border-radius: 14px;
+      box-shadow: 0 28px 90px rgba(0,0,0,.55);
+      display: flex;
+      flex-direction: column;
+      color: #dbe5f2;
+      font-family: inherit;
+      font-size: 12px;
+      line-height: 1.45;
+      transform: translateY(4px) scale(.995);
+      transition: transform .16s ease;
+    }
+
+    #fibGlobalModalOverlay.open .fib-global-modal {
+      transform: translateY(0) scale(1);
+    }
+
+    /* Aktenbearbeitung benötigt Platz für den vollständigen Text und ein breites Formular. */
+    #fibGlobalModalOverlay.fib-modal-records-mode .fib-global-modal {
+      width: min(1080px, calc(100vw - 40px));
+      min-width: 0;
+      max-width: 1080px;
+      max-height: calc(100dvh - 32px);
+    }
+    #fibGlobalModalOverlay.fib-modal-records-mode .fib-global-modal-body {
+      flex: 1 1 auto;
+      min-height: 0;
+      max-height: calc(100dvh - 150px);
+      overflow-y: auto;
+      padding: 20px 24px;
+    }
+    #fibGlobalModalOverlay.fib-modal-records-mode .records-form-grid { gap: 15px 16px; }
+    #fibGlobalModalOverlay.fib-modal-records-mode .records-form-group { min-width: 0; }
+    #fibGlobalModalOverlay.fib-modal-records-mode .records-form-textarea {
+      min-height: clamp(320px, 45vh, 580px);
+      max-height: 60vh;
+    }
+    @media (max-width: 700px) {
+      #fibGlobalModalOverlay.fib-modal-records-mode .fib-global-modal {
+        width: calc(100vw - 20px);
+        max-height: calc(100dvh - 20px);
+      }
+      #fibGlobalModalOverlay.fib-modal-records-mode .fib-global-modal-body {
+        max-height: calc(100dvh - 130px);
+        padding: 14px 15px;
+      }
+      #fibGlobalModalOverlay.fib-modal-records-mode .records-form-textarea {
+        min-height: 230px;
+        max-height: 48vh;
+      }
+    }
+    /* Modal wächst mit seinem Inhalt und begrenzt nur bei Bedarf auf die Viewporthöhe. */
+    .fib-global-modal-body > :first-child { margin-top: 0; }
+    .fib-global-modal-body > :last-child { margin-bottom: 0; }
+    .fib-global-modal-body :is(input, select, textarea, button) { max-width: 100%; box-sizing: border-box; }
+    .fib-global-modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 16px 22px;
+      border-bottom: 1px solid #1e293b;
+      background: linear-gradient(180deg, rgba(255,255,255,.018), transparent);
+      flex-shrink: 0;
+    }
+
+    .fib-global-modal-heading {
+      min-width: 0;
+    }
+
+    .fib-global-modal-title {
+      color: #f1f5f9;
+      font-size: 13px;
+      line-height: 1.35;
+      letter-spacing: .01em;
+      font-weight: 700;
+    }
+
+    .fib-global-modal-subtitle {
+      margin-top: 4px;
+      color: #8290a4;
+      font-size: 11px;
+      line-height: 1.4;
+    }
+
+    .fib-global-modal-close {
+      width: 31px;
+      height: 31px;
+      flex-shrink: 0;
+      border: 1px solid #273449;
+      border-radius: 7px;
+      background: #111827;
+      color: #94a3b8;
+      cursor: pointer;
+      font: inherit;
+      font-size: 16px;
+      line-height: 1;
+    }
+
+    .fib-global-modal-close:hover {
+      color: #fff;
+      background: #172033;
+    }
+
+    .fib-global-modal-body {
+      min-height: 0;
+      flex: 0 1 auto;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      scrollbar-gutter: stable;
+      padding: 18px 22px;
+      contain: layout paint;
+      font-family: inherit;
+      line-height: 1.5;
+    }
+
+    .fib-global-modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      padding: 12px 22px;
+      border-top: 1px solid #1e293b;
+      background: rgba(255,255,255,.012);
+      flex-shrink: 0;
+    }
+
+    .fib-global-modal-footer > .fib-global-modal-spacer {
+      flex: 1;
+    }
+
+    @media (max-width: 700px) {
+      #fibGlobalModalOverlay { padding: 10px; }
+      .fib-global-modal { width: 100%; max-height: calc(100dvh - 20px); border-radius: 12px; }
+      .fib-global-modal-header { padding: 13px 15px; }
+      .fib-global-modal-body { padding: 14px 15px; }
+      .fib-global-modal-footer { padding: 11px 15px; gap: 7px; flex-wrap: wrap; }
+    }
+
+
+    .fib-confirm-message {
+      padding: 2px 0 4px;
+      color: #cbd5e1;
+      font-size: 12px;
+      line-height: 1.65;
+      overflow-wrap: anywhere;
+    }
+
+    /* =====================================================
+       PROFILE MODAL
+       ===================================================== */
+
+    #profileModal {
+      position: fixed;
+      inset: 0;
+
+      display: none;
+
+      align-items: center;
+      justify-content: center;
+
+      padding: 25px;
+
+      background: rgba(0, 0, 0, 0.62);
+
+      backdrop-filter: blur(7px);
+
+      z-index: 5000;
+    }
+
+
+    #profileModal.open {
+      display: flex;
+    }
+
+
+    .profile-modal {
+      width: 100%;
+      max-width: 520px;
+
+      max-height: calc(100vh - 50px);
+
+      overflow-y: auto;
+
+      background: #0d131d;
+
+      border: 1px solid #263244;
+
+      border-radius: 14px;
+
+      box-shadow:
+        0 30px 100px rgba(0, 0, 0, 0.60);
+    }
+
+
+    .profile-modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+
+      padding: 18px 20px;
+
+      border-bottom: 1px solid #1e293b;
+    }
+
+
+    .profile-modal-title {
+      font-size: 14px;
+      font-weight: 650;
+      color: #f8fafc;
+    }
+
+
+    .profile-modal-subtitle {
+      margin-top: 3px;
+
+      font-size: 10px;
+
+      color: #64748b;
+    }
+
+
+    .profile-close {
+      width: 32px;
+      height: 32px;
+
+      border: 1px solid #273449;
+
+      background: #111827;
+
+      color: #94a3b8;
+
+      border-radius: 7px;
+
+      cursor: pointer;
+
+      font-size: 16px;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+
+    .profile-close:hover {
+      background: #172033;
+      color: #fff;
+    }
+
+
+    .profile-modal-body {
+      padding: 22px;
+    }
+
+
+    .profile-overview {
+      display: flex;
+      align-items: center;
+
+      gap: 17px;
+
+      padding-bottom: 20px;
+
+      border-bottom: 1px solid #1e293b;
+    }
+
+
+    .profile-large-avatar {
+      width: 86px;
+      height: 86px;
+
+      min-width: 86px;
+
+      border-radius: 14px;
+
+      background: #182131;
+
+      border: 1px solid #334155;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      overflow: hidden;
+
+      color: #cbd5e1;
+
+      font-size: 22px;
+      font-weight: 700;
+    }
+
+
+    .profile-large-avatar img {
+      width: 100%;
+      height: 100%;
+
+      object-fit: cover;
+
+      display: block;
+    }
+
+
+    .profile-overview-info {
+      min-width: 0;
+
+      display: flex;
+      flex-direction: column;
+
+      gap: 4px;
+    }
+
+
+    .profile-overview-name {
+      font-size: 17px;
+      font-weight: 700;
+      color: #f8fafc;
+    }
+
+
+    .profile-overview-rank {
+      font-size: 11px;
+      color: #60a5fa;
+    }
+
+
+    .profile-overview-username {
+      font-size: 10px;
+      color: #64748b;
+    }
+
+
+    .profile-section {
+      margin-top: 20px;
+    }
+
+
+    .profile-section-title {
+      margin-bottom: 10px;
+
+      font-size: 11px;
+
+      font-weight: 650;
+
+      color: #cbd5e1;
+    }
+
+
+    .profile-image-actions {
+      display: flex;
+
+      gap: 8px;
+
+      flex-wrap: wrap;
+    }
+
+
+    .profile-button {
+      min-height: 36px;
+
+      padding: 0 12px;
+
+      border-radius: 7px;
+
+      border: 1px solid #334155;
+
+      background: #111827;
+
+      color: #cbd5e1;
+
+      cursor: pointer;
+
+      font-size: 11px;
+
+      font-weight: 500;
+
+      transition:
+        background 0.15s,
+        border-color 0.15s,
+        color 0.15s;
+    }
+
+
+    .profile-button:hover {
+      background: #182131;
+
+      border-color: #475569;
+
+      color: #fff;
+    }
+
+
+    .profile-button.primary {
+      background: #1d4ed8;
+
+      border-color: #2563eb;
+
+      color: #fff;
+    }
+
+
+    .profile-button.primary:hover {
+      background: #2563eb;
+    }
+
+
+    .profile-button.danger:hover {
+      background: rgba(220, 38, 38, 0.10);
+
+      border-color: rgba(248, 113, 113, 0.30);
+
+      color: #fca5a5;
+    }
+
+
+    .profile-button:disabled {
+      opacity: 0.55;
+
+      cursor: wait;
+    }
+
+
+    .profile-input-group {
+      margin-bottom: 11px;
+    }
+
+
+    .profile-input-group label {
+      display: block;
+
+      margin-bottom: 6px;
+
+      color: #64748b;
+
+      font-size: 10px;
+
+      font-weight: 500;
+    }
+
+
+    .profile-input {
+      width: 100%;
+
+      height: 39px;
+
+      padding: 0 11px;
+
+      border-radius: 7px;
+
+      border: 1px solid #273449;
+
+      background: #0a1019;
+
+      color: #f8fafc;
+
+      outline: none;
+
+      font-size: 11px;
+    }
+
+
+    .profile-input:focus {
+      border-color: #3b82f6;
+
+      box-shadow:
+        0 0 0 3px rgba(59, 130, 246, 0.08);
+    }
+
+
+    .profile-password-grid {
+      display: grid;
+
+      grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+
+      gap: 10px;
+    }
+
+
+    .profile-password-grid
+    .profile-input-group:first-child {
+      grid-column: 1 / -1;
+    }
+
+
+    .profile-message {
+      display: none;
+
+      margin-top: 10px;
+
+      padding: 9px 11px;
+
+      border-radius: 7px;
+
+      font-size: 10px;
+
+      line-height: 1.45;
+    }
+
+
+    .profile-message.success {
+      display: block;
+
+      background: rgba(34, 197, 94, 0.08);
+
+      border: 1px solid rgba(34, 197, 94, 0.18);
+
+      color: #86efac;
+    }
+
+
+    .profile-message.error {
+      display: block;
+
+      background: rgba(220, 38, 38, 0.08);
+
+      border: 1px solid rgba(220, 38, 38, 0.18);
+
+      color: #fca5a5;
+    }
+
+
+    .profile-divider {
+      height: 1px;
+
+      background: #1e293b;
+
+      margin: 22px 0 0;
+    }
+
+
+    /* =====================================================
+       SCROLLBARS
+       ===================================================== */
+
+    ::-webkit-scrollbar {
+      width: 7px;
+      height: 7px;
+    }
+
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+
+    ::-webkit-scrollbar-thumb {
+      background: #1e293b;
+      border-radius: 10px;
+    }
+
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #334155;
+    }
+
+
+    /* =====================================================
+       SESSION LOADING SCREEN
+       ===================================================== */
+
+    .session-loading-screen {
+      position: fixed;
+      inset: 0;
+
+      z-index: 99999;
+
+      display: flex;
+
+      align-items: center;
+      justify-content: center;
+
+      background: #0b0f14;
+
+      opacity: 1;
+
+      visibility: visible;
+
+      transition:
+        opacity 0.25s ease,
+        visibility 0.25s ease;
+    }
+
+
+    .session-loading-screen.hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+
+    .session-loading-content {
+      display: flex;
+
+      flex-direction: column;
+
+      align-items: center;
+
+      text-align: center;
+    }
+
+
+    .session-loading-logo {
+      width: 78px;
+      height: 78px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 18px;
+      border: 0;
+      border-radius: 16px;
+      overflow: hidden;
+    }
+    .session-loading-logo img { width: 100%; height: 100%; object-fit: contain; }
+
+
+    .session-loading-title {
+      color: #ffffff;
+
+      font-size: 18px;
+
+      font-weight: 700;
+
+      letter-spacing: 2px;
+    }
+
+
+    .session-loading-spinner {
+      width: 26px;
+      height: 26px;
+
+      margin-top: 28px;
+      margin-bottom: 14px;
+
+      border: 3px solid rgba(255, 255, 255, 0.12);
+
+      border-top-color: #ffffff;
+
+      border-radius: 50%;
+
+      animation:
+        sessionLoadingSpin 0.8s linear infinite;
+    }
+
+
+    .session-loading-text {
+      color: rgba(255, 255, 255, 0.55);
+
+      font-size: 13px;
+    }
+
+
+    @keyframes sessionLoadingSpin {
+
+      to {
+        transform: rotate(360deg);
+      }
+
+    }
+
+
+    /* =====================================================
+       MOBILE
+       ===================================================== */
+
+    @media (max-width: 800px) {
+
+      .sidebar {
+        width: 58px;
+      }
+
+
+      .sidebar:hover {
+        width: 220px;
+      }
+
+
+      .main {
+        padding-left: 58px;
+      }
+
+
+      .topbar {
+        padding: 0 18px;
+      }
+
+
+      .profile-password-grid {
+        grid-template-columns: 1fr;
+      }
+
+
+      .profile-password-grid
+      .profile-input-group:first-child {
+        grid-column: auto;
+      }
+
+    }
+
+
+
+    /* =====================================================
+       EXTERNE RECORD-ANSICHT
+       ===================================================== */
+
+    body.record-share-mode #loginScreen,
+    body.record-share-mode #app {
+      display: none !important;
+    }
+
+    #recordShareScreen {
+      position: fixed;
+      inset: 0;
+      z-index: 50000;
+      display: none;
+      overflow: auto;
+      padding: 28px 18px 48px;
+      background: #0c0e12;
+      color: #f5f7fa;
+    }
+
+    body.record-share-mode #recordShareScreen {
+      display: block;
+    }
+
+    .record-share-public-shell {
+      width: min(960px,100%);
+      margin: 0 auto;
+    }
+
+    .record-share-public-brand {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      margin-bottom: 18px;
+    }
+
+    .record-share-public-mark {
+      width: 34px;
+      height: 34px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: 9px;
+      background: rgba(255,255,255,.035);
+      color: #fff;
+      font-weight: 800;
+    }
+
+    .record-share-public-brand strong {
+      font-size: 12px;
+      letter-spacing: .3px;
+    }
+
+    .record-share-public-brand span {
+      display: block;
+      margin-top: 2px;
+      color: rgba(255,255,255,.30);
+      font-size: 9px;
+    }
+
+    .record-share-public-card {
+      padding: 22px;
+      background: #111419;
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 15px;
+      box-shadow: 0 22px 70px rgba(0,0,0,.36);
+    }
+
+    .record-share-public-eyebrow {
+      color: rgba(255,255,255,.28);
+      font-size: 8px;
+      font-weight: 800;
+      letter-spacing: .7px;
+      text-transform: uppercase;
+    }
+
+    .record-share-public-title {
+      margin-top: 7px;
+      color: #fff;
+      font-size: 24px;
+      line-height: 1.18;
+      font-weight: 750;
+    }
+
+    .record-share-public-case {
+      margin-top: 7px;
+      color: rgba(255,255,255,.42);
+      font-size: 10px;
+    }
+
+    .record-share-public-meta {
+      display: grid;
+      grid-template-columns: repeat(4,minmax(0,1fr));
+      gap: 8px;
+      margin-top: 18px;
+    }
+
+    .record-share-public-meta-card {
+      padding: 10px 11px;
+      border: 1px solid rgba(255,255,255,.05);
+      border-radius: 8px;
+      background: rgba(255,255,255,.018);
+    }
+
+    .record-share-public-meta-label {
+      color: rgba(255,255,255,.25);
+      font-size: 7px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .55px;
+    }
+
+    .record-share-public-meta-value {
+      margin-top: 4px;
+      color: rgba(255,255,255,.70);
+      font-size: 10px;
+      line-height: 1.35;
+      word-break: break-word;
+    }
+
+    .record-share-public-section {
+      margin-top: 18px;
+    }
+
+    .record-share-public-section-title {
+      margin-bottom: 7px;
+      color: rgba(255,255,255,.28);
+      font-size: 8px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .6px;
+    }
+
+    .record-share-public-box p{margin:0 0 9px}.record-share-public-box ul{margin:8px 0;padding-left:22px}.record-share-public-box li{margin:4px 0}.record-share-public-box strong{color:#f1f6fc}.record-share-public-box em{color:#c6d8eb}
+    .record-share-public-box {
+      padding: 13px;
+      border: 1px solid rgba(255,255,255,.05);
+      border-radius: 9px;
+      background: rgba(255,255,255,.018);
+      color: rgba(255,255,255,.66);
+      font-size: 11px;
+      line-height: 1.65;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .record-share-public-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 23px;
+      padding: 0 8px;
+      border-radius: 7px;
+      border: 1px solid rgba(255,255,255,.06);
+      background: rgba(255,255,255,.045);
+      color: rgba(255,255,255,.72);
+      font-size: 9px;
+      font-weight: 700;
+    }
+
+    .record-share-public-status::before {
+      content: "";
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: rgba(255,255,255,.45);
+    }
+
+    .record-share-public-expiry {
+      margin-top: 17px;
+      padding-top: 13px;
+      border-top: 1px solid rgba(255,255,255,.05);
+      color: rgba(255,255,255,.25);
+      font-size: 8px;
+      line-height: 1.5;
+    }
+
+    .record-share-public-error,
+    .record-share-public-loading {
+      width: min(620px,100%);
+      margin: 14vh auto 0;
+      padding: 22px;
+      text-align: center;
+      background: #111419;
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 14px;
+      box-shadow: 0 22px 70px rgba(0,0,0,.36);
+    }
+
+    .record-share-public-error-title {
+      color: #fff;
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    .record-share-public-error-text,
+    .record-share-public-loading-text {
+      margin-top: 7px;
+      color: rgba(255,255,255,.35);
+      font-size: 10px;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 760px) {
+      .record-share-public-meta {
+        grid-template-columns: repeat(2,minmax(0,1fr));
+      }
+    }
+
+    @media (max-width: 480px) {
+      #recordShareScreen {
+        padding: 16px 10px 30px;
+      }
+      .record-share-public-card {
+        padding: 16px;
+      }
+      .record-share-public-meta {
+        grid-template-columns: 1fr;
+      }
+      .record-share-public-title {
+        font-size: 20px;
+      }
+    }
+
+
+
+    /* =====================================================
+       LSPD MDT – ZENTRALE FORMULAR- UND DROPDOWN-OBERFLÄCHE
+       ===================================================== */
+    .fib-ui-select {
+      position: relative;
+      width: 100%;
+      min-width: 0;
+      color: #e7edf6;
+      font: inherit;
+    }
+    .fib-ui-select > select.fib-ui-native-select {
+      position: absolute !important;
+      inset: 0 !important;
+      width: 100% !important;
+      height: 100% !important;
+      opacity: 0 !important;
+      pointer-events: none !important;
+      z-index: -1 !important;
+    }
+    .fib-ui-select-trigger {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      width: 100%;
+      min-height: 39px;
+      padding: 9px 12px;
+      border: 1px solid #2b394d;
+      border-radius: 8px;
+      background: linear-gradient(180deg, #151e2b, #101722);
+      color: #e6edf7;
+      font: inherit;
+      font-size: 12px;
+      line-height: 1.35;
+      text-align: left;
+      cursor: pointer;
+      transition: border-color .14s ease, background .14s ease, box-shadow .14s ease;
+    }
+    .fib-ui-select-trigger:hover { border-color: #47617f; background: #172233; }
+    .fib-ui-select-trigger:focus-visible { outline: none; border-color: #4d9eff; box-shadow: 0 0 0 3px rgba(77,158,255,.15); }
+    .fib-ui-select-trigger:disabled { opacity: .48; cursor: not-allowed; }
+    .fib-ui-select-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .fib-ui-select-chevron { flex: 0 0 auto; color: #8294ab; font-size: 11px; transition: transform .15s ease; }
+    .fib-ui-select.open .fib-ui-select-chevron { transform: rotate(180deg); }
+    .fib-ui-select-menu {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: calc(100% + 5px);
+      z-index: 20000;
+      display: none;
+      max-height: 240px;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      scrollbar-gutter: stable;
+      padding: 5px;
+      border: 1px solid #2a3b52;
+      border-radius: 9px;
+      background: #0d1420;
+      box-shadow: 0 16px 38px rgba(0,0,0,.48);
+    }
+    .fib-ui-select.open .fib-ui-select-menu { display: block; }
+    /* Open menus are portaled to body so modal overflow/paint containment cannot clip them. */
+    .fib-ui-select-menu.is-portal {
+      position: fixed !important;
+      inset: auto auto auto auto;
+      z-index: 30000 !important;
+      display: block !important;
+      box-sizing: border-box;
+      min-width: 0;
+      max-width: calc(100vw - 16px);
+      overflow-x: hidden;
+      overscroll-behavior: contain;
+      scroll-behavior: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .fib-ui-select-option {
+      display: flex;
+      align-items: center;
+      width: 100%;
+      min-height: 33px;
+      padding: 8px 10px;
+      border: 1px solid transparent;
+      border-radius: 6px;
+      background: transparent;
+      color: #cbd5e1;
+      font: inherit;
+      font-size: 12px;
+      text-align: left;
+      cursor: pointer;
+    }
+    .fib-ui-select-option:hover, .fib-ui-select-option.active { background: #17263a; color: #fff; }
+    .fib-ui-select-option.selected { border-color: rgba(69,145,232,.25); background: rgba(37,99,235,.16); color: #93c5fd; }
+    .fib-ui-select-option:disabled { opacity: .38; cursor: not-allowed; }
+    .fib-ui-select-empty { padding: 10px; color: #8290a4; font-size: 11px; }
+
+    /* Modal-Aktionen verwenden überall dieselbe Gestaltung. */
+    .fib-global-modal button,
+    .fib-global-modal input,
+    .fib-global-modal textarea {
+      font-family: inherit;
+    }
+
+    /* Personalakte content is mounted inside the same central modal shell. */
+    #fibGlobalModalOverlay.fib-modal-agents-mode .fib-global-modal { width: min(980px, 100%); max-height: min(900px, calc(100vh - 28px)); }
+    #fibGlobalModalOverlay.fib-modal-agents-mode .fib-global-modal-header { display: none; }
+    #fibGlobalModalOverlay.fib-modal-agents-mode .fib-global-modal-body { padding: 0; overflow: hidden; }
+    #fibGlobalModalOverlay.fib-modal-agents-mode .agents-system-modal { width: 100%; max-width: none; max-height: min(900px, calc(100dvh - 40px)); background: transparent; border: 0; border-radius: 0; box-shadow: none; font-family: inherit; color: #dbe5f2; }
+    #fibGlobalModalOverlay.fib-modal-agents-mode .agents-system-modal-header { padding: 17px 20px 15px; border-bottom: 1px solid #1e293b; background: linear-gradient(180deg, rgba(255,255,255,.018), transparent); }
+    #fibGlobalModalOverlay.fib-modal-agents-mode .agents-system-modal-title { color: #f1f5f9; font-size: 13px; font-weight: 700; letter-spacing: .01em; }
+    #fibGlobalModalOverlay.fib-modal-agents-mode .agents-system-modal-description { margin-top: 4px; color: #8290a4; font-size: 11px; line-height: 1.4; }
+    #fibGlobalModalOverlay.fib-modal-agents-mode .agents-system-modal-body { padding: 20px; overflow-y: auto; }
+    #fibGlobalModalOverlay.fib-modal-agents-mode .agents-system-modal-actions { padding: 13px 20px; gap: 8px; border-top: 1px solid #1e293b; background: rgba(255,255,255,.012); }
+    /* Existing bespoke controls use the same dimensions, typography and palette as the global select. */
+    #fibGlobalModalOverlay.fib-modal-agents-mode .agents-rank-select-button,
+    #fibGlobalModalOverlay.fib-modal-agents-mode .agents-form-select,
+    .system-custom-select-trigger {
+      min-height: 39px; height: auto; padding: 9px 12px; box-sizing: border-box;
+      border: 1px solid #2b394d; border-radius: 8px;
+      background: linear-gradient(180deg, #151e2b, #101722); color: #e6edf7;
+      font-family: inherit; font-size: 12px; line-height: 1.35; font-weight: 400;
+    }
+    #fibGlobalModalOverlay.fib-modal-agents-mode .agents-rank-select-button:hover,
+    .system-custom-select-trigger:hover { border-color: #47617f; background: #172233; color: #fff; }
+    #fibGlobalModalOverlay.fib-modal-agents-mode .agents-rank-select-menu,
+    .system-custom-select-menu { z-index: 20000; max-height: 240px; padding: 5px; border: 1px solid #2a3b52; border-radius: 9px; background: #0d1420; box-shadow: 0 16px 38px rgba(0,0,0,.48); }
+    #fibGlobalModalOverlay.fib-modal-agents-mode .agents-rank-option,
+    .system-custom-select-option { min-height: 33px; padding: 8px 10px; border: 1px solid transparent; border-radius: 6px; color: #cbd5e1; font-family: inherit; font-size: 12px; line-height: 1.35; }
+    #fibGlobalModalOverlay.fib-modal-agents-mode .agents-rank-option:hover,
+    #fibGlobalModalOverlay.fib-modal-agents-mode .agents-rank-option.selected,
+    .system-custom-select-option:hover,
+    .system-custom-select-option.selected { border-color: rgba(69,145,232,.25); background: rgba(37,99,235,.16); color: #93c5fd; }
+    .fib-modal-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      min-height: 36px;
+      padding: 8px 14px;
+      border: 1px solid #2b394d;
+      border-radius: 7px;
+      background: #151e2b;
+      color: #cbd5e1;
+      font: inherit;
+      font-size: 12px;
+      font-weight: 600;
+      line-height: 1.25;
+      white-space: nowrap;
+      cursor: pointer;
+      transition: background .14s ease, border-color .14s ease, transform .14s ease;
+    }
+    .fib-modal-button:hover { background: #202d40; border-color: #405572; color: #fff; }
+    .fib-modal-button:active { transform: translateY(1px); }
+    .fib-modal-button.primary { background: #1769c2; border-color: #287fd9; color: #fff; }
+    .fib-modal-button.primary:hover { background: #227bd8; }
+    .fib-modal-button.danger { background: rgba(185,28,28,.14); border-color: rgba(239,68,68,.35); color: #fca5a5; }
+    .fib-modal-button:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+    /* Shared polished controls used by the patrol-partner picker. */
+    .patrol-add-member, .patrol-remove-member, .patrol-user-option {
+      appearance: none; -webkit-appearance: none; font: inherit; cursor: pointer;
+    }
+    .patrol-add-member {
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      min-height: 32px; padding: 7px 11px; border: 1px solid #31577d; border-radius: 8px;
+      color: #dcecff; background: rgba(37,99,235,.16); font-size: 11px; font-weight: 650;
+      transition: background .15s ease, border-color .15s ease, transform .15s ease;
+    }
+    .patrol-add-member:hover { background: rgba(37,99,235,.27); border-color: #4c8ed0; }
+    .patrol-remove-member {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 30px; height: 30px; min-width: 30px; padding: 0;
+      border: 1px solid rgba(239,68,68,.28); border-radius: 8px;
+      background: rgba(185,28,28,.12); color: #fca5a5;
+      font-size: 17px; font-weight: 500; line-height: 1;
+      transition: background .14s ease, border-color .14s ease, color .14s ease;
+    }
+    .patrol-remove-member:hover { background: rgba(185,28,28,.24); border-color: rgba(239,68,68,.55); color: #fff; }
+    .patrol-remove-member:focus-visible { outline: 2px solid rgba(96,165,250,.8); outline-offset: 2px; }
+    .patrol-user-option {
+      width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      padding: 10px 12px; border: 1px solid #26364b; border-radius: 9px; margin: 5px 0;
+      text-align: left; color: #dbe5f2; background: #101a28; font-size: 12px;
+      transition: background .15s ease, border-color .15s ease;
+    }
+    .patrol-user-option:hover, .patrol-user-option:focus-visible { background: #18283b; border-color: #4776a5; outline: none; }
+    .patrol-user-option-info { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+    .patrol-user-option-rank { color: #8297b1; font-size: 10px; }
+    .patrol-user-option-name { color: #f1f5f9; font-weight: 650; overflow-wrap: anywhere; }
+    .patrol-user-option > div:last-child { color: #8fbdf0 !important; font-size: 10px !important; white-space: nowrap; }
+    .patrol-member-position { min-width: 142px; max-width: 180px; }
+    #fibGlobalModalBody input:not([type="checkbox"]):not([type="radio"]),
+    #fibGlobalModalBody textarea {
+      width: 100%; min-height: 38px; padding: 9px 11px;
+      border: 1px solid #2b394d; border-radius: 8px;
+      background: #0a111b; color: #e6edf7; font: inherit; font-size: 12px;
+      outline: none;
+    }
+    #fibGlobalModalBody input:focus, #fibGlobalModalBody textarea:focus { border-color: #438fe5; box-shadow: 0 0 0 3px rgba(67,143,229,.12); }
+    @media (max-width: 620px) {
+      .fib-global-modal { width: 100%; max-height: calc(100dvh - 20px); }
+      #fibGlobalModalOverlay { padding: 10px; }
+      .fib-global-modal-body { padding: 13px; }
+      .fib-global-modal-footer { padding: 10px 13px; flex-wrap: wrap; }
+    }
+
+
+    /* Phase 3.17 – kompakter schwebender Dienst-Auswahleinschub */
+    .fib-own-status-strip .fib-status-chip { cursor: default; }
+    .fib-own-status-strip .fib-status-chip[data-duty-picker-trigger] { cursor: pointer; transition: border-color .15s, background .15s; }
+    .fib-own-status-strip .fib-status-chip[data-duty-picker-trigger]:hover,
+    .fib-own-status-strip .fib-status-chip[data-duty-picker-trigger]:focus-visible { border-color: #278fc2; background: rgba(13,111,157,.24); outline: none; }
+    .fib-duty-start-button{border:1px solid #287cb5;background:#12649b;color:#fff;border-radius:5px;padding:9px 12px;font-family:inherit;font-weight:700;font-size:12px;cursor:pointer;white-space:nowrap}.fib-duty-start-button:hover{background:#197bb8}.fib-duty-picker-footer{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px;border-top:1px solid rgba(255,255,255,.08);font-family:inherit;font-size:11px;color:#8da8c3}.fib-duty-apply{background:#16865f;color:#fff;border:0;border-radius:4px;padding:9px 12px;font-weight:700;cursor:pointer}.fib-duty-apply:disabled{opacity:.45;cursor:not-allowed}.fib-duty-picker { position: absolute; z-index: 12000; top: calc(100% + 6px); right: 18px; width: min(540px, calc(100vw - 36px)); max-height: min(72vh, 620px); overflow: hidden; background: #061426; border: 1px solid rgba(67,151,204,.48); border-radius: 7px; box-shadow: 0 16px 38px rgba(0,0,0,.52); color: #dce8f5; }
+    .fib-duty-picker[hidden] { display: none !important; }
+    .fib-duty-picker-head { display:flex; align-items:center; justify-content:space-between; padding: 10px 12px; background:#0b2038; border-bottom:1px solid rgba(255,255,255,.08); font-family:inherit; font-size:13px; }
+    .fib-duty-close { border:0; background:transparent; color:#9fb4cb; font:inherit; font-size:20px; line-height:1; cursor:pointer; padding:0 4px; }
+    .fib-duty-picker-scroll { max-height: calc(min(72vh, 620px) - 42px); overflow-y:auto; overscroll-behavior:contain; padding:9px; }
+    .fib-duty-picker-group { padding:9px; }
+    .fib-duty-picker-label { font-family:inherit; font-size:10px; text-transform:uppercase; letter-spacing:.08em; color:#829ab4; font-weight:750; margin:0 0 7px; }
+    .fib-duty-options { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:4px; }
+    .fib-duty-option { min-width:0; border:1px solid #086d99; border-radius:4px; padding:7px 8px; text-align:left; color:#062033; background:#08a6d8; font-family:inherit;font-size:12px;font-weight:600;line-height:1.35; cursor:pointer; overflow-wrap:anywhere; transition:filter .12s,border-color .12s; }
+    .fib-duty-option:hover,.fib-duty-option:focus-visible { filter:brightness(1.12); border-color:#a8e8ff; outline:2px solid rgba(56,189,248,.28); }
+    .fib-duty-option[aria-pressed="true"] { box-shadow:inset 0 0 0 2px #e5f7ff; }
+    .fib-duty-options-warm .fib-duty-option { background:#f5b51b; border-color:#d99a0b; color:#34230a; }
+    .fib-duty-options-warm .fib-duty-option:nth-child(4n), .fib-duty-options-warm .fib-duty-option:nth-child(4n + 1) { background:#f0e94b; border-color:#d4cf38; }
+    @media(max-width:650px) { .fib-duty-picker { right:8px; width:calc(100vw - 16px); max-height:68vh; } .fib-duty-options { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+  </style>
+
+  <script src="/js/cloud-api.js" defer></script>
+
+
+
+<style id="fib-unified-design-overhaul">
+:root{--fib-bg:#0b111a;--fib-panel:#111b28;--fib-panel-2:#152235;--fib-line:rgba(148,174,202,.15);--fib-line-strong:rgba(91,155,213,.34);--fib-text:#e8f0f8;--fib-muted:#91a4b9;--fib-blue:#4d9bd8;--fib-blue-soft:rgba(77,155,216,.13);--fib-shadow:0 14px 34px rgba(0,0,0,.24)}
+/* Consistent page surface, typography and controls across all modules. */
+#pageContainer{color:var(--fib-text)}
+#pageContainer :is(input,select,textarea){color:var(--fib-text)}
+#pageContainer :is(input:not([type=checkbox]):not([type=radio]),select,textarea){background-color:#0e1825;border:1px solid var(--fib-line-strong);border-radius:9px;box-shadow:inset 0 1px 0 rgba(255,255,255,.018)}
+#pageContainer :is(input,select,textarea):focus{border-color:var(--fib-blue);box-shadow:0 0 0 3px rgba(77,155,216,.14);outline:none}
+#pageContainer :is(button,.button){transition:background .16s ease,border-color .16s ease,transform .16s ease,filter .16s ease}
+#pageContainer :is(button,.button):focus-visible{outline:2px solid rgba(93,170,229,.8);outline-offset:2px}
+#pageContainer :is(table){border-color:var(--fib-line)}
+#pageContainer :is(th){background:#0d1723;color:#9fb2c7;border-color:var(--fib-line)}
+#pageContainer :is(td){border-color:rgba(148,174,202,.09)}
+#pageContainer :is(.card,.panel,.section-card){border-color:var(--fib-line);box-shadow:var(--fib-shadow)}
+/* Vehicle catalog: align with the Bureau's shared dark/blue surface. */
+.vehicle-catalog-page{padding:24px 26px 90px!important;color:var(--fib-text)!important}
+.vc-head{padding:0 0 17px;border-bottom:1px solid var(--fib-line);margin-bottom:18px!important}
+.vc-eyebrow{color:#7eb8e8!important;letter-spacing:.14em!important}
+.vc-title{font-size:26px!important;letter-spacing:-.025em;color:#f1f6fc!important}
+.vc-subtitle{color:var(--fib-muted)!important}
+.vc-toolbar{margin-top:18px!important}
+.vc-search,.vc-field{background:#0d1723!important;border:1px solid var(--fib-line-strong)!important;border-radius:9px!important;color:#e8f0f8!important}
+.vc-search::placeholder,.vc-field::placeholder{color:#71869d}
+.vc-button{background:#17283a!important;border:1px solid rgba(91,155,213,.27)!important;color:#dceafa!important;border-radius:9px!important}
+.vc-button:hover{background:#203a54!important;border-color:rgba(91,155,213,.52)!important}
+.vc-button.primary{background:linear-gradient(180deg,#286fa8,#1d527e)!important;border-color:#397fb5!important}
+.vc-button.danger{background:rgba(139,49,58,.2)!important;border-color:rgba(210,91,103,.32)!important;color:#ffc0c4!important}
+.vc-filter{background:#111d2b!important;border-color:var(--fib-line)!important;color:#aebfd1!important}
+.vc-filter.active{background:var(--fib-blue-soft)!important;border-color:#4d91c8!important;color:#dceeff!important}
+.vc-card{background:linear-gradient(155deg,#172638,#101a27)!important;border-color:var(--fib-line)!important;border-radius:14px!important;box-shadow:0 12px 28px rgba(0,0,0,.2)!important;transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease}
+.vc-card:hover{transform:translateY(-3px);border-color:rgba(91,155,213,.4)!important;box-shadow:0 18px 36px rgba(0,0,0,.3)!important}
+.vc-image{height:170px!important;background:linear-gradient(135deg,#1a2b3e,#0d1723)!important;border-color:var(--fib-line)!important}
+.vc-tag{background:var(--fib-blue-soft)!important;border-color:rgba(91,155,213,.35)!important;color:#b9dcfa!important}
+.vc-name{color:#f0f6fc!important}.vc-description{color:#9aadc1!important}.vc-count{color:#8298af!important}
+.vc-admin{background:#111d2b!important;border-color:var(--fib-line-strong)!important;border-radius:13px!important}
+/* Internal sanctions catalog uses the same editorial table language as external fines. */
+.ifines-page{padding:24px 26px 90px!important;color:var(--fib-text)!important}
+.ifines-top{margin:-24px -26px 20px!important;padding:22px 26px 15px!important;background:rgba(10,16,25,.96)!important;border-bottom:1px solid var(--fib-line)!important;box-shadow:0 12px 28px rgba(0,0,0,.16)!important}
+.ifines-eyebrow{color:#7eb8e8!important;letter-spacing:.13em!important}.ifines-title{font-size:26px!important;letter-spacing:-.025em!important;color:#f1f6fc!important}.ifines-subtitle{color:var(--fib-muted)!important}
+.ifines-tabs{border-color:var(--fib-line)!important}.ifines-tab{color:#91a4b9!important}.ifines-tab.active{color:#e4f2ff!important;background:var(--fib-blue-soft)!important;border-bottom-color:var(--fib-blue)!important}
+.ifines-page input,.ifines-page select,.ifines-page textarea{background:#0d1723!important;border-color:var(--fib-line-strong)!important;border-radius:9px!important;color:#e8f0f8!important}
+.ifines-page button{background:linear-gradient(180deg,#286fa8,#1d527e)!important;border-color:#397fb5!important;border-radius:9px!important}
+.ifines-page button.secondary{background:#172638!important;border-color:var(--fib-line)!important;color:#d3e0ed!important}
+.ifines-card{background:linear-gradient(155deg,#172638,#101a27)!important;border-color:var(--fib-line)!important;border-radius:13px!important;box-shadow:0 12px 28px rgba(0,0,0,.16)!important}
+.ifines-lawbook-table{border-color:var(--fib-line)!important;border-radius:12px!important;background:rgba(10,16,25,.65)!important}
+.ifines-table th{background:#101b29!important;color:#9fb4ca!important;border-color:var(--fib-line)!important}
+.ifines-table td{color:#afbed0!important;border-color:rgba(148,174,202,.09)!important}
+.ifines-category-row td{background:linear-gradient(90deg,rgba(45,105,153,.18),rgba(45,105,153,.045))!important;color:#c5d8eb!important;border-color:var(--fib-line)!important}
+.ifines-paragraph{color:#e2effb!important}.ifines-offense{color:#edf4fb!important}.ifines-table-value{color:#9fcdf3!important}
+@media(max-width:760px){.vehicle-catalog-page,.ifines-page{padding:16px 14px 70px!important}.ifines-top{margin:-16px -14px 16px!important;padding:16px 14px 12px!important}}
+</style>
+</head>
+
+
+<body>
+
+
+  <!-- =====================================================
+       SESSION LOADING SCREEN
+       ===================================================== -->
+
+  <div
+    id="sessionLoadingScreen"
+    class="session-loading-screen"
+  >
+
+    <div class="session-loading-content">
+
+      <div class="session-loading-logo">
+        <img src="/assets/lspd-logo.svg" alt="Los Santos Police Department">
+      </div>
+
+      <div class="session-loading-title">
+        MOBILE DATA TERMINAL
+      </div>
+
+      <div class="session-loading-spinner"></div>
+
+      <div class="session-loading-text">
+        Sitzung wird wiederhergestellt...
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <!-- =====================================================
+       LOGIN SCREEN
+       ===================================================== -->
+
+  <div id="loginScreen">
+
+    <div class="login-wrapper">
+
+      <div class="login-card">
+
+        <div class="login-logo">
+          <img src="/assets/lspd-logo.svg" alt="Los Santos Police Department">
+        </div>
+
+        <div class="login-title">
+          Mobile Data Terminal
+        </div>
+
+        <div class="login-subtitle">
+          Los Santos Police Department
+        </div>
+
+
+        <div id="loginView">
+
+          <form
+            id="loginForm"
+            onsubmit="handleLogin(event)"
+          >
+
+            <div class="input-group">
+
+              <label for="username">
+                Benutzername
+              </label>
+
+              <input
+                id="username"
+                type="text"
+                autocomplete="username"
+                placeholder="Benutzername"
+                required
+              >
+
+            </div>
+
+
+            <div class="input-group">
+
+              <label for="password">
+                Passwort
+              </label>
+
+              <input
+                id="password"
+                type="password"
+                autocomplete="current-password"
+                placeholder="Passwort"
+                required
+              >
+
+            </div>
+
+
+            <button
+              id="loginButton"
+              class="login-button"
+              type="submit"
+            >
+              Anmelden
+            </button>
+
+
+            <button
+              type="button"
+              class="login-secondary-button"
+              onclick="showRegistrationForm()"
+            >
+              Account beantragen
+            </button>
+
+
+            <div
+              id="loginError"
+              class="login-error"
+            ></div>
+
+
+            <div
+              id="loginSuccess"
+              class="login-success"
+            ></div>
+
+          </form>
+
+        </div>
+
+
+        <div id="registrationView">
+
+          <form
+            id="registrationForm"
+            onsubmit="handleRegistration(event)"
+          >
+
+            <div class="input-group">
+
+              <label for="registrationUsername">
+                Benutzername
+              </label>
+
+              <input
+                id="registrationUsername"
+                type="text"
+                autocomplete="username"
+                placeholder="Gewünschter Benutzername"
+                required
+              >
+
+            </div>
+
+
+            <div class="input-group">
+
+              <label for="registrationName">
+                Name
+              </label>
+
+              <input
+                id="registrationName"
+                type="text"
+                autocomplete="name"
+                placeholder="Vor- und Nachname"
+                required
+              >
+
+            </div>
+
+
+            <div class="input-group">
+
+              <label for="registrationPassword">
+                Passwort
+              </label>
+
+              <input
+                id="registrationPassword"
+                type="password"
+                autocomplete="new-password"
+                placeholder="Passwort"
+                required
+              >
+
+            </div>
+
+
+            <div class="input-group">
+
+              <label for="registrationPasswordConfirm">
+                Passwort bestätigen
+              </label>
+
+              <input
+                id="registrationPasswordConfirm"
+                type="password"
+                autocomplete="new-password"
+                placeholder="Passwort erneut eingeben"
+                required
+              >
+
+            </div>
+
+
+            <button
+              id="registrationButton"
+              class="login-button"
+              type="submit"
+            >
+              Account beantragen
+            </button>
+
+
+            <div
+              id="registrationError"
+              class="login-error"
+            ></div>
+
+
+            <div class="login-info">
+              Der beantragte Account kann erst nach der Freigabe durch einen Master verwendet werden.
+            </div>
+
+
+            <button
+              type="button"
+              class="login-back-button"
+              onclick="showLoginForm()"
+            >
+              Zurück zur Anmeldung
+            </button>
+
+          </form>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <!-- =====================================================
+       APPLICATION
+       ===================================================== -->
+
+  <div id="app">
+
+
+    <!-- ===================================================
+         SIDEBAR
+         =================================================== -->
+
+    <aside class="sidebar">
+
+
+      <div class="sidebar-header">
+
+        <div class="brand-icon">
+          <img src="/assets/lspd-logo.svg" alt="LSPD">
+        </div>
+
+        <div class="brand-text">
+
+          <div class="brand-title">
+            LSPD MDT
+          </div>
+
+          <div class="brand-subtitle">
+            Mobile Data Terminal
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <nav
+        id="sidebarNav"
+        class="sidebar-nav"
+      ></nav>
+
+
+      <div class="sidebar-user">
+
+        <div
+          class="user-card"
+          onclick="openProfileModal()"
+          title="Mein Profil"
+        >
+
+          <div
+            id="userAvatar"
+            class="user-avatar"
+          >
+            --
+          </div>
+
+          <div class="user-info">
+
+            <div
+              id="userName"
+              class="user-name"
+            >
+              --
+            </div>
+
+            <div
+              id="userRank"
+              class="user-rank"
+            >
+              --
+            </div>
+
+          </div>
+
+        </div>
+
+
+        <button
+          class="logout-button"
+          type="button"
+          onclick="logoutUser()"
+        >
+          ↪ &nbsp; Abmelden
+        </button>
+
+      </div>
+
+    </aside>
+
+
+    <!-- ===================================================
+         MAIN
+         =================================================== -->
+
+    <main class="main">
+
+      <header class="topbar">
+
+        <div
+          id="pageTitle"
+          class="page-title"
+        >
+          Dashboard
+        </div>
+
+        <div class="fib-own-status-strip" id="fibOwnStatusStrip" aria-label="Eigener Leitstellenstatus" aria-live="polite">
+          <div class="fib-status-chip fib-status-chip-call" data-patrol-topbar-color="callsignType">
+            <span class="fib-status-chip-label">FUNK</span>
+            <strong id="fibTopCallSign">—</strong>
+          </div>
+          <div class="fib-status-chip" data-duty-picker-trigger="activity" data-patrol-topbar-color="location" tabindex="0" role="button" aria-haspopup="true" aria-expanded="false">
+            <span class="fib-status-chip-label">STATUS</span>
+            <strong id="fibTopDutyStatus">Wird geladen</strong>
+          </div>
+          <div class="fib-status-chip fib-status-chip-ten-code" data-patrol-topbar-color="tenCode" data-duty-picker-trigger="tenCode" tabindex="0" role="button" aria-haspopup="true" aria-expanded="false">
+            <span class="fib-status-chip-label">TEN CODE</span>
+            <strong id="fibTopTenCode">Nicht ausgewählt</strong>
+          </div>
+          <div class="fib-status-chip fib-status-chip-unit" data-duty-picker-trigger="location" data-patrol-topbar-color="location" tabindex="0" role="button" aria-haspopup="true" aria-expanded="false">
+            <span class="fib-status-chip-label">EINSATZORT</span>
+            <strong id="fibTopPatrolUnit">Nicht ausgewählt</strong>
+          </div>
+          <div class="fib-status-chip" data-duty-picker-trigger="vehicle" data-patrol-topbar-color="name" tabindex="0" role="button" aria-haspopup="true" aria-expanded="false">
+            <span class="fib-status-chip-label">FAHRZEUG</span>
+            <strong id="fibTopVehicle">Nicht ausgewählt</strong>
+          </div>
+          <button type="button" class="fib-duty-start-button" id="fibDutyStartButton">In Dienst gehen</button>
+          <div class="page-status">
+            <span class="status-dot"></span>
+            System verbunden
+          </div>
+        </div>
+
+      </header>
+
+      <!-- Leitstellen-Diensteinschub: wird ausschließlich auf der Leitstellenseite aktiviert -->
+      <div id="fibDutyPicker" class="fib-duty-picker" hidden aria-label="Dienst- und Einsatzstatus">
+        <div class="fib-duty-picker-head">
+          <strong>Eigener Dienststatus</strong>
+          <button type="button" id="fibDutyPickerClose" class="fib-duty-close" aria-label="Auswahl schließen">×</button>
+        </div>
+        <div class="fib-duty-picker-group">
+          <div class="fib-duty-picker-label">Einsatzort / Gebiet</div>
+          <div class="fib-duty-options" id="fibDutyLocations"></div>
+        </div>
+        <div class="fib-duty-picker-group">
+          <div class="fib-duty-picker-label">Tätigkeit / Status</div>
+          <div class="fib-duty-options fib-duty-options-warm" id="fibDutyActivities"></div>
+        </div>
+        <div class="fib-duty-picker-group">
+          <div class="fib-duty-picker-label">Fahrzeug</div>
+          <div class="fib-duty-options" id="fibDutyVehicles"></div>
+        </div>
+        <div class="fib-duty-picker-footer"><span id="fibDutySelectionHint">Einsatzort, Tätigkeit und Fahrzeug auswählen.</span><button type="button" id="fibDutyApply" class="fib-duty-apply">Status übernehmen</button></div>
+      </div>
+
+      <div
+        id="pageContainer"
+        class="content"
+      >
+
+        <div class="page-loading">
+          Lade MDT...
+        </div>
+
+      </div>
+
+    </main>
+
+  </div>
+
+
+  <!-- =====================================================
+       PROFILE MODAL
+       ===================================================== -->
+
+  <div
+    id="profileModal"
+    onclick="handleProfileModalBackdrop(event)"
+  >
+
+    <div class="profile-modal">
+
+      <div class="profile-modal-header">
+
+        <div>
+
+          <div class="profile-modal-title">
+            Mein Profil
+          </div>
+
+          <div class="profile-modal-subtitle">
+            Persönliche Kontoeinstellungen
+          </div>
+
+        </div>
+
+
+        <button
+          type="button"
+          class="profile-close"
+          onclick="closeProfileModal()"
+        >
+          ×
+        </button>
+
+      </div>
+
+
+      <div class="profile-modal-body">
+
+
+        <div class="profile-overview">
+
+          <div
+            id="profileLargeAvatar"
+            class="profile-large-avatar"
+          >
+            --
+          </div>
+
+
+          <div class="profile-overview-info">
+
+            <div
+              id="profileOverviewName"
+              class="profile-overview-name"
+            >
+              Benutzer
+            </div>
+
+            <div
+              id="profileOverviewRank"
+              class="profile-overview-rank"
+            >
+              Kein Rang
+            </div>
+
+            <div
+              id="profileOverviewUsername"
+              class="profile-overview-username"
+            >
+              @—
+            </div>
+
+          </div>
+
+        </div>
+
+
+        <div class="profile-section">
+
+          <div class="profile-section-title">
+            Profilbild
+          </div>
+
+
+          <div class="profile-image-actions">
+
+            <button
+              type="button"
+              class="profile-button primary"
+              onclick="selectProfileImage()"
+            >
+              Bild hochladen
+            </button>
+
+
+            <button
+              type="button"
+              class="profile-button danger"
+              onclick="removeProfileImage()"
+            >
+              Bild entfernen
+            </button>
+
+          </div>
+
+
+          <input
+            id="profileImageInput"
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            style="display:none"
+            onchange="handleProfileImageSelected(event)"
+          >
+
+        </div>
+
+
+        <div class="profile-divider"></div>
+
+
+        <div class="profile-section">
+
+          <div class="profile-section-title">
+            Passwort ändern
+          </div>
+
+
+          <div class="profile-password-grid">
+
+            <div class="profile-input-group">
+
+              <label for="profileCurrentPassword">
+                Aktuelles Passwort
+              </label>
+
+              <input
+                id="profileCurrentPassword"
+                class="profile-input"
+                type="password"
+                autocomplete="current-password"
+                placeholder="Aktuelles Passwort"
+              >
+
+            </div>
+
+
+            <div class="profile-input-group">
+
+              <label for="profileNewPassword">
+                Neues Passwort
+              </label>
+
+              <input
+                id="profileNewPassword"
+                class="profile-input"
+                type="password"
+                autocomplete="new-password"
+                placeholder="Neues Passwort"
+              >
+
+            </div>
+
+
+            <div class="profile-input-group">
+
+              <label for="profileConfirmPassword">
+                Neues Passwort bestätigen
+              </label>
+
+              <input
+                id="profileConfirmPassword"
+                class="profile-input"
+                type="password"
+                autocomplete="new-password"
+                placeholder="Neues Passwort bestätigen"
+              >
+
+            </div>
+
+          </div>
+
+
+          <button
+            id="profilePasswordButton"
+            type="button"
+            class="profile-button primary"
+            onclick="changeOwnPassword()"
+          >
+            Passwort ändern
+          </button>
+
+
+          <div
+            id="profilePasswordMessage"
+            class="profile-message"
+          ></div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <!-- =====================================================
+       JAVASCRIPT
+       ===================================================== -->
+
+  <script>
+
+
+    /* =====================================================
+       GLOBAL STATE
+       ===================================================== */
+
+    let sessionToken = null;
+
+    let currentUser = null;
+
+    let myPermissions = [];
+
+    let isMaster = false;
+
+    let currentPage = null;
+
+    /*
+     * Die tatsächlich gerenderte Page.
+     */
+
+    let currentLoadedPageFile = null;
+
+    /*
+     * Gibt an, ob aktuell ein Page-Request läuft.
+     */
+
+    let pageLoadInProgress = false;
+
+    /*
+     * Jeder neue Request bekommt eine neue ID.
+     *
+     * Dadurch können verspätete Antworten alter
+     * Requests sicher verworfen werden.
+     */
+
+    let pageRequestId = 0;
+
+
+    /* =====================================================
+       LIVE SESSION SYNCHRONISATION
+       ===================================================== */
+
+    const SESSION_SYNC_INTERVAL =
+      30 * 1000;
+
+
+    let sessionSyncInterval = null;
+
+    let sessionSyncRunning = false;
+
+
+    /* =====================================================
+       GLOBAL DATA CACHE
+       ===================================================== */
+
+    const PATROLS_CACHE_DURATION =
+      60 * 1000;
+
+
+    /*
+     * WICHTIG:
+     *
+     * Hier werden ausschließlich Daten-Caches
+     * gehalten.
+     *
+     * Es gibt KEINEN DOM/Page-Cache mehr.
+     */
+
+    window.fibCache = {
+
+      patrols: {
+        data: null,
+        timestamp: 0
+      },
+
+      patrolUsers: {
+        data: null,
+        timestamp: 0
+      },
+
+      fines: {
+        data: null
+      }
+
+    };
+
+
+    /* =====================================================
+       PATROLS CACHE
+       ===================================================== */
+
+    function isPatrolCacheValid(
+      timestamp
+    ) {
+
+      return (
+        timestamp > 0 &&
+        Date.now() -
+          timestamp <
+          PATROLS_CACHE_DURATION
+      );
+
+    }
+
+
+    function clearPatrolsCache() {
+
+      window.fibCache.patrols.data =
+        null;
+
+      window.fibCache.patrols.timestamp =
+        0;
+
+    }
+
+
+    function clearPatrolUsersCache() {
+
+      window.fibCache.patrolUsers.data =
+        null;
+
+      window.fibCache.patrolUsers.timestamp =
+        0;
+
+    }
+
+
+    function clearAllPatrolsCache() {
+
+      clearPatrolsCache();
+
+      clearPatrolUsersCache();
+
+    }
+
+
+    /* =====================================================
+       NAVIGATION DEFINITION
+       ===================================================== */
+
+const NAVIGATION = [
+
+  {
+    section: "Übersicht",
+
+    items: [
+
+      {
+        id: "dashboard",
+        title: "Dashboard",
+        icon: "🏠︎",
+        permission: "dashboard.view",
+        file: "Page_Dashboard"
+      }
+
+    ]
+
+  },
+
+
+  {
+    section: "Department",
+
+    items: [
+
+      {
+        id: "patrols",
+        title: "Leitstelle",
+        icon: "☏",
+        permission: "patrols.view",
+        file: "Page_Patrols"
+      },
+
+      {
+        id: "officers",
+        title: "Personalakte",
+        icon: "♙",
+        permission: "officers.view",
+        file: "Page_Agents"
+      },
+
+      {
+        id: "announcements",
+        title: "Verfügungen",
+        icon: "ⓘ",
+        permission: "announcements.view",
+        file: "Page_Announcements"
+      },
+
+      {
+        id: "vacations",
+        title: "Urlaubsanträge",
+        icon: "✈",
+        permission: "vacations.view",
+        file: "Page_Vacations"
+      },
+
+      {
+        id: "ifines",
+        title: "Interner Bußgeldkatalog",
+        icon: "🗒",
+        permission: "ifines.view",
+        file: "Page_IFines"
+      },
+
+      {
+        id: "vehicle-catalog",
+        title: "Fahrzeugkatalog",
+        icon: "🚘",
+        permission: "patrols.view",
+        file: "Page_VehicleCatalog"
+      }
+
+    ]
+
+  },
+
+
+  {
+    section: "Datenbank",
+
+    items: [
+
+      {
+        id: "fines",
+        title: "Bußgeldkatalog",
+        icon: "🖳",
+        permission: "fines.view",
+        file: "Page_Fines"
+      },
+
+      {
+        id: "lawyers",
+        title: "Anwaltskammer",
+        icon: "✍︎",
+        permission: "lawyers.view",
+        file: "Page_Lawyers"
+      },
+
+      {
+        id: "records",
+        title: "Akten & Berichte",
+        icon: "🗁",
+        permission: "records.view",
+        file: "Page_Records"
+      },
+
+      {
+        id: "warrants",
+        title: "Haftbefehle",
+        icon: "𓍝",
+        permission: "warrants.view",
+        file: "Page_Warrants"
+      },
+
+      {
+        id: "wanted",
+        title: "Fahndung",
+        icon: "⌕",
+        permission: "wanted.view",
+        file: "Page_Wanted"
+      },
+
+      {
+        id: "calendar",
+        title: "Kalendar",
+        icon: "⌨",
+        permission: "calendar.view",
+        file: "Page_Calendar"
+      }
+
+    ]
+
+  },
+
+
+  {
+    section: "Command Staff",
+
+    items: [
+
+      {
+        id: "classification",
+        title: "Klassifizierungen",
+        icon: "🔒︎",
+        permission: "classification.view",
+        file: "Page_Classification"
+      },
+
+      {
+        id: "gangs",
+        title: "Beweise gegen Gangs",
+        icon: "🜲",
+        permission: "gangs.view",
+        file: "Page_Gangs"
+      },
+
+      {
+        id: "bonuses",
+        title: "Bonusauszahlungen",
+        icon: "$",
+        permission: "bonuses.view",
+        file: "Page_Bonuses"
+      }
+
+    ]
+
+  },
+
+
+  {
+    section: "System",
+
+    items: [
+
+      {
+        id: "system",
+        title: "Systemverwaltung",
+        icon: "⚙",
+        permission: null,
+        masterOnly: true,
+        file: "Page_System"
+      },
+
+      {
+        id: "logs",
+        title: "Logs",
+        icon: "✒",
+        permission: null,
+        masterOnly: true,
+        file: "Page_Logs"
+      }
+
+    ]
+
+  }
+
+];
+
+
+    /* =====================================================
+       APPLICATION INITIALIZATION
+       ===================================================== */
+
+    document.addEventListener(
+      "DOMContentLoaded",
+      initializeApp
+    );
+
+
+    function initializeApp() {
+
+      const storedToken =
+        sessionStorage.getItem(
+          "fib_mdt_session"
+        );
+
+
+      if (
+        !storedToken
+      ) {
+
+        showLogin();
+
+        hideSessionLoadingScreen();
+
+        return;
+
+      }
+
+
+      sessionToken =
+        storedToken;
+
+
+      validateStoredSession();
+
+    }
+
+
+    /* =====================================================
+       SESSION VALIDATION
+       ===================================================== */
+
+    function validateStoredSession() {
+
+      CloudApi.run
+
+        .withSuccessHandler(
+          user => {
+
+            if (
+              !user
+            ) {
+
+              clearSession();
+
+              showLogin();
+
+              hideSessionLoadingScreen();
+
+              return;
+
+            }
+
+
+            currentUser =
+              user;
+
+
+            loadPermissions();
+
+          }
+        )
+
+        .withFailureHandler(
+          error => {
+
+            console.error(
+              "Fehler bei der Sitzungsprüfung:",
+              error
+            );
+
+
+            clearSession();
+
+            showLogin();
+
+            hideSessionLoadingScreen();
+
+          }
+        )
+
+        .getCurrentUser(
+          sessionToken
+        );
+
+    }
+
+
+    /* =====================================================
+       LOGIN
+       ===================================================== */
+
+    function handleLogin(
+      event
+    ) {
+
+      event.preventDefault();
+
+
+      const username =
+        document
+          .getElementById(
+            "username"
+          )
+          .value
+          .trim();
+
+
+      const password =
+        document
+          .getElementById(
+            "password"
+          )
+          .value;
+
+
+      const button =
+        document.getElementById(
+          "loginButton"
+        );
+
+
+      hideLoginError();
+      hideLoginSuccess();
+
+
+      if (
+        !username ||
+        !password
+      ) {
+
+        return;
+
+      }
+
+
+      button.disabled =
+        true;
+
+
+      button.textContent =
+        "Anmeldung läuft...";
+
+
+      CloudApi.run
+
+        .withSuccessHandler(
+          result => {
+
+            button.disabled =
+              false;
+
+
+            button.textContent =
+              "Anmelden";
+
+
+            if (
+              !result ||
+              result.success !== true ||
+              !result.token
+            ) {
+
+              showLoginError(
+                result &&
+                result.message
+                  ? result.message
+                  : "Anmeldung fehlgeschlagen."
+              );
+
+
+              return;
+
+            }
+
+
+            sessionToken =
+              result.token;
+
+
+            currentUser =
+              result.user;
+
+
+            sessionStorage.setItem(
+              "fib_mdt_session",
+              sessionToken
+            );
+
+
+            loadPermissions();
+
+          }
+        )
+
+        .withFailureHandler(
+          error => {
+
+            button.disabled =
+              false;
+
+
+            button.textContent =
+              "Anmelden";
+
+
+            showLoginError(
+              error &&
+              error.message
+                ? error.message
+                : "Anmeldung fehlgeschlagen."
+            );
+
+          }
+        )
+
+        .login(
+          username,
+          password
+        );
+
+    }
+
+
+    /* =====================================================
+       ACCOUNT REGISTRATION
+       ===================================================== */
+
+    function showRegistrationForm() {
+
+      const loginView =
+        document.getElementById(
+          "loginView"
+        );
+
+      const registrationView =
+        document.getElementById(
+          "registrationView"
+        );
+
+
+      if (loginView) {
+        loginView.style.display = "none";
+      }
+
+      if (registrationView) {
+        registrationView.style.display = "block";
+      }
+
+
+      clearRegistrationError();
+      hideLoginError();
+      hideLoginSuccess();
+
+
+      setTimeout(
+        () => {
+
+          const input =
+            document.getElementById(
+              "registrationUsername"
+            );
+
+          if (input) {
+            input.focus();
+          }
+
+        },
+        50
+      );
+
+    }
+
+
+    function showLoginForm() {
+
+      const loginView =
+        document.getElementById(
+          "loginView"
+        );
+
+      const registrationView =
+        document.getElementById(
+          "registrationView"
+        );
+
+
+      if (registrationView) {
+        registrationView.style.display = "none";
+      }
+
+      if (loginView) {
+        loginView.style.display = "block";
+      }
+
+
+      clearRegistrationError();
+      hideLoginError();
+      hideLoginSuccess();
+
+      clearRegistrationFields();
+
+
+      setTimeout(
+        () => {
+
+          const input =
+            document.getElementById(
+              "username"
+            );
+
+          if (input) {
+            input.focus();
+          }
+
+        },
+        50
+      );
+
+    }
+
+
+    function clearRegistrationFields() {
+
+      [
+        "registrationUsername",
+        "registrationName",
+        "registrationPassword",
+        "registrationPasswordConfirm"
+      ].forEach(
+        id => {
+
+          const element =
+            document.getElementById(id);
+
+          if (element) {
+            element.value = "";
+          }
+
+        }
+      );
+
+    }
+
+
+    function clearRegistrationError() {
+
+      const element =
+        document.getElementById(
+          "registrationError"
+        );
+
+      if (!element) {
+        return;
+      }
+
+      element.textContent = "";
+      element.style.display = "none";
+
+    }
+
+
+    function showRegistrationError(
+      message
+    ) {
+
+      const element =
+        document.getElementById(
+          "registrationError"
+        );
+
+      if (!element) {
+        return;
+      }
+
+      element.textContent =
+        message ||
+        "Der Account konnte nicht beantragt werden.";
+
+      element.style.display = "block";
+
+    }
+
+
+    function showLoginSuccess(
+      message
+    ) {
+
+      const element =
+        document.getElementById(
+          "loginSuccess"
+        );
+
+      if (!element) {
+        return;
+      }
+
+      element.textContent =
+        message ||
+        "Die Aktion wurde erfolgreich ausgeführt.";
+
+      element.style.display = "block";
+
+    }
+
+
+    function hideLoginSuccess() {
+
+      const element =
+        document.getElementById(
+          "loginSuccess"
+        );
+
+      if (!element) {
+        return;
+      }
+
+      element.textContent = "";
+      element.style.display = "none";
+
+    }
+
+
+    function handleRegistration(
+      event
+    ) {
+
+      event.preventDefault();
+
+
+      const username =
+        document
+          .getElementById(
+            "registrationUsername"
+          )
+          ?.value
+          .trim() ||
+        "";
+
+      const name =
+        document
+          .getElementById(
+            "registrationName"
+          )
+          ?.value
+          .trim() ||
+        "";
+
+      const password =
+        document
+          .getElementById(
+            "registrationPassword"
+          )
+          ?.value ||
+        "";
+
+      const passwordConfirm =
+        document
+          .getElementById(
+            "registrationPasswordConfirm"
+          )
+          ?.value ||
+        "";
+
+      const button =
+        document.getElementById(
+          "registrationButton"
+        );
+
+
+      clearRegistrationError();
+
+
+      if (!username) {
+        showRegistrationError(
+          "Bitte einen Benutzernamen eingeben."
+        );
+        return;
+      }
+
+      if (!name) {
+        showRegistrationError(
+          "Bitte einen Namen eingeben."
+        );
+        return;
+      }
+
+      if (!password) {
+        showRegistrationError(
+          "Bitte ein Passwort eingeben."
+        );
+        return;
+      }
+
+      if (
+        password !==
+        passwordConfirm
+      ) {
+        showRegistrationError(
+          "Die eingegebenen Passwörter stimmen nicht überein."
+        );
+        return;
+      }
+
+
+      if (button) {
+        button.disabled = true;
+        button.textContent =
+          "Account wird beantragt...";
+      }
+
+
+      CloudApi.run
+
+        .withSuccessHandler(
+          result => {
+
+            if (button) {
+              button.disabled = false;
+              button.textContent =
+                "Account beantragen";
+            }
+
+
+            if (
+              !result ||
+              result.success !== true
+            ) {
+
+              showRegistrationError(
+                result?.message ||
+                  "Der Account konnte nicht beantragt werden."
+              );
+
+              return;
+
+            }
+
+
+            showLoginForm();
+
+            showLoginSuccess(
+              result.message ||
+                "Der Account wurde beantragt. Ein Master muss ihn vor der ersten Anmeldung freigeben."
+            );
+
+          }
+        )
+
+        .withFailureHandler(
+          error => {
+
+            if (button) {
+              button.disabled = false;
+              button.textContent =
+                "Account beantragen";
+            }
+
+
+            showRegistrationError(
+              error?.message ||
+                "Der Account konnte nicht beantragt werden."
+            );
+
+          }
+        )
+
+        .requestAccount(
+          username,
+          name,
+          password
+        );
+
+    }
+
+
+    /* =====================================================
+       LOAD PERMISSIONS
+       ===================================================== */
+
+    function loadPermissions() {
+
+      if (
+        !sessionToken
+      ) {
+
+        showLogin();
+
+        hideSessionLoadingScreen();
+
+        return;
+
+      }
+
+
+      CloudApi.run
+
+        .withSuccessHandler(
+          result => {
+
+            if (
+              !result
+            ) {
+
+              clearSession();
+
+              showLogin();
+
+              hideSessionLoadingScreen();
+
+              return;
+
+            }
+
+
+            isMaster =
+              result.master === true;
+
+
+            myPermissions =
+              Array.isArray(
+                result.permissions
+              )
+                ? result.permissions
+                : [];
+
+
+            showApplication();
+
+            buildSidebar();
+
+            updateUserInterface();
+
+            /*
+             * Ab jetzt regelmäßig prüfen, ob sich
+             * Accountstatus, Rang, Masterstatus oder
+             * Berechtigungen geändert haben.
+             */
+            startSessionSync();
+
+            /* Google-Sheets-Daten im Hintergrund nacheinander vorladen.
+             * Die Bridge erhält immer nur einen Import gleichzeitig.
+             * Erfolgreiche Antworten landen im zentralen CloudApi-Cache.
+             */
+            preloadGoogleSheetData();
+
+            /* Personalverwaltung bereits nach erfolgreicher Anmeldung
+             * im Hintergrund laden. Beim späteren Öffnen greift agents.html
+             * auf den zentralen CloudApi-Cache zu.
+             */
+            preloadPersonnelData();
+
+            navigateTo(
+              "dashboard"
+            );
+
+          }
+        )
+
+        .withFailureHandler(
+          error => {
+
+            console.error(
+              "Fehler beim Laden der Berechtigungen:",
+              error
+            );
+
+
+            clearSession();
+
+
+            showLogin();
+
+
+            showLoginError(
+              error &&
+              error.message
+                ? error.message
+                : "Berechtigungen konnten nicht geladen werden."
+            );
+
+            hideSessionLoadingScreen();
+
+          }
+        )
+
+        .getMyPermissions(
+          sessionToken
+        );
+
+    }
+
+
+    /* =====================================================
+       GOOGLE-SHEETS HINTERGRUND-VORLADUNG
+       ===================================================== */
+
+    let googleSheetPreloadStarted = false;
+
+    function preloadPersonnelData() {
+      if (!sessionToken || !myPermissions.includes("officers.view")) return;
+      Promise.allSettled([
+        window.runServer("getPersonnelList"),
+        window.runServer("getPersonnelRankOptions")
+      ]).then(results => {
+        const failed = results.filter(x => x.status === "rejected").length;
+        if (failed) console.warn("LSPD MDT – Personalverwaltung: Hintergrund-Vorladen teilweise fehlgeschlagen.");
+        else console.info("LSPD MDT – Personalverwaltung: Beamtenliste und Rangoptionen vorab geladen.");
+      });
+    }
+
+    function preloadGoogleSheetData() {
+
+      if (!sessionToken || googleSheetPreloadStarted || typeof window.runServer !== "function") {
+        return;
+      }
+
+      googleSheetPreloadStarted = true;
+      const token = sessionToken;
+      const tasks = ["getWarrants", "getLawyers", "getFines"];
+
+      (async () => {
+        for (const method of tasks) {
+          // Bei einem zwischenzeitlichen Logout/Accountwechsel keine weiteren
+          // Anfragen mit dem alten Sitzungstoken an die Sheets-Bridge senden.
+          if (token !== sessionToken) return;
+
+          try {
+            await window.runServer(method, token);
+          } catch (error) {
+            // Ein fehlgeschlagener Import darf die übrigen Vorladungen nicht blockieren.
+            console.warn(`[LSPD MDT] Hintergrund-Vorladung für ${method} fehlgeschlagen. Die Seite lädt die Daten bei Bedarf selbst.`, error);
+          }
+        }
+      })().catch(error => {
+        console.warn("[LSPD MDT] Hintergrund-Vorladung konnte nicht abgeschlossen werden:", error);
+      });
+    }
+
+
+    /* =====================================================
+       PERMISSION CHECK
+       ===================================================== */
+
+    function hasPermission(
+      permission
+    ) {
+
+      if (
+        isMaster
+      ) {
+
+        return true;
+
+      }
+
+
+      if (
+        !permission
+      ) {
+
+        return false;
+
+      }
+
+
+      return myPermissions.includes(
+        permission
+      );
+
+    }
+
+
+    /* =====================================================
+       NAVIGATION ACCESS
+       ===================================================== */
+
+    function canAccessNavigation(
+      item
+    ) {
+
+      if (
+        !item
+      ) {
+
+        return false;
+
+      }
+
+
+      if (
+        isMaster
+      ) {
+
+        return true;
+
+      }
+
+
+      if (
+        item.masterOnly
+      ) {
+
+        return false;
+
+      }
+
+
+      if (
+        Array.isArray(item.permissions) &&
+        item.permissions.length
+      ) {
+
+        return item.permissions.some(
+          permission =>
+            hasPermission(permission)
+        );
+
+      }
+
+
+      if (
+        !item.permission
+      ) {
+
+        return true;
+
+      }
+
+
+      return hasPermission(
+        item.permission
+      );
+
+    }
+
+
+    /* =====================================================
+       BUILD SIDEBAR
+       ===================================================== */
+
+    function buildSidebar() {
+
+      const nav =
+        document.getElementById(
+          "sidebarNav"
+        );
+
+
+      if (
+        !nav
+      ) {
+
+        return;
+
+      }
+
+
+      nav.innerHTML =
+        "";
+
+
+      NAVIGATION.forEach(
+        section => {
+
+          const visibleItems =
+            section.items.filter(
+              item =>
+                canAccessNavigation(
+                  item
+                )
+            );
+
+
+          if (
+            !visibleItems.length
+          ) {
+
+            return;
+
+          }
+
+
+          const sectionElement =
+            document.createElement(
+              "div"
+            );
+
+
+          sectionElement.className =
+            "nav-section";
+
+
+          const sectionTitle =
+            document.createElement(
+              "div"
+            );
+
+
+          sectionTitle.className =
+            "nav-section-title";
+
+
+          sectionTitle.textContent =
+            section.section;
+
+
+          sectionElement.appendChild(
+            sectionTitle
+          );
+
+
+          visibleItems.forEach(
+            item => {
+
+              const button =
+                document.createElement(
+                  "button"
+                );
+
+
+              button.type =
+                "button";
+
+
+              button.className =
+                "nav-item";
+
+
+              button.dataset.page =
+                item.id;
+
+
+              button.title =
+                item.title;
+
+
+              button.innerHTML = `
+
+                <span class="nav-icon">
+                  ${escapeHtml(item.icon)}
+                </span>
+
+                <span class="nav-label">
+                  ${escapeHtml(item.title)}
+                </span>
+
+              `;
+
+
+              button.addEventListener(
+                "click",
+                () =>
+                  navigateTo(
+                    item.id
+                  )
+              );
+
+
+              sectionElement.appendChild(
+                button
+              );
+
+            }
+          );
+
+
+          nav.appendChild(
+            sectionElement
+          );
+
+        }
+      );
+
+    }
+
+
+    /* =====================================================
+       NAVIGATE
+       ===================================================== */
+
+    function navigateTo(
+      pageId
+    ) {
+
+      const item =
+        findNavigationItem(
+          pageId
+        );
+
+
+      if (
+        !item
+      ) {
+
+        showPageError(
+          "Die angeforderte Seite existiert nicht."
+        );
+
+        return;
+
+      }
+
+
+      if (
+        !canAccessNavigation(
+          item
+        )
+      ) {
+
+        showPageError(
+          "Du besitzt keine Berechtigung für diese Seite."
+        );
+
+        return;
+
+      }
+
+
+      /*
+       * Nur dann nichts tun, wenn diese Page
+       * wirklich bereits vollständig gerendert
+       * wurde und gerade kein Load läuft.
+       *
+       * Das ist wichtig:
+       *
+       * Beim Wechsel A → B → A darf A NICHT
+       * einfach als "bereits geladen" betrachtet
+       * werden, während B noch auf Antwort wartet.
+       */
+
+      if (
+        currentPage === pageId &&
+        currentLoadedPageFile === item.file &&
+        !pageLoadInProgress
+      ) {
+
+        document
+          .querySelectorAll(
+            ".nav-item"
+          )
+          .forEach(
+            button => {
+
+              button.classList.toggle(
+                "active",
+                button.dataset.page ===
+                  pageId
+              );
+
+            }
+          );
+
+
+        const samePageTitle =
+          document.getElementById(
+            "pageTitle"
+          );
+
+
+        if (
+          samePageTitle
+        ) {
+
+          samePageTitle.textContent =
+            item.title;
+
+        }
+
+
+        return;
+
+      }
+
+
+      /*
+       * Neue Page setzen.
+       */
+
+      currentPage =
+        pageId;
+
+
+      /*
+       * Navigation aktualisieren.
+       */
+
+      document
+        .querySelectorAll(
+          ".nav-item"
+        )
+        .forEach(
+          button => {
+
+            button.classList.toggle(
+              "active",
+              button.dataset.page ===
+                pageId
+            );
+
+          }
+        );
+
+
+      const pageTitle =
+        document.getElementById(
+          "pageTitle"
+        );
+
+
+      if (
+        pageTitle
+      ) {
+
+        pageTitle.textContent =
+          item.title;
+
+      }
+
+
+      loadPage(
+        item.file
+      );
+
+    }
+
+
+    /* =====================================================
+       FIND NAV ITEM
+       ===================================================== */
+
+    function findNavigationItem(
+      pageId
+    ) {
+
+      for (
+        const section of NAVIGATION
+      ) {
+
+        for (
+          const item of section.items
+        ) {
+
+          if (
+            item.id ===
+            pageId
+          ) {
+
+            return item;
+
+          }
+
+        }
+
+      }
+
+
+      return null;
+
+    }
+
+
+    /* =====================================================
+       LOAD PAGE
+       ===================================================== */
+
+    function loadPage(
+      fileName
+    ) {
+
+      const container =
+        document.getElementById(
+          "pageContainer"
+        );
+
+
+      if (
+        !container
+      ) {
+
+        return;
+
+      }
+
+
+      /*
+       * Dieser Request bekommt eine eindeutige ID.
+       */
+
+      const requestId =
+        ++pageRequestId;
+
+
+      const pageAtRequestTime =
+        currentPage;
+
+
+      pageLoadInProgress =
+        true;
+
+
+      /*
+       * Die aktuell gerenderte Page ist ab jetzt
+       * nicht mehr als vollständig verfügbar
+       * anzusehen.
+       */
+
+      currentLoadedPageFile =
+        null;
+
+
+      /*
+       * Ladeanzeige.
+       */
+
+      container.innerHTML = `
+
+        <div class="page-loading">
+          Lade Seite...
+        </div>
+
+      `;
+
+
+      CloudApi.run
+
+        .withSuccessHandler(
+          html => {
+
+            /*
+             * Diese Antwort ist veraltet.
+             *
+             * Es läuft bereits ein neuerer Request.
+             */
+
+            if (
+              requestId !==
+              pageRequestId
+            ) {
+
+              return;
+
+            }
+
+
+            /*
+             * Der Benutzer befindet sich inzwischen
+             * auf einer anderen Page.
+             */
+
+            if (
+              pageAtRequestTime !==
+              currentPage
+            ) {
+
+              return;
+
+            }
+
+
+            try {
+
+              if (
+                typeof html !==
+                  "string" ||
+                !html.trim()
+              ) {
+
+                throw new Error(
+                  "Die Seite wurde leer zurückgegeben."
+                );
+
+              }
+
+
+              /*
+               * Page rendern.
+               *
+               * Die Funktion gibt true/false zurück,
+               * damit wir nur bei erfolgreichem Rendering
+               * currentLoadedPageFile setzen.
+               */
+
+              const rendered =
+                renderLoadedPage(
+                  html
+                );
+
+
+              if (
+                !rendered
+              ) {
+
+                currentLoadedPageFile =
+                  null;
+
+                pageLoadInProgress =
+                  false;
+
+                return;
+
+              }
+
+
+              /*
+               * Page erfolgreich geladen.
+               */
+
+              currentLoadedPageFile =
+                fileName;
+
+
+              pageLoadInProgress =
+                false;
+
+
+            } catch (
+              error
+            ) {
+
+              console.error(
+                "Fehler beim Laden der Seite:",
+                error
+              );
+
+
+              currentLoadedPageFile =
+                null;
+
+
+              pageLoadInProgress =
+                false;
+
+
+              showPageError(
+                error &&
+                error.message
+                  ? error.message
+                  : "Die Seite konnte nicht initialisiert werden."
+              );
+
+            }
+
+          }
+        )
+
+        .withFailureHandler(
+          error => {
+
+            /*
+             * Alte Requests ignorieren.
+             */
+
+            if (
+              requestId !==
+              pageRequestId
+            ) {
+
+              return;
+
+            }
+
+
+            if (
+              pageAtRequestTime !==
+              currentPage
+            ) {
+
+              return;
+
+            }
+
+
+            console.error(
+              "Fehler beim Laden von " +
+              fileName +
+              ":",
+              error
+            );
+
+
+            currentLoadedPageFile =
+              null;
+
+
+            pageLoadInProgress =
+              false;
+
+
+            showPageError(
+              error &&
+              error.message
+                ? error.message
+                : "Die Seite konnte nicht geladen werden."
+            );
+
+          }
+        )
+
+        .include(
+          fileName
+        );
+
+    }
+
+
+    /* =====================================================
+       RENDER LOADED PAGE
+       ===================================================== */
+
+    function renderLoadedPage(
+      html
+    ) {
+
+      const container =
+        document.getElementById(
+          "pageContainer"
+        );
+
+
+      if (
+        !container
+      ) {
+
+        return false;
+
+      }
+
+
+      try {
+
+        /*
+         * HTML zunächst außerhalb des echten
+         * Containers aufbauen.
+         */
+
+        const temp =
+          document.createElement(
+            "div"
+          );
+
+
+        temp.innerHTML =
+          html;
+
+
+        /*
+         * Scripts extrahieren.
+         */
+
+        const scripts =
+          Array.from(
+            temp.querySelectorAll(
+              "script"
+            )
+          );
+
+
+        scripts.forEach(
+          script => {
+
+            script.remove();
+
+          }
+        );
+
+
+        /*
+         * Alten Inhalt entfernen.
+         */
+
+        container.innerHTML =
+          "";
+
+
+        /*
+         * HTML einsetzen.
+         */
+
+        while (
+          temp.firstChild
+        ) {
+
+          container.appendChild(
+            temp.firstChild
+          );
+
+        }
+
+
+        /*
+         * Seitenscripts ausführen.
+         */
+
+        scripts.forEach(
+          oldScript => {
+
+            const newScript =
+              document.createElement(
+                "script"
+              );
+
+
+            if (
+              oldScript.textContent
+            ) {
+
+              const source =
+                oldScript.textContent;
+
+              /*
+               * Seiten werden bei jedem Navigieren erneut geladen.
+               * Klassische Scripts teilen sich jedoch den globalen
+               * Lexical-Scope der Seite. Ein erneutes `const`/`let`
+               * kann deshalb mit "Identifier has already been declared"
+               * abbrechen. Seiten, die bereits in einer IIFE liegen,
+               * behalten ihren Scope. Ungekapselte Seitenscripts werden
+               * in einen eigenen Scope gesetzt; ihre Funktionsnamen
+               * werden danach für bestehende Inline-Handler freigegeben.
+               */
+              /*
+               * Immer isolieren. Selbst wenn ein Seitenscript teilweise
+               * bereits eine IIFE verwendet, darf kein nachgeladenes
+               * klassisches Script neue globale Lexical-Bindings anlegen.
+               * Das verhindert Kollisionen mit sessionToken und anderen
+               * const-/let-Deklarationen beim Navigieren oder Wiederherstellen.
+               */
+              const startsWithIife =
+                /^\s*\(\s*(?:function\b|(?:async\s*)?\([^)]*\)\s*=>)/.test(source);
+
+              const exportedFunctions = startsWithIife
+                ? []
+                : Array.from(
+                    source.matchAll(/\bfunction\s+([A-Za-z_$][\w$]*)\s*\(/g),
+                    match => match[1]
+                  );
+
+              const exportsCode =
+                Array.from(new Set(exportedFunctions))
+                  .map(name => `if (typeof ${name} === "function") window.${name} = ${name};`)
+                  .join("\n");
+
+              newScript.textContent =
+                "(function(){\n" + source + "\n" + exportsCode + "\n}).call(window);";
+
+            }
+
+
+            // Keep classic page scripts isolated from the index's global lexical
+            // scope. This prevents repeated `let`/`const` declarations when a page
+            // is revisited. Preserve order for external scripts as well.
+            newScript.dataset.fibPageScript = "true";
+            newScript.async = false;
+
+            if (
+              oldScript.src
+            ) {
+
+              newScript.src =
+                oldScript.src;
+
+            }
+
+            document.body.appendChild(
+              newScript
+            );
+
+          }
+        );
+
+
+        /*
+         * Normale Page-Initialisierung.
+         */
+
+        initializeLoadedPage();
+
+
+        return true;
+
+
+      } catch (
+        error
+      ) {
+
+        console.error(
+          "Fehler beim Rendern der Seite:",
+          error
+        );
+
+
+        showPageError(
+          error &&
+          error.message
+            ? error.message
+            : "Die Seite konnte nicht initialisiert werden."
+        );
+
+
+        return false;
+
+      }
+
+    }
+
+
+    /* =====================================================
+       LOADED PAGE INITIALIZATION
+       ===================================================== */
+
+    function initializeLoadedPage() {
+
+      try {
+
+        /*
+         * Dashboard
+         */
+
+        if (
+          currentPage ===
+            "dashboard" &&
+          typeof initializeDashboard ===
+            "function"
+        ) {
+
+          initializeDashboard();
+
+        }
+
+
+        /*
+         * Leitstelle
+         */
+
+        if (
+          currentPage ===
+            "patrols" &&
+          typeof initializePatrols ===
+            "function"
+        ) {
+
+          initializePatrols();
+
+        }
+
+
+        /*
+         * Klassifizierungen
+         */
+
+        if (
+          currentPage ===
+            "classification" &&
+          typeof initializeClassifications ===
+            "function"
+        ) {
+
+          initializeClassifications();
+
+        }
+
+
+        /*
+         * Haftbefehle
+         */
+
+        if (
+          currentPage ===
+            "warrants" &&
+          typeof initializeWarrants ===
+            "function"
+        ) {
+
+          initializeWarrants();
+
+        }
+
+
+        /*
+         * Systemverwaltung
+         */
+
+        if (
+          currentPage ===
+            "system" &&
+          typeof loadSystemUsers ===
+            "function"
+        ) {
+
+          loadSystemUsers();
+
+        }
+
+
+      } catch (
+        error
+      ) {
+
+        console.error(
+          "Fehler bei der Seiteninitialisierung:",
+          error
+        );
+
+
+        showPageError(
+          error &&
+          error.message
+            ? error.message
+            : "Die Seite konnte nicht initialisiert werden."
+        );
+
+
+        return;
+
+      }
+
+
+      hideSessionLoadingScreen();
+
+    }
+
+
+    /* =====================================================
+       USER UI
+       ===================================================== */
+
+    function updateUserInterface() {
+
+      if (
+        !currentUser
+      ) {
+
+        return;
+
+      }
+
+
+      const name =
+        currentUser.name ||
+        currentUser.username ||
+        "Benutzer";
+
+
+      const rank =
+        currentUser.rank ||
+        "Kein Rang";
+
+
+      const userName =
+        document.getElementById(
+          "userName"
+        );
+
+
+      const userRank =
+        document.getElementById(
+          "userRank"
+        );
+
+
+      const userAvatar =
+        document.getElementById(
+          "userAvatar"
+        );
+
+
+      if (
+        userName
+      ) {
+
+        userName.textContent =
+          name;
+
+      }
+
+
+      if (
+        userRank
+      ) {
+
+        userRank.textContent =
+          isMaster
+            ? rank + " • MASTER"
+            : rank;
+
+      }
+
+
+      if (
+        userAvatar
+      ) {
+
+        setAvatarElement(
+          userAvatar,
+          currentUser.profileImage,
+          getInitials(name)
+        );
+
+      }
+
+
+      updateProfileModal();
+
+    }
+
+
+    /* =====================================================
+       AVATAR
+       ===================================================== */
+
+    function setAvatarElement(
+      element,
+      imageUrl,
+      fallback
+    ) {
+
+      if (
+        !element
+      ) {
+
+        return;
+
+      }
+
+
+      element.innerHTML =
+        "";
+
+
+      if (
+        imageUrl
+      ) {
+
+        const image =
+          document.createElement(
+            "img"
+          );
+
+
+        image.src =
+          imageUrl;
+
+
+        image.alt =
+          "Profilbild";
+
+
+        image.onerror =
+          function() {
+
+            element.innerHTML =
+              "";
+
+            element.textContent =
+              fallback;
+
+          };
+
+
+        element.appendChild(
+          image
+        );
+
+
+        return;
+
+      }
+
+
+      element.textContent =
+        fallback;
+
+    }
+
+
+    /* =====================================================
+       INITIALS
+       ===================================================== */
+
+    function getInitials(
+      name
+    ) {
+
+      if (
+        !name
+      ) {
+
+        return "--";
+
+      }
+
+
+      const parts =
+        String(name)
+          .trim()
+          .split(/\s+/)
+          .filter(Boolean);
+
+
+      if (
+        !parts.length
+      ) {
+
+        return "--";
+
+      }
+
+
+      if (
+        parts.length === 1
+      ) {
+
+        return parts[0]
+          .substring(
+            0,
+            2
+          )
+          .toUpperCase();
+
+      }
+
+
+      return (
+        parts[0].charAt(0) +
+        parts[
+          parts.length - 1
+        ].charAt(0)
+      ).toUpperCase();
+
+    }
+
+
+    /* =====================================================
+       PROFILE MODAL
+       ===================================================== */
+
+    function openProfileModal() {
+
+      if (
+        !currentUser
+      ) {
+
+        return;
+
+      }
+
+
+      updateProfileModal();
+
+
+      clearProfilePasswordFields();
+
+      clearProfileMessage();
+
+
+      const modal =
+        document.getElementById(
+          "profileModal"
+        );
+
+
+      if (
+        modal
+      ) {
+
+        modal.classList.add(
+          "open"
+        );
+
+      }
+
+    }
+
+
+    function closeProfileModal() {
+
+      const modal =
+        document.getElementById(
+          "profileModal"
+        );
+
+
+      if (
+        modal
+      ) {
+
+        modal.classList.remove(
+          "open"
+        );
+
+      }
+
+    }
+
+
+    function handleProfileModalBackdrop(
+      event
+    ) {
+
+      if (
+        event.target &&
+        event.target.id ===
+          "profileModal"
+      ) {
+
+        closeProfileModal();
+
+      }
+
+    }
+
+
+    function updateProfileModal() {
+
+      if (
+        !currentUser
+      ) {
+
+        return;
+
+      }
+
+
+      const name =
+        currentUser.name ||
+        currentUser.username ||
+        "Benutzer";
+
+
+      const rank =
+        currentUser.rank ||
+        "Kein Rang";
+
+
+      const username =
+        currentUser.username ||
+        "—";
+
+
+      const largeAvatar =
+        document.getElementById(
+          "profileLargeAvatar"
+        );
+
+
+      const overviewName =
+        document.getElementById(
+          "profileOverviewName"
+        );
+
+
+      const overviewRank =
+        document.getElementById(
+          "profileOverviewRank"
+        );
+
+
+      const overviewUsername =
+        document.getElementById(
+          "profileOverviewUsername"
+        );
+
+
+      if (
+        overviewName
+      ) {
+
+        overviewName.textContent =
+          name;
+
+      }
+
+
+      if (
+        overviewRank
+      ) {
+
+        overviewRank.textContent =
+          isMaster
+            ? rank + " • MASTER"
+            : rank;
+
+      }
+
+
+      if (
+        overviewUsername
+      ) {
+
+        overviewUsername.textContent =
+          "@" + username;
+
+      }
+
+
+      if (
+        largeAvatar
+      ) {
+
+        setAvatarElement(
+          largeAvatar,
+          currentUser.profileImage,
+          getInitials(name)
+        );
+
+      }
+
+    }
+
+
+    /* =====================================================
+       PROFILE IMAGE UPLOAD
+       ===================================================== */
+
+    function selectProfileImage() {
+
+      const input =
+        document.getElementById(
+          "profileImageInput"
+        );
+
+
+      if (
+        input
+      ) {
+
+        input.value =
+          "";
+
+        input.click();
+
+      }
+
+    }
+
+
+    function handleProfileImageSelected(
+      event
+    ) {
+
+      const input =
+        event.target;
+
+
+      if (
+        !input ||
+        !input.files ||
+        !input.files.length
+      ) {
+
+        return;
+
+      }
+
+
+      const file =
+        input.files[0];
+
+
+      const allowedTypes = [
+        "image/jpeg",
+        "image/png",
+        "image/webp"
+      ];
+
+
+      if (
+        !allowedTypes.includes(
+          file.type
+        )
+      ) {
+
+        showProfileMessage(
+          "error",
+          "Bitte ein JPG-, PNG- oder WEBP-Bild auswählen."
+        );
+
+        return;
+
+      }
+
+
+      if (
+        file.size >
+        10 * 1024 * 1024
+      ) {
+
+        showProfileMessage(
+          "error",
+          "Das Ausgangsbild darf maximal 10 MB groß sein."
+        );
+
+        return;
+
+      }
+
+
+      showProfileMessage(
+        "success",
+        "Profilbild wird verarbeitet..."
+      );
+
+
+      compressProfileImage(
+        file,
+        function(result) {
+
+          if (
+            !result ||
+            !result.dataUrl
+          ) {
+
+            showProfileMessage(
+              "error",
+              "Das Bild konnte nicht verarbeitet werden."
+            );
+
+            return;
+
+          }
+
+
+          if (
+            result.dataUrl.length >
+            2.8 * 1024 * 1024
+          ) {
+
+            showProfileMessage(
+              "error",
+              "Das Bild ist nach der Verarbeitung noch zu groß."
+            );
+
+            return;
+
+          }
+
+
+          uploadProfileImage(
+            result.dataUrl,
+            result.fileName
+          );
+
+        }
+      );
+
+    }
+
+
+    function compressProfileImage(
+      file,
+      callback
+    ) {
+
+      const reader =
+        new FileReader();
+
+
+      reader.onload =
+        function() {
+
+          const image =
+            new Image();
+
+
+          image.onload =
+            function() {
+
+              const maxSize =
+                512;
+
+
+              let width =
+                image.width;
+
+
+              let height =
+                image.height;
+
+
+              if (
+                width >
+                  maxSize ||
+                height >
+                  maxSize
+              ) {
+
+                const scale =
+                  Math.min(
+                    maxSize / width,
+                    maxSize / height
+                  );
+
+
+                width =
+                  Math.round(
+                    width * scale
+                  );
+
+
+                height =
+                  Math.round(
+                    height * scale
+                  );
+
+              }
+
+
+              const canvas =
+                document.createElement(
+                  "canvas"
+                );
+
+
+              canvas.width =
+                width;
+
+
+              canvas.height =
+                height;
+
+
+              const context =
+                canvas.getContext(
+                  "2d"
+                );
+
+
+              context.drawImage(
+                image,
+                0,
+                0,
+                width,
+                height
+              );
+
+
+              const dataUrl =
+                canvas.toDataURL(
+                  "image/jpeg",
+                  0.82
+                );
+
+
+              callback({
+
+                dataUrl:
+                  dataUrl,
+
+                fileName:
+                  "profile_" +
+                  Date.now() +
+                  ".jpg"
+
+              });
+
+            };
+
+
+          image.onerror =
+            function() {
+
+              callback(
+                null
+              );
+
+            };
+
+
+          image.src =
+            reader.result;
+
+        };
+
+
+      reader.onerror =
+        function() {
+
+          callback(
+            null
+          );
+
+        };
+
+
+      reader.readAsDataURL(
+        file
+      );
+
+    }
+
+
+    function uploadProfileImage(
+      dataUrl,
+      fileName
+    ) {
+
+      const button =
+        document.querySelector(
+          ".profile-image-actions .primary"
+        );
+
+
+      if (
+        button
+      ) {
+
+        button.disabled =
+          true;
+
+        button.textContent =
+          "Wird hochgeladen...";
+
+      }
+
+
+      CloudApi.run
+
+        .withSuccessHandler(
+          result => {
+
+            if (
+              button
+            ) {
+
+              button.disabled =
+                false;
+
+              button.textContent =
+                "Bild hochladen";
+
+            }
+
+
+            if (
+              !result ||
+              result.success !== true
+            ) {
+
+              showProfileMessage(
+                "error",
+                "Das Profilbild konnte nicht gespeichert werden."
+              );
+
+              return;
+
+            }
+
+
+            currentUser.profileImage =
+              result.profileImage ||
+              "";
+
+
+            updateUserInterface();
+
+
+            showProfileMessage(
+              "success",
+              "Profilbild erfolgreich geändert."
+            );
+
+          }
+        )
+
+        .withFailureHandler(
+          error => {
+
+            if (
+              button
+            ) {
+
+              button.disabled =
+                false;
+
+              button.textContent =
+                "Bild hochladen";
+
+            }
+
+
+            console.error(
+              "Fehler beim Hochladen des Profilbilds:",
+              error
+            );
+
+
+            showProfileMessage(
+              "error",
+              error &&
+              error.message
+                ? error.message
+                : "Das Profilbild konnte nicht gespeichert werden."
+            );
+
+          }
+        )
+
+        .uploadOwnProfileImage(
+          sessionToken,
+          dataUrl,
+          fileName
+        );
+
+    }
+
+
+    /* =====================================================
+       REMOVE PROFILE IMAGE
+       ===================================================== */
+
+    function removeProfileImage() {
+
+      if (
+        !currentUser ||
+        !currentUser.profileImage
+      ) {
+
+        showProfileMessage(
+          "error",
+          "Es ist kein Profilbild hinterlegt."
+        );
+
+        return;
+
+      }
+
+
+      CloudApi.run
+
+        .withSuccessHandler(
+          result => {
+
+            if (
+              !result ||
+              result.success !== true
+            ) {
+
+              showProfileMessage(
+                "error",
+                "Das Profilbild konnte nicht entfernt werden."
+              );
+
+              return;
+
+            }
+
+
+            currentUser.profileImage =
+              "";
+
+
+            updateUserInterface();
+
+
+            showProfileMessage(
+              "success",
+              "Profilbild wurde entfernt."
+            );
+
+          }
+        )
+
+        .withFailureHandler(
+          error => {
+
+            console.error(
+              "Fehler beim Entfernen des Profilbilds:",
+              error
+            );
+
+
+            showProfileMessage(
+              "error",
+              error &&
+              error.message
+                ? error.message
+                : "Das Profilbild konnte nicht entfernt werden."
+            );
+
+          }
+        )
+
+        .removeOwnProfileImage(
+          sessionToken
+        );
+
+    }
+
+
+    /* =====================================================
+       PASSWORD CHANGE
+       ===================================================== */
+
+    function changeOwnPassword() {
+
+      const currentPassword =
+        document.getElementById(
+          "profileCurrentPassword"
+        ).value;
+
+
+      const newPassword =
+        document.getElementById(
+          "profileNewPassword"
+        ).value;
+
+
+      const confirmPassword =
+        document.getElementById(
+          "profileConfirmPassword"
+        ).value;
+
+
+      clearProfileMessage();
+
+
+      if (
+        !currentPassword
+      ) {
+
+        showProfileMessage(
+          "error",
+          "Bitte dein aktuelles Passwort eingeben."
+        );
+
+        return;
+
+      }
+
+
+      if (
+        !newPassword
+      ) {
+
+        showProfileMessage(
+          "error",
+          "Bitte ein neues Passwort eingeben."
+        );
+
+        return;
+
+      }
+
+
+      if (
+        newPassword !==
+        confirmPassword
+      ) {
+
+        showProfileMessage(
+          "error",
+          "Die neuen Passwörter stimmen nicht überein."
+        );
+
+        return;
+
+      }
+
+
+      const button =
+        document.getElementById(
+          "profilePasswordButton"
+        );
+
+
+      if (
+        button
+      ) {
+
+        button.disabled =
+          true;
+
+        button.textContent =
+          "Wird geändert...";
+
+      }
+
+
+      CloudApi.run
+
+        .withSuccessHandler(
+          result => {
+
+            if (
+              button
+            ) {
+
+              button.disabled =
+                false;
+
+              button.textContent =
+                "Passwort ändern";
+
+            }
+
+
+            clearProfilePasswordFields();
+
+
+            showProfileMessage(
+              "success",
+              result &&
+              result.message
+                ? result.message
+                : "Passwort erfolgreich geändert."
+            );
+
+          }
+        )
+
+        .withFailureHandler(
+          error => {
+
+            if (
+              button
+            ) {
+
+              button.disabled =
+                false;
+
+              button.textContent =
+                "Passwort ändern";
+
+            }
+
+
+            console.error(
+              "Fehler beim Ändern des Passworts:",
+              error
+            );
+
+
+            showProfileMessage(
+              "error",
+              error &&
+              error.message
+                ? error.message
+                : "Das Passwort konnte nicht geändert werden."
+            );
+
+          }
+        )
+
+        .changeOwnPassword(
+          sessionToken,
+          currentPassword,
+          newPassword
+        );
+
+    }
+
+
+    function clearProfilePasswordFields() {
+
+      const current =
+        document.getElementById(
+          "profileCurrentPassword"
+        );
+
+
+      const newPassword =
+        document.getElementById(
+          "profileNewPassword"
+        );
+
+
+      const confirm =
+        document.getElementById(
+          "profileConfirmPassword"
+        );
+
+
+      if (
+        current
+      ) {
+
+        current.value =
+          "";
+
+      }
+
+
+      if (
+        newPassword
+      ) {
+
+        newPassword.value =
+          "";
+
+      }
+
+
+      if (
+        confirm
+      ) {
+
+        confirm.value =
+          "";
+
+      }
+
+    }
+
+
+    function showProfileMessage(
+      type,
+      message
+    ) {
+
+      const element =
+        document.getElementById(
+          "profilePasswordMessage"
+        );
+
+
+      if (
+        !element
+      ) {
+
+        return;
+
+      }
+
+
+      element.className =
+        "profile-message " +
+        type;
+
+
+      element.textContent =
+        message;
+
+    }
+
+
+    function clearProfileMessage() {
+
+      const element =
+        document.getElementById(
+          "profilePasswordMessage"
+        );
+
+
+      if (
+        !element
+      ) {
+
+        return;
+
+      }
+
+
+      element.className =
+        "profile-message";
+
+
+      element.textContent =
+        "";
+
+    }
+
+
+    /* =====================================================
+       SESSION LOADING
+       ===================================================== */
+
+    function hideSessionLoadingScreen() {
+
+      const loadingScreen =
+        document.getElementById(
+          "sessionLoadingScreen"
+        );
+
+
+      if (
+        !loadingScreen
+      ) {
+
+        return;
+
+      }
+
+
+      loadingScreen.classList.add(
+        "hidden"
+      );
+
+    }
+
+
+    /* =====================================================
+       LIVE SESSION SYNCHRONISATION
+       ===================================================== */
+
+    function startSessionSync() {
+
+      if (
+        sessionSyncInterval ||
+        !sessionToken
+      ) {
+
+        return;
+
+      }
+
+
+      /*
+       * Einmal direkt synchronisieren, damit Änderungen
+       * nicht erst nach 30 Sekunden sichtbar werden.
+       */
+      syncCurrentSession();
+
+
+      sessionSyncInterval =
+        window.setInterval(
+          syncCurrentSession,
+          SESSION_SYNC_INTERVAL
+        );
+
+    }
+
+
+    function stopSessionSync() {
+
+      if (
+        sessionSyncInterval
+      ) {
+
+        window.clearInterval(
+          sessionSyncInterval
+        );
+
+      }
+
+
+      sessionSyncInterval =
+        null;
+
+      sessionSyncRunning =
+        false;
+
+    }
+
+
+    function syncCurrentSession() {
+
+      if (
+        sessionSyncRunning ||
+        !sessionToken
+      ) {
+
+        return;
+
+      }
+
+
+      /*
+       * Öffentliche externe Aktenansicht benötigt
+       * keinerlei Session-Synchronisierung.
+       */
+      if (
+        document.body.classList.contains(
+          "record-share-mode"
+        )
+      ) {
+
+        return;
+
+      }
+
+
+      sessionSyncRunning =
+        true;
+
+
+      const token =
+        sessionToken;
+
+
+      CloudApi.run
+
+        .withSuccessHandler(
+          function(user) {
+
+            if (
+              token !==
+              sessionToken
+            ) {
+
+              sessionSyncRunning =
+                false;
+
+              return;
+
+            }
+
+
+            if (!user) {
+
+              sessionSyncRunning =
+                false;
+
+              clearSession();
+              showLogin();
+              hideSessionLoadingScreen();
+
+              showLoginError(
+                "Deine Sitzung ist nicht mehr gültig."
+              );
+
+              return;
+
+            }
+
+
+            currentUser =
+              user;
+
+
+            CloudApi.run
+
+              .withSuccessHandler(
+                function(result) {
+
+                  sessionSyncRunning =
+                    false;
+
+
+                  if (
+                    token !==
+                    sessionToken
+                  ) {
+
+                    return;
+
+                  }
+
+
+                  const previousMaster =
+                    isMaster;
+
+                  const previousPermissions =
+                    Array.isArray(
+                      myPermissions
+                    )
+                      ? myPermissions.slice()
+                      : [];
+
+
+                  isMaster =
+                    result?.master === true;
+
+
+                  myPermissions =
+                    Array.isArray(
+                      result?.permissions
+                    )
+                      ? result.permissions
+                      : [];
+
+
+                  const permissionsChanged =
+                    previousMaster !== isMaster ||
+                    previousPermissions.length !==
+                      myPermissions.length ||
+                    previousPermissions.some(
+                      permission =>
+                        !myPermissions.includes(
+                          permission
+                        )
+                    ) ||
+                    myPermissions.some(
+                      permission =>
+                        !previousPermissions.includes(
+                          permission
+                        )
+                    );
+
+
+                  /*
+                   * Benutzeranzeige aktualisieren.
+                   */
+                  updateUserInterface();
+
+
+                  /*
+                   * Sidebar nur bei tatsächlichen
+                   * Berechtigungsänderungen neu bauen.
+                   */
+                  if (
+                    permissionsChanged
+                  ) {
+
+                    buildSidebar();
+
+                  }
+
+
+                  /*
+                   * Aktuell geöffnete Seite prüfen.
+                   */
+                  const currentItem =
+                    findNavigationItem(
+                      currentPage
+                    );
+
+
+                  if (
+                    currentItem &&
+                    !canAccessNavigation(
+                      currentItem
+                    )
+                  ) {
+
+                    const fallbackPage =
+                      findFirstAccessiblePage();
+
+
+                    if (
+                      fallbackPage
+                    ) {
+
+                      navigateTo(
+                        fallbackPage
+                      );
+
+                    } else {
+
+                      clearSession();
+                      showLogin();
+                      hideSessionLoadingScreen();
+
+                      showLoginError(
+                        "Dein Account besitzt keinen zugänglichen Bereich mehr."
+                      );
+
+                    }
+
+                  }
+
+                }
+              )
+
+              .withFailureHandler(
+                function(error) {
+
+                  sessionSyncRunning =
+                    false;
+
+
+                  if (
+                    token !==
+                    sessionToken
+                  ) {
+
+                    return;
+
+                  }
+
+
+                  console.warn(
+                    "Berechtigungen konnten nicht synchronisiert werden:",
+                    error
+                  );
+
+                  /*
+                   * Bei einem Berechtigungsfehler nicht
+                   * sofort ausloggen. Der Serverzustand
+                   * wird beim nächsten Intervall erneut geprüft.
+                   */
+
+                }
+              )
+
+              .getMyPermissions(
+                token
+              );
+
+          }
+        )
+
+        .withFailureHandler(
+          function(error) {
+
+            sessionSyncRunning =
+              false;
+
+
+            if (
+              token !==
+              sessionToken
+            ) {
+
+              return;
+
+            }
+
+
+            const message =
+              error &&
+              error.message
+                ? String(error.message)
+                : "";
+
+
+            /*
+             * requireSession_() meldet sowohl
+             * abgelaufene als auch deaktivierte
+             * Sessions über einen Fehler zurück.
+             * In diesem Fall wird der lokale Zugriff
+             * sofort entfernt.
+             */
+            if (
+              message.toLowerCase().includes(
+                "sitzung"
+              ) ||
+              message.toLowerCase().includes(
+                "zugriff"
+              ) ||
+              message.toLowerCase().includes(
+                "deaktiviert"
+              ) ||
+              message.toLowerCase().includes(
+                "freigabe"
+              )
+            ) {
+
+              console.warn(
+                "Session wurde serverseitig ungültig:",
+                error
+              );
+
+              clearSession();
+              showLogin();
+              hideSessionLoadingScreen();
+
+              showLoginError(
+                message ||
+                "Dein Zugriff wurde entzogen."
+              );
+
+              return;
+
+            }
+
+
+            console.warn(
+              "Session-Synchronisierung fehlgeschlagen:",
+              error
+            );
+
+          }
+        )
+
+        .getCurrentUser(
+          token
+        );
+
+    }
+
+
+    function findFirstAccessiblePage() {
+
+      for (
+        const section of NAVIGATION
+      ) {
+
+        for (
+          const item of section.items
+        ) {
+
+          if (
+            canAccessNavigation(
+              item
+            )
+          ) {
+
+            return item.id;
+
+          }
+
+        }
+
+      }
+
+
+      return null;
+
+    }
+
+
+    /* =====================================================
+       TAB / WINDOW REAKTION
+       ===================================================== */
+
+    document.addEventListener(
+      "visibilitychange",
+      function() {
+
+        if (
+          document.visibilityState ===
+          "visible"
+        ) {
+
+          syncCurrentSession();
+
+        }
+
+      }
+    );
+
+
+    window.addEventListener(
+      "focus",
+      function() {
+
+        syncCurrentSession();
+
+      }
+    );
+
+
+    /* =====================================================
+       APPLICATION VISIBILITY
+       ===================================================== */
+
+    function showApplication() {
+
+      const loginScreen =
+        document.getElementById(
+          "loginScreen"
+        );
+
+
+      const app =
+        document.getElementById(
+          "app"
+        );
+
+
+      if (
+        loginScreen
+      ) {
+
+        loginScreen.style.display =
+          "none";
+
+      }
+
+
+      if (
+        app
+      ) {
+
+        app.style.display =
+          "block";
+
+      }
+
+    }
+
+
+    function showLogin() {
+
+      showLoginForm();
+
+      const loginScreen =
+        document.getElementById(
+          "loginScreen"
+        );
+
+
+      const app =
+        document.getElementById(
+          "app"
+        );
+
+
+      if (
+        app
+      ) {
+
+        app.style.display =
+          "none";
+
+      }
+
+
+      if (
+        loginScreen
+      ) {
+
+        loginScreen.style.display =
+          "flex";
+
+      }
+
+    }
+
+
+    /* =====================================================
+       LOGOUT
+       ===================================================== */
+
+    function logoutUser() {
+
+      if (
+        !sessionToken
+      ) {
+
+        clearSession();
+
+        showLogin();
+
+        hideSessionLoadingScreen();
+
+        return;
+
+      }
+
+
+      const token =
+        sessionToken;
+
+
+      CloudApi.run
+
+        .withSuccessHandler(
+          () => {
+
+            closeProfileModal();
+
+            clearSession();
+
+            showLogin();
+
+            hideSessionLoadingScreen();
+
+          }
+        )
+
+        .withFailureHandler(
+          error => {
+
+            console.error(
+              "Logout-Fehler:",
+              error
+            );
+
+
+            closeProfileModal();
+
+            clearSession();
+
+            showLogin();
+
+            hideSessionLoadingScreen();
+
+          }
+        )
+
+        .logout(
+          token
+        );
+
+    }
+
+
+    /* =====================================================
+       CLEAR SESSION
+       ===================================================== */
+
+    function clearSession() {
+
+      /*
+       * Live-Session-Synchronisierung beenden.
+       */
+      stopSessionSync();
+
+
+      /*
+       * Alle noch offenen Page-Requests ungültig machen.
+       */
+
+      pageRequestId += 1;
+
+
+      pageLoadInProgress =
+        false;
+
+
+      currentLoadedPageFile =
+        null;
+
+
+      sessionToken =
+        null;
+
+
+      currentUser =
+        null;
+
+
+      myPermissions =
+        [];
+
+
+      isMaster =
+        false;
+
+
+      currentPage =
+        null;
+
+
+      sessionStorage.removeItem(
+        "fib_mdt_session"
+      );
+
+
+      /*
+       * Bestehende Patrol-Caches
+       * wie bisher löschen.
+       */
+
+      clearAllPatrolsCache();
+
+
+      closeProfileModal();
+
+
+      const pageContainer =
+        document.getElementById(
+          "pageContainer"
+        );
+
+
+      if (
+        pageContainer
+      ) {
+
+        pageContainer.innerHTML =
+          "";
+
+      }
+
+    }
+
+
+    /* =====================================================
+       LOGIN ERROR
+       ===================================================== */
+
+    function showLoginError(
+      message
+    ) {
+
+      const element =
+        document.getElementById(
+          "loginError"
+        );
+
+
+      if (
+        !element
+      ) {
+
+        return;
+
+      }
+
+
+      element.textContent =
+        message;
+
+
+      element.style.display =
+        "block";
+
+    }
+
+
+    function hideLoginError() {
+
+      const element =
+        document.getElementById(
+          "loginError"
+        );
+
+
+      if (
+        !element
+      ) {
+
+        return;
+
+      }
+
+
+      element.textContent =
+        "";
+
+
+      element.style.display =
+        "none";
+
+    }
+
+
+    /* =====================================================
+       PAGE ERROR
+       ===================================================== */
+
+    function showPageError(
+      message
+    ) {
+
+      const container =
+        document.getElementById(
+          "pageContainer"
+        );
+
+
+      if (
+        !container
+      ) {
+
+        return;
+
+      }
+
+
+      container.innerHTML = `
+
+        <div class="page-error">
+
+          <strong>
+            Zugriff nicht möglich
+          </strong>
+
+          <div style="margin-top:7px;">
+            ${escapeHtml(message)}
+          </div>
+
+        </div>
+
+      `;
+
+    }
+
+
+    /* =====================================================
+       HTML ESCAPE
+       ===================================================== */
+
+    function escapeHtml(
+      value
+    ) {
+
+      return String(
+        value ?? ""
+      )
+
+        .replace(
+          /&/g,
+          "&amp;"
+        )
+
+        .replace(
+          /</g,
+          "&lt;"
+        )
+
+        .replace(
+          />/g,
+          "&gt;"
+        )
+
+        .replace(
+          /"/g,
+          "&quot;"
+        )
+
+        .replace(
+          /'/g,
+          "&#039;"
+        );
+
+    }
+
+  
+
+    /* =====================================================
+       TEMPORÄRE EXTERNE AKTENANSICHT
+       ===================================================== */
+
+    function initializePublicRecordShareMode() {
+      let shareToken = "";
+      try {
+        shareToken = new URLSearchParams(window.location.search).get("recordShare") || "";
+      } catch (error) {
+        shareToken = "";
+      }
+      if (!shareToken) return;
+
+      document.body.classList.add("record-share-mode");
+      const root = document.getElementById("recordSharePublicRoot");
+      if (!root) return;
+
+      const escape = function(value) {
+        return String(value ?? "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#039;");
+      };
+      const formatRichText = function(value) {
+        const safe = escape(value || "");
+        const lines = safe.split(/\r?\n/);
+        let html = "", inList = false;
+        lines.forEach(function(line) {
+          if (/^\s*-\s+/.test(line)) {
+            if (!inList) { html += "<ul>"; inList = true; }
+            line = line.replace(/^\s*-\s+/, "");
+            line = line.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>").replace(/\*([^*]+)\*/g, "<em>$1</em>");
+            html += "<li>" + line + "</li>";
+          } else {
+            if (inList) { html += "</ul>"; inList = false; }
+            line = line.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>").replace(/\*([^*]+)\*/g, "<em>$1</em>");
+            html += line ? "<p>" + line + "</p>" : "";
+          }
+        });
+        if (inList) html += "</ul>";
+        return html;
+      };
+      const formatDate = function(value) {
+        if (!value) return "—";
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return "—";
+        return date.toLocaleString("de-DE", {
+          day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"
+        });
+      };
+      const renderError = function(message) {
+        root.innerHTML = `
+          <div class="record-share-public-error">
+            <div class="record-share-public-error-title">Externe Ansicht nicht verfügbar</div>
+            <div class="record-share-public-error-text">${escape(message || "Der Freigabe-Link ist ungültig oder abgelaufen.")}</div>
+          </div>`;
+      };
+
+      fetch("/api/public/record-share?token=" + encodeURIComponent(shareToken), {
+        method:"GET",
+        credentials:"same-origin",
+        headers:{Accept:"application/json"}
+      })
+      .then(async function(response) {
+        let payload = {};
+        try { payload = await response.json(); } catch (error) {}
+        if (!response.ok || !payload.success || !payload.record) {
+          throw new Error(payload.message || payload.error || "Der Freigabe-Link ist ungültig oder abgelaufen.");
+        }
+        return payload.record;
+      })
+      .then(function(record) {
+        root.innerHTML = `
+          <div class="record-share-public-brand">
+            <img src="/assets/lspd-logo.svg" alt="LSPD" style="width:38px;height:38px;object-fit:contain;border-radius:8px">
+            <div>
+              <strong>Los Santos Police Department</strong>
+              <span>Temporäre externe Aktenansicht</span>
+            </div>
+          </div>
+          <article class="record-share-public-card">
+            <div class="record-share-public-eyebrow">${escape(record.typeLabel || "Vorgang")}</div>
+            <div class="record-share-public-title">${escape(record.title || "Unbenannter Vorgang")}</div>
+            <div class="record-share-public-case">${escape(record.caseNumber || "Ohne Aktenzeichen")}</div>
+            <div class="record-share-public-meta">
+              <div class="record-share-public-meta-card"><div class="record-share-public-meta-label">Betreff</div><div class="record-share-public-meta-value">${escape(record.subject || "—")}</div></div>
+              <div class="record-share-public-meta-card"><div class="record-share-public-meta-label">Status</div><div class="record-share-public-meta-value"><span class="record-share-public-status">${escape(record.statusLabel || "—")}</span></div></div>
+              <div class="record-share-public-meta-card"><div class="record-share-public-meta-label">Klassifizierung</div><div class="record-share-public-meta-value">${escape(record.classification || "—")}</div></div>
+              <div class="record-share-public-meta-card"><div class="record-share-public-meta-label">Erstellt durch</div><div class="record-share-public-meta-value">${escape(record.createdBy || "—")}</div></div>
+            </div>
+            <div class="record-share-public-section">
+              <div class="record-share-public-section-title">Kurzfassung</div>
+              <div class="record-share-public-box">${escape(record.summary || "Keine Kurzfassung hinterlegt.")}</div>
+            </div>
+            <div class="record-share-public-section">
+              <div class="record-share-public-section-title">Akteninhalt</div>
+              <div class="record-share-public-box">${record.content ? formatRichText(record.content) : escape("Kein Akteninhalt hinterlegt.")}</div>
+            </div>
+            <div class="record-share-public-expiry">
+              Erstellt am ${escape(formatDate(record.createdAt))}. Diese externe Ansicht wurde am
+              ${escape(formatDate(record.shareCreatedAt))} erstellt und ist bis
+              ${escape(formatDate(record.shareExpiresAt))} gültig.
+            </div>
+          </article>`;
+      })
+      .catch(function(error) {
+        renderError(error && error.message ? error.message : "Die Akte konnte nicht geladen werden.");
+      });
+    }
+
+    if (document.readyState === "loading") {
+      document.addEventListener(
+        "DOMContentLoaded",
+        initializePublicRecordShareMode,
+        { once: true }
+      );
+    } else {
+      initializePublicRecordShareMode();
+    }
+
+</script>
+
+
+
+  <!-- =====================================================
+       GLOBALES MODAL
+       Wird einmal pro App geladen und anschließend nur
+       noch mit Inhalt befüllt. Dynamische Pages dürfen
+       den Modal-Shell nicht erneut erzeugen.
+       ===================================================== -->
+  <div id="fibGlobalModalOverlay" aria-hidden="true">
+    <div class="fib-global-modal" role="dialog" aria-modal="true" aria-labelledby="fibGlobalModalTitle">
+      <div class="fib-global-modal-header">
+        <div class="fib-global-modal-heading">
+          <div id="fibGlobalModalTitle" class="fib-global-modal-title">Dialog</div>
+          <div id="fibGlobalModalSubtitle" class="fib-global-modal-subtitle"></div>
+        </div>
+        <button
+          type="button"
+          class="fib-global-modal-close"
+          id="fibGlobalModalClose"
+          aria-label="Schließen"
+        >×</button>
+      </div>
+
+      <div id="fibGlobalModalBody" class="fib-global-modal-body"></div>
+
+      <div id="fibGlobalModalFooter" class="fib-global-modal-footer">
+        <span class="fib-global-modal-spacer"></span>
+        <button type="button" class="fib-modal-button" id="fibGlobalModalCancel">Schließen</button>
+        <button type="button" class="fib-modal-button primary" id="fibGlobalModalSave" style="display:none">Speichern</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+/* =========================================================
+   LSPD MDT – GLOBAL MODAL MANAGER
+   =========================================================
+   Der Modal-Shell lebt außerhalb von #pageContainer und
+   wird daher beim Wechsel dynamischer Pages NICHT zerstört.
+   ========================================================= */
+(function () {
+  "use strict";
+
+  if (window.FIB_MDT_MODAL) return;
+
+  let lastFocused = null;
+  let activeConfig = null;
+
+  function byId(id) {
+    return document.getElementById(id);
+  }
+
+  function clearFooter() {
+    const footer = byId("fibGlobalModalFooter");
+    const save = byId("fibGlobalModalSave");
+    if (!footer) return;
+
+    footer.querySelectorAll("[data-fib-modal-custom]").forEach(function (node) {
+      node.remove();
+    });
+
+    if (save) {
+      save.style.display = "none";
+      save.disabled = false;
+      save.textContent = "Speichern";
+    }
+    const cancel = byId("fibGlobalModalCancel");
+    if (cancel) cancel.disabled = false;
+  }
+
+  function focusFirst() {
+    const body = byId("fibGlobalModalBody");
+    if (!body) return;
+
+    const first = body.querySelector(
+      "input:not([readonly]):not([type='hidden']), textarea, .fib-ui-select-trigger, button:not(.agents-hidden-select)"
+    );
+
+    if (first) {
+      try { first.focus({ preventScroll: true }); } catch (error) { try { first.focus(); } catch (e) {} }
+    }
+  }
+
+  function open(options) {
+    const config = options || {};
+    const overlay = byId("fibGlobalModalOverlay");
+    const title = byId("fibGlobalModalTitle");
+    const subtitle = byId("fibGlobalModalSubtitle");
+    const body = byId("fibGlobalModalBody");
+    const save = byId("fibGlobalModalSave");
+    const cancel = byId("fibGlobalModalCancel");
+
+    if (!overlay || !body) return false;
+
+    lastFocused = document.activeElement;
+    activeConfig = config;
+
+    // Modal buttons may have been disabled by an earlier async action.
+    // Every new modal session starts with an actionable cancel/close control.
+    if (cancel) {
+      cancel.disabled = false;
+      cancel.removeAttribute("disabled");
+    }
+    clearFooter();
+
+    if (title) title.textContent = String(config.title || "Dialog");
+    if (subtitle) subtitle.textContent = String(config.subtitle || "");
+
+    if (config.body !== undefined) {
+      if (typeof config.body === "string") {
+        body.innerHTML = config.body;
+      } else if (config.body instanceof Node) {
+        body.replaceChildren(config.body);
+      }
+    }
+
+    if (save) {
+      const visible = !!config.saveVisible;
+      save.style.display = visible ? "inline-flex" : "none";
+      save.disabled = !!config.saveDisabled;
+      save.textContent = String(config.saveText || "Speichern");
+      save.className = "fib-modal-button primary";
+      save.onclick = typeof config.onSave === "function" ? function (event) {
+        const result = config.onSave(event.currentTarget);
+        if (result === false) event.preventDefault();
+      } : null;
+    }
+
+    // Both supported APIs are normalized into the same central footer.
+    // This is important for older modules that pass `buttons: [...]`.
+    if (Array.isArray(config.buttons) && config.buttons.length) {
+      if (save) save.style.display = "none";
+      if (cancel) cancel.style.display = config.keepCancelButton ? "inline-flex" : "none";
+      const footer = byId("fibGlobalModalFooter");
+      config.buttons.forEach(function (item) {
+        if (!item) return;
+        const button = document.createElement("button");
+        button.type = "button";
+        const variant = String(item.variant || item.className || "secondary").toLowerCase();
+        button.className = "fib-modal-button" + (variant === "primary" ? " primary" : variant === "danger" ? " danger" : "");
+        button.textContent = String(item.label || "Aktion");
+        button.dataset.fibModalCustom = "true";
+        button.addEventListener("click", function (event) {
+          if (button.disabled) return;
+          const result = typeof item.onClick === "function" ? item.onClick(button, event) : undefined;
+          if (result === false) event.preventDefault();
+        });
+        if (footer) footer.insertBefore(button, save || null);
+      });
+    }
+
+    if (cancel) {
+      cancel.textContent = String(config.cancelText || "Schließen");
+      cancel.style.display = config.cancelVisible === false ? "none" : "inline-flex";
+    }
+
+    overlay.classList.toggle("fib-modal-agents-mode", config.modalClass === "agents");
+    overlay.classList.toggle("fib-modal-records-mode", config.modalClass === "records");
+    overlay.classList.add("open");
+    overlay.setAttribute("aria-hidden", "false");
+
+    if (config.focus !== false) {
+      requestAnimationFrame(focusFirst);
+    }
+
+    return true;
+  }
+
+  function confirm(options) {
+    const config = options || {};
+    return new Promise(function (resolve) {
+      let settled = false;
+      function finish(value) {
+        if (settled) return;
+        settled = true;
+        resolve(value);
+      }
+      const opened = open({
+        title: config.title || "Aktion bestätigen",
+        subtitle: config.subtitle || "Bitte prüfe diese Aktion.",
+        body: config.message ? '<div class="fib-confirm-message"></div>' : "",
+        cancelText: config.cancelText || "Abbrechen",
+        cancelVisible: true,
+        focus: false,
+        onClose: function () { finish(false); },
+        buttons: [
+          { label: config.confirmText || "Bestätigen", variant: config.danger === false ? "primary" : "danger", onClick: function (button) {
+            button.disabled = true;
+            finish(true);
+            close();
+            if (typeof config.onConfirm === "function") {
+              try { config.onConfirm(); } catch (error) { console.error("Bestätigungsaktion fehlgeschlagen:", error); }
+            }
+          } }
+        ]
+      });
+      if (!opened) { finish(false); return; }
+      const message = byId("fibGlobalModalBody")?.querySelector(".fib-confirm-message");
+      if (message) message.textContent = String(config.message || "Möchtest du fortfahren?");
+    });
+  }
+
+  function close() {
+    const overlay = byId("fibGlobalModalOverlay");
+    const body = byId("fibGlobalModalBody");
+    const save = byId("fibGlobalModalSave");
+    const cancel = byId("fibGlobalModalCancel");
+
+    if (!overlay) return;
+
+    const closingConfig = activeConfig;
+    activeConfig = null;
+    if (closingConfig && typeof closingConfig.onClose === "function") {
+      try { closingConfig.onClose(); } catch (error) { console.error("Modal-Schließen fehlgeschlagen:", error); }
+    }
+    overlay.classList.remove("open", "fib-modal-agents-mode", "fib-modal-records-mode");
+    overlay.setAttribute("aria-hidden", "true");
+
+    if (save) {
+      save.onclick = null;
+      save.disabled = false;
+    }
+    if (cancel) {
+      cancel.onclick = null;
+      cancel.disabled = false;
+      cancel.removeAttribute("disabled");
+    }
+
+    clearFooter();
+
+    if (body) body.innerHTML = "";
+
+    if (lastFocused && typeof lastFocused.focus === "function") {
+      try { lastFocused.focus({ preventScroll: true }); } catch (error) { try { lastFocused.focus(); } catch (e) {} }
+    }
+
+    lastFocused = null;
+  }
+
+  function setBody(content) {
+    const body = byId("fibGlobalModalBody");
+    if (!body) return;
+    if (typeof content === "string") {
+      body.innerHTML = content;
+    } else if (content instanceof Node) {
+      body.replaceChildren(content);
+    }
+  }
+
+  function setFooterButtons(buttons, options) {
+    const footer = byId("fibGlobalModalFooter");
+    const save = byId("fibGlobalModalSave");
+    const cancel = byId("fibGlobalModalCancel");
+    const settings = options || {};
+
+    if (!footer) return;
+
+    footer.querySelectorAll("[data-fib-modal-custom]").forEach(function (node) {
+      node.remove();
+    });
+
+    if (save && !settings.keepSave) save.style.display = "none";
+    if (cancel) {
+      cancel.style.display = settings.keepCancel === false ? "none" : "inline-flex";
+      cancel.disabled = false;
+    }
+
+    (Array.isArray(buttons) ? buttons : []).forEach(function (item) {
+      if (!item) return;
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "fib-modal-button" + (item.className ? " " + item.className : "");
+      button.textContent = String(item.label || "Aktion");
+      button.dataset.fibModalCustom = "true";
+      if (typeof item.onClick === "function") button.addEventListener("click", item.onClick);
+      footer.insertBefore(button, footer.lastElementChild || null);
+    });
+  }
+
+  byId("fibGlobalModalClose")?.addEventListener("click", close);
+  byId("fibGlobalModalCancel")?.addEventListener("click", close);
+  byId("fibGlobalModalOverlay")?.addEventListener("click", function (event) {
+    if (event.target === event.currentTarget) close();
+  });
+
+  document.addEventListener("keydown", function (event) {
+    if (event.key === "Escape") {
+      const overlay = byId("fibGlobalModalOverlay");
+      if (overlay && overlay.classList.contains("open")) close();
+    }
+  });
+
+  window.FIB_MDT_MODAL = Object.freeze({
+    open: open,
+    confirm: confirm,
+    close: close,
+    setBody: setBody,
+    setFooterButtons: setFooterButtons,
+    focusFirst: focusFirst,
+    getOverlay: function () { return byId("fibGlobalModalOverlay"); },
+    getBody: function () { return byId("fibGlobalModalBody"); },
+    getFooter: function () { return byId("fibGlobalModalFooter"); },
+    getSaveButton: function () { return byId("fibGlobalModalSave"); },
+    getCancelButton: function () { return byId("fibGlobalModalCancel"); },
+    setButtonLoading: function (button, loading, text) {
+      if (!button) return;
+      if (loading) {
+        if (!button.dataset.fibOriginalText) button.dataset.fibOriginalText = button.textContent;
+        button.disabled = true;
+        button.textContent = String(text || "Bitte warten …");
+      } else {
+        button.disabled = false;
+        button.textContent = String(text || button.dataset.fibOriginalText || button.textContent);
+        delete button.dataset.fibOriginalText;
+      }
+    }
+  });
+})();
+</script>
+<script>
+/* LSPD MDT – soft live refresh: keine Browser-Neuladung, nur Daten-Refresh im aktiven Modul. */
+(function () {
+  "use strict";
+  if (window.__fibLiveRefreshStarted) return;
+  window.__fibLiveRefreshStarted = true;
+  let lastInteraction = Date.now();
+  ["pointerdown", "keydown", "input", "change"].forEach(function (type) {
+    document.addEventListener(type, function () { lastInteraction = Date.now(); }, true);
+  });
+  function safeToRefresh() {
+    const modal = document.getElementById("fibGlobalModalOverlay");
+    if (modal && modal.classList.contains("open")) return false;
+    if (Date.now() - lastInteraction < 5000) return false;
+    const active = document.activeElement;
+    if (active && /^(INPUT|TEXTAREA|SELECT)$/.test(active.tagName)) return false;
+    return document.visibilityState === "visible";
+  }
+  window.setInterval(function () {
+    if (safeToRefresh()) window.dispatchEvent(new CustomEvent("fib-mdt:refresh-request", {detail:{source:"poll", at:Date.now()}}));
+  }, 20000);
+  // Successful writes emit `fib-mdt:data-changed`; active page modules subscribe directly.
+
+})();
+</script>
+
+<script>
+/* =========================================================
+   LSPD MDT – ZENTRALER DROPDOWN-MANAGER
+   Native selects werden durch einheitliche Controls ergänzt.
+   Geöffnete Menüs werden in den Vordergrund (document.body)
+   verschoben, passend zum Viewport positioniert und fangen
+   Mausrad-/Touch-Scroll ab, damit nicht das Modal scrollt.
+   ========================================================= */
+(function () {
+  "use strict";
+  if (window.FIB_MDT_SELECTS) return;
+  let openSelect = null;
+  let repositionFrame = 0;
+
+  function labelFor(option) {
+    return option ? (option.label || option.textContent || option.value || "Auswählen") : "Auswählen";
+  }
+  function positionMenu(state) {
+    if (!state || !state.menu || !state.trigger || !state.menu.classList.contains("is-portal")) return;
+    const rect = state.trigger.getBoundingClientRect();
+    const vw = document.documentElement.clientWidth || window.innerWidth;
+    const vh = window.innerHeight || document.documentElement.clientHeight;
+    const gap = 6;
+    const edge = 8;
+    const below = Math.max(0, vh - rect.bottom - gap - edge);
+    const above = Math.max(0, rect.top - gap - edge);
+    state.menu.style.width = Math.max(0, Math.min(rect.width, vw - edge * 2)) + "px";
+    state.menu.style.left = Math.max(edge, Math.min(rect.left, vw - edge - rect.width)) + "px";
+    state.menu.style.right = "auto";
+    state.menu.style.bottom = "auto";
+    const preferAbove = below < 180 && above > below;
+    const available = Math.max(90, Math.min(340, preferAbove ? above : below));
+    state.menu.style.maxHeight = available + "px";
+    // Measure after the max-height constraint has been applied.
+    const menuHeight = Math.min(state.menu.scrollHeight, available);
+    let top = preferAbove ? rect.top - gap - menuHeight : rect.bottom + gap;
+    top = Math.max(edge, Math.min(top, vh - edge - menuHeight));
+    state.menu.style.top = top + "px";
+  }
+  function schedulePosition() {
+    if (!openSelect || repositionFrame) return;
+    repositionFrame = requestAnimationFrame(function () {
+      repositionFrame = 0;
+      if (openSelect) positionMenu(openSelect);
+    });
+  }
+  function closeCurrent() {
+    if (!openSelect) return;
+    const state = openSelect;
+    state.wrapper.classList.remove("open");
+    state.trigger.setAttribute("aria-expanded", "false");
+    state.menu.classList.remove("is-portal");
+    state.menu.style.removeProperty("position");
+    state.menu.style.removeProperty("left");
+    state.menu.style.removeProperty("right");
+    state.menu.style.removeProperty("top");
+    state.menu.style.removeProperty("bottom");
+    state.menu.style.removeProperty("width");
+    state.menu.style.removeProperty("max-height");
+    if (state.menu.parentNode !== state.wrapper) state.wrapper.appendChild(state.menu);
+    openSelect = null;
+  }
+  function refresh(wrapper, select) {
+    const label = wrapper.querySelector(".fib-ui-select-label");
+    const trigger = wrapper.querySelector(".fib-ui-select-trigger");
+    const menu = wrapper._fibMenu || wrapper.querySelector(".fib-ui-select-menu");
+    if (!label || !trigger || !menu) return;
+    const selected = select.options[select.selectedIndex];
+    label.textContent = selected ? labelFor(selected) : (select.getAttribute("data-placeholder") || "Auswählen");
+    trigger.disabled = select.disabled;
+    trigger.title = label.textContent;
+    menu.replaceChildren();
+    if (!select.options.length) {
+      const empty = document.createElement("div");
+      empty.className = "fib-ui-select-empty";
+      empty.textContent = "Keine Optionen verfügbar";
+      menu.appendChild(empty);
+      return;
+    }
+    Array.from(select.options).forEach(function (option, index) {
+      const item = document.createElement("button");
+      item.type = "button";
+      item.className = "fib-ui-select-option" + (option.selected ? " selected" : "") + (index === select.selectedIndex ? " active" : "");
+      item.textContent = labelFor(option);
+      item.disabled = !!option.disabled || !!(option.parentElement && option.parentElement.disabled);
+      item.setAttribute("role", "option");
+      item.setAttribute("aria-selected", option.selected ? "true" : "false");
+      item.addEventListener("click", function () {
+        if (item.disabled) return;
+        select.value = option.value;
+        select.dispatchEvent(new Event("input", { bubbles: true }));
+        select.dispatchEvent(new Event("change", { bubbles: true }));
+        refresh(wrapper, select);
+        closeCurrent();
+        trigger.focus({ preventScroll: true });
+      });
+      menu.appendChild(item);
+    });
+    if (openSelect && openSelect.wrapper === wrapper) schedulePosition();
+  }
+  function enhance(select) {
+    if (!(select instanceof HTMLSelectElement) || select.dataset.fibUiEnhanced === "true") return;
+    if (select.multiple || select.size > 1) return;
+    if (select.matches(".agents-hidden-select, .system-select-hidden, [data-fib-select-native-only], [aria-hidden='true']")) return;
+    if (!select.parentElement) return;
+    select.dataset.fibUiEnhanced = "true";
+    select.classList.add("fib-ui-native-select");
+    const wrapper = document.createElement("div");
+    wrapper.className = "fib-ui-select";
+    if (select.className) wrapper.dataset.originalClass = select.className;
+    select.parentNode.insertBefore(wrapper, select);
+    wrapper.appendChild(select);
+    const trigger = document.createElement("button");
+    trigger.type = "button";
+    trigger.className = "fib-ui-select-trigger";
+    trigger.setAttribute("aria-haspopup", "listbox");
+    trigger.setAttribute("aria-expanded", "false");
+    trigger.innerHTML = '<span class="fib-ui-select-label"></span><span class="fib-ui-select-chevron" aria-hidden="true">⌄</span>';
+    const menu = document.createElement("div");
+    menu.className = "fib-ui-select-menu";
+    menu.setAttribute("role", "listbox");
+    wrapper.append(trigger, menu);
+    wrapper._fibMenu = menu;
+    // Stop scroll chaining only after the menu receives the wheel/touch event,
+    // so the menu itself continues to scroll while the modal stays still.
+    menu.addEventListener("wheel", function (event) { event.stopPropagation(); }, { passive: true });
+    menu.addEventListener("touchmove", function (event) { event.stopPropagation(); }, { passive: true });
+    trigger.addEventListener("click", function () {
+      if (select.disabled) return;
+      if (openSelect && openSelect.wrapper === wrapper) { closeCurrent(); return; }
+      closeCurrent();
+      refresh(wrapper, select);
+      const state = { wrapper: wrapper, select: select, trigger: trigger, menu: menu };
+      openSelect = state;
+      wrapper.classList.add("open");
+      trigger.setAttribute("aria-expanded", "true");
+      menu.classList.add("is-portal");
+      document.body.appendChild(menu);
+      positionMenu(state);
+    });
+    trigger.addEventListener("keydown", function (event) {
+      if (!["ArrowDown", "ArrowUp", "Enter", " "].includes(event.key)) return;
+      event.preventDefault();
+      if (!wrapper.classList.contains("open")) trigger.click();
+      const items = Array.from(menu.querySelectorAll(".fib-ui-select-option:not(:disabled)"));
+      if (!items.length) return;
+      let index = items.findIndex(item => item.classList.contains("active"));
+      if (event.key === "ArrowDown") index = Math.min(items.length - 1, index + 1);
+      else if (event.key === "ArrowUp") index = Math.max(0, index < 0 ? 0 : index - 1);
+      else { (items.find(item => item.getAttribute("aria-selected") === "true") || items[0]).click(); return; }
+      items.forEach(item => item.classList.remove("active"));
+      items[index].classList.add("active");
+      items[index].focus({ preventScroll: true });
+      items[index].scrollIntoView({ block: "nearest" });
+    });
+    select.addEventListener("change", function () { refresh(wrapper, select); });
+    select.addEventListener("input", function () { refresh(wrapper, select); });
+    new MutationObserver(function () { refresh(wrapper, select); }).observe(select, { childList: true, subtree: true, attributes: true, characterData: true });
+    refresh(wrapper, select);
+  }
+  function scan(root) {
+    if (!root) return;
+    if (root.matches && root.matches("select")) enhance(root);
+    if (root.querySelectorAll) root.querySelectorAll("select").forEach(enhance);
+  }
+  document.addEventListener("click", function (event) {
+    if (openSelect && !openSelect.wrapper.contains(event.target) && !openSelect.menu.contains(event.target)) closeCurrent();
+  }, true);
+  document.addEventListener("keydown", function (event) { if (event.key === "Escape") closeCurrent(); }, true);
+  // Scroll containment is attached directly to the menu (not document capture),
+  // allowing the menu's own native scrolling while preventing scroll chaining.
+  window.addEventListener("resize", schedulePosition, { passive: true });
+  window.addEventListener("scroll", schedulePosition, { capture: true, passive: true });
+  const observer = new MutationObserver(function (records) {
+    records.forEach(function (record) { record.addedNodes.forEach(function (node) { if (node.nodeType === 1 && !(openSelect && node === openSelect.menu)) scan(node); }); });
+  });
+  function init() {
+    scan(document);
+    observer.observe(document.body, { childList: true, subtree: true });
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init, { once: true }); else init();
+  window.FIB_MDT_SELECTS = Object.freeze({ refresh: function () { scan(document); }, close: closeCurrent, reposition: schedulePosition });
+})();
+</script>
+
+  <!-- =====================================================
+       TEMPORÄRE EXTERNE AKTENANSICHT
+       ===================================================== -->
+
+  <div id="recordShareScreen">
+    <div id="recordSharePublicRoot" class="record-share-public-shell">
+      <div class="record-share-public-loading">
+        <div class="record-share-public-loading-text">
+          Externe Aktenansicht wird geladen...
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/autofill-guard.js" defer></script>
+
+
+<script>
+(function () {
+  const ids = { callSign: 'fibTopCallSign', status: 'fibTopDutyStatus', unit: 'fibTopPatrolUnit' };
+  window.fibUpdateOwnStatus = function (payload) {
+    const data = payload && typeof payload === 'object' ? payload : {};
+    const call = document.getElementById(ids.callSign);
+    const status = document.getElementById(ids.status);
+    const unit = document.getElementById(ids.unit);
+    if (call) call.textContent = String(data.callSign || 'Kein Funkrufname').trim();
+    if (status) status.textContent = String(data.status || 'Nicht in Streife').trim();
+    if (unit) unit.textContent = String(data.unit || 'Nicht zugeordnet').trim();
+    const strip = document.getElementById('fibOwnStatusStrip');
+    if (strip) strip.classList.toggle('is-idle', !data.inPatrol);
+    const statusChip = status && status.closest('.fib-status-chip');
+    if (statusChip) statusChip.classList.toggle('is-idle', !data.inPatrol);
+    const unitChip = unit && unit.closest('.fib-status-chip');
+    if (unitChip) unitChip.classList.toggle('is-idle', !data.inPatrol);
+  };
+})();
+</script>
+
+
+<script>
+/* LSPD MDT duty picker: accessible list editor and live updates for an active duty entry. */
+(function () {
+  const defaults={tenCode:["10-1","10-3","10-6","10-23","10-76"],location:["LS - City","LS - County","Roxwood County","Highway - East","Highway - West","Highway - City","Highway - Allgemein","Vespucci PD","Paleto SO","Sandy Shores SO","Roxwood SO","Border Station","City Hall","Staatsgefängnis","Police Academy","Krankenhaus","Air Support","Ermittlung","SWAT","Gang Unit","LS - City - Blitz"],activity:["Streifenfahrt","Feierabend","Juwelier","Geiselnahme","Raubüberfall","Großschadenslage","Großevent","Beschäftigt","Beschäftigt AD","Ausbildung / Übung","Besprechung","Code-PEE","Transport","Tätigkeitsbearbeitung","Durchsuchung","OOV"],vehicle:["STR","STR (UM)","OFF","OFF (UM)","HSP","HSP (UM)","OVW"]};
+  const options=(()=>{try{const x=JSON.parse(localStorage.getItem('fib_mdt_duty_options_v1')||'{}');return Object.fromEntries(Object.keys(defaults).map(k=>[k,Array.isArray(x[k])&&x[k].length?x[k]:defaults[k].slice()]));}catch(_){return Object.fromEntries(Object.entries(defaults).map(([k,v])=>[k,v.slice()]));}})();
+  const labels={tenCode:"Ten Code auswählen",location:"Einsatzort auswählen",activity:"Status auswählen",vehicle:"Fahrzeug auswählen"};
+  const picker=document.getElementById('fibDutyPicker'); if(!picker)return;
+  picker.innerHTML='<div class="fib-duty-picker-head"><strong id="fibDutyPickerTitle">Auswahl</strong><button type="button" id="fibDutyPickerConfig" class="fib-duty-close" title="Auswahllisten konfigurieren">⚙</button><button type="button" id="fibDutyPickerClose" class="fib-duty-close" aria-label="Auswahl schließen">×</button></div><div class="fib-duty-picker-scroll"><div class="fib-duty-options" id="fibDutyOptions"></div></div>';
+  let state={location:'',activity:'',vehicle:'',tenCode:'10-1'}, activeKey='location', onDuty=false, saving=false, suppressPersist=false;
+  try{const stored=JSON.parse(localStorage.getItem('fib_mdt_duty_picker_v1')||'{}');if(stored&&typeof stored==='object')state=Object.assign(state,stored);}catch(_){}
+  // Load the shared Ten-Code list only after local selections have been restored.
+  // A late network response must never reset a valid selection made by the Agent.
+  (async()=>{try{const r=await window.runServer('getPatrolTenCodes');const a=Array.isArray(r?.codes)?r.codes:[];if(a.length){const serverCodes=[...new Set(a.map(v=>String(typeof v==='string'?v:(v.code||v.value||v.name||'')).trim()).filter(Boolean))];options.tenCode=serverCodes;if(!options.tenCode.includes(state.tenCode))state.tenCode=options.tenCode[0];try{localStorage.setItem('fib_mdt_duty_options_v1',JSON.stringify(options));}catch(_){}update();}}catch(_){}})();
+  function update(){
+    const values={fibTopPatrolUnit:state.location||'Einsatzort auswählen',fibTopDutyStatus:state.activity||'Status auswählen',fibTopVehicle:state.vehicle||'Fahrzeug auswählen',fibTopTenCode:state.tenCode||'Ten Code auswählen'};
+    Object.keys(values).forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=values[id];});
+    if(!suppressPersist){try{localStorage.setItem('fib_mdt_duty_picker_v1',JSON.stringify(state));}catch(_){}}
+    const b=document.getElementById('fibDutyStartButton');
+    if(b){b.hidden=onDuty;b.style.display=onDuty?'none':'';b.textContent=onDuty?'Im Dienst':'In Dienst gehen';b.disabled=saving;}
+    const hint=document.getElementById('fibDutySelectionHint');
+    if(hint)hint.textContent=onDuty?'Dienststatus aktiv – Änderungen werden in die bestehende Streife übernommen.':'Einsatzort, Status und Fahrzeug auswählen.';
+  }
+  function dispatchSelection(){if(onDuty&&state.location&&state.activity&&state.vehicle)window.dispatchEvent(new CustomEvent('fib-mdt:duty-selection-changed',{detail:{location:state.location,activity:state.activity,vehicleType:state.vehicle,tenCode:state.tenCode}}));}
+  function render(key){activeKey=key;picker.querySelector('#fibDutyPickerTitle').textContent=labels[key];const root=picker.querySelector('#fibDutyOptions');root.className='fib-duty-options'+(key==='activity'?' fib-duty-options-warm':'');root.innerHTML='';options[key].forEach(item=>{const b=document.createElement('button');b.type='button';b.className='fib-duty-option';b.textContent=item;b.setAttribute('aria-pressed',String(state[key]===item));b.addEventListener('click',()=>{state[key]=item;update();close();if(key==='tenCode'){if(onDuty)window.dispatchEvent(new CustomEvent('fib-mdt:ten-code-changed',{detail:{tenCode:item}}));}else dispatchSelection();});root.appendChild(b);});}
+  function onPatrolsPage(){const t=(document.getElementById('pageTitle')||{}).textContent||'';return /leitstelle|patrols/i.test(t)||!!document.querySelector('#pageContainer .patrols-page');}
+  function open(key,trigger){if(!onPatrolsPage())return;render(key);picker.hidden=false;picker.style.position='fixed';const r=trigger&&trigger.getBoundingClientRect();const w=Math.min(400,innerWidth-16);picker.style.width=w+'px';if(r){picker.style.left=Math.max(8,Math.min(r.left,innerWidth-w-8))+'px';let top=r.bottom+6;const h=Math.min(innerHeight*.65,500);if(top+h>innerHeight-8)top=Math.max(8,r.top-h-6);picker.style.top=top+'px';picker.style.maxHeight=h+'px';}}
+  function close(){picker.hidden=true;document.querySelectorAll('[data-duty-picker-trigger]').forEach(e=>e.setAttribute('aria-expanded','false'));}
+  function configModal(){const old=document.getElementById('fibDutyConfigOverlay');if(old)old.remove();const overlay=document.createElement('div');overlay.id='fibDutyConfigOverlay';overlay.style.cssText='position:fixed;inset:0;z-index:10050;background:rgba(3,8,16,.78);display:flex;align-items:center;justify-content:center;padding:16px;';const panel=document.createElement('div');panel.style.cssText='width:min(680px,100%);max-height:85vh;overflow:auto;background:#111b2a;color:#e8eef7;border:1px solid #34445b;border-radius:12px;padding:20px;font:inherit;box-shadow:0 20px 60px #0008;';panel.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px"><div><strong style="font-size:17px">Dienst-Auswahllisten</strong><div style="color:#9eafc4;font-size:12px;margin-top:4px">Einträge hinzufügen, umbenennen oder entfernen.</div></div><button type="button" data-close style="background:#26364b;color:white;border:0;border-radius:7px;padding:8px 12px;cursor:pointer">Schließen</button></div><div id="fibDutyConfigFields"></div><button type="button" data-add style="margin-top:10px;background:#243d5b;color:white;border:1px solid #42658d;border-radius:7px;padding:9px 12px;cursor:pointer">+ Eintrag hinzufügen</button><div style="display:flex;justify-content:flex-end;gap:8px;margin-top:18px"><button type="button" data-cancel style="background:#26364b;color:white;border:0;border-radius:7px;padding:10px 14px;cursor:pointer">Abbrechen</button><button type="button" data-save style="background:#2474c6;color:white;border:0;border-radius:7px;padding:10px 14px;cursor:pointer">Speichern</button></div>';overlay.appendChild(panel);document.body.appendChild(overlay);let draft=options[activeKey].slice();const fields=panel.querySelector('#fibDutyConfigFields');function draw(){fields.innerHTML='';draft.forEach((v,i)=>{const row=document.createElement('div');row.style.cssText='display:flex;gap:8px;margin:7px 0';const input=document.createElement('input');input.value=v;input.setAttribute('aria-label','Eintrag '+(i+1));input.style.cssText='flex:1;min-width:0;background:#0b1320;color:#edf4ff;border:1px solid #3b4d64;border-radius:6px;padding:9px';input.addEventListener('input',()=>draft[i]=input.value);const del=document.createElement('button');del.type='button';del.textContent='Entfernen';del.style.cssText='background:#482b34;color:#ffdce1;border:1px solid #70414b;border-radius:6px;padding:7px 10px;cursor:pointer';del.addEventListener('click',()=>{draft.splice(i,1);draw();});row.append(input,del);fields.appendChild(row);});}draw();panel.querySelector('[data-add]').onclick=()=>{draft.push('');draw();fields.lastElementChild?.querySelector('input')?.focus();};function done(){overlay.remove();}panel.querySelector('[data-close]').onclick=done;panel.querySelector('[data-cancel]').onclick=done;overlay.addEventListener('click',e=>{if(e.target===overlay)done();});panel.querySelector('[data-save]').onclick=async()=>{const clean=[...new Set(draft.map(v=>String(v).trim()).filter(Boolean))];if(!clean.length){if(window.showError)window.showError('Mindestens ein Eintrag muss erhalten bleiben.');return;}const previous=options[activeKey];options[activeKey]=clean;const saveButton=panel.querySelector('[data-save]');saveButton.disabled=true;try{if(activeKey==='tenCode'){const result=await window.runServer('savePatrolTenCodes',sessionStorage.getItem('fib_mdt_session')||sessionStorage.getItem('lspd_mdt_session')||'',clean);if(!result||result.success!==true)throw new Error(result?.message||'Ten-Code-Liste konnte nicht global gespeichert werden.');}try{localStorage.setItem('fib_mdt_duty_options_v1',JSON.stringify(options));}catch(_){}if(!options[activeKey].includes(state[activeKey]))state[activeKey]='';update();render(activeKey);done();if(window.showSuccess)window.showSuccess('Auswahlliste gespeichert.');}catch(error){options[activeKey]=previous;saveButton.disabled=false;if(window.showError)window.showError(error?.message||'Auswahlliste konnte nicht gespeichert werden.');}};}
+  update();
+  document.addEventListener('click',e=>{const trigger=e.target.closest('[data-duty-picker-trigger]');if(trigger){const key=trigger.dataset.dutyPickerTrigger;open(key,trigger);trigger.setAttribute('aria-expanded','true');return;}if(e.target.closest('#fibDutyStartButton')){if(!(state.location&&state.activity&&state.vehicle&&state.tenCode)){if(window.showError)window.showError('Bitte Einsatzort, Status und Fahrzeug jeweils über die obere Leiste auswählen.');return;}window.dispatchEvent(new CustomEvent('fib-mdt:duty-start-request',{detail:{location:state.location,activity:state.activity,vehicleType:state.vehicle,tenCode:state.tenCode}}));return;}if(!picker.hidden&&!picker.contains(e.target))close();});
+  picker.querySelector('#fibDutyPickerClose').addEventListener('click',close);picker.querySelector('#fibDutyPickerConfig').addEventListener('click',configModal);
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!picker.hidden)close();if((e.key==='Enter'||e.key===' ')&&e.target.matches('[data-duty-picker-trigger]')){e.preventDefault();open(e.target.dataset.dutyPickerTrigger,e.target);}});
+  window.addEventListener('fib-mdt:duty-started',e=>{const d=e.detail||{};if(d.location)state.location=d.location;if(d.activity)state.activity=d.activity;if(d.vehicleType||d.vehicle_type)state.vehicle=d.vehicleType||d.vehicle_type;if(d.tenCode||d.ten_code)state.tenCode=d.tenCode||d.ten_code;onDuty=true;update();});
+  window.addEventListener('fib-mdt:duty-state-restored',e=>{
+    const d=e.detail||{};
+    if(!d.inDuty){onDuty=false;update();return;}
+    // The active patrol is authoritative: overwrite all four fields together,
+    // including empty values, so stale local selections cannot be mixed in.
+    state.location=String(d.location??'');
+    state.activity=String(d.activity??'');
+    state.vehicle=String(d.vehicleType??d.vehicle_type??'');
+    state.tenCode=String(d.tenCode??d.ten_code??d.status??'10-1');
+    onDuty=true;update();
+  });
+  window.addEventListener('fib-mdt:duty-ended',()=>{onDuty=false;state={location:'',activity:'',vehicle:'',tenCode:options.tenCode.includes('10-1')?'10-1':(options.tenCode[0]||'')};update();});
+  window.addEventListener('storage',e=>{suppressPersist=true;try{if(e.key==='fib_mdt_duty_picker_v1'&&e.newValue){try{const next=JSON.parse(e.newValue);if(next&&typeof next==='object'){state=Object.assign(state,next);update();}}catch(_){}}if(e.key==='fib_mdt_duty_options_v1'&&e.newValue){try{const next=JSON.parse(e.newValue);Object.keys(defaults).forEach(k=>{if(Array.isArray(next?.[k])&&next[k].length)options[k]=next[k];});if(!options[activeKey].includes(state[activeKey]))state[activeKey]='';update();}catch(_){}}}finally{suppressPersist=false;}});
+  const pc=document.getElementById('pageContainer');if(pc&&window.MutationObserver)new MutationObserver(()=>{if(!onPatrolsPage())close();}).observe(pc,{childList:true,subtree:true});
+})();
+</script>
+
+</body>
+
+</html>

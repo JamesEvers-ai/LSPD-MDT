@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+<title id="title">Los Santos Police Department</title><desc id="desc">LSPD shield emblem in navy blue and gold</desc>
+<defs>
+ <linearGradient id="navy" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#1e4770"/><stop offset="1" stop-color="#071525"/></linearGradient>
+ <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f4d58a"/><stop offset=".55" stop-color="#c99a43"/><stop offset="1" stop-color="#8b6427"/></linearGradient>
+ <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="8" stdDeviation="8" flood-color="#000" flood-opacity=".42"/></filter>
+</defs>
+<g filter="url(#shadow)">
+ <path d="M256 18 454 83v145c0 119-78 211-198 266C136 439 58 347 58 228V83z" fill="url(#navy)" stroke="url(#gold)" stroke-width="13"/>
+ <path d="M256 39 432 97v130c0 105-68 186-176 237C148 413 80 332 80 227V97z" fill="none" stroke="#e7c77f" stroke-opacity=".65" stroke-width="3"/>
+ <text x="256" y="100" fill="#f4e2b6" font-family="Georgia,serif" font-size="31" font-weight="bold" text-anchor="middle" letter-spacing="4">LOS SANTOS</text>
+ <path d="M115 124h282" stroke="#c99a43" stroke-width="3"/>
+ <g fill="#dce9f7" opacity=".95">
+  <path d="M145 261h222v75H145z" opacity=".12"/>
+  <path d="M155 258h26v-47h20v47h18v-71h22v71h20v-94h24v94h20v-62h22v62h18v-44h21v44h10v83H155z"/>
+  <path d="M135 341h242v9H135z" fill="#e0bf78"/>
+ </g>
+ <path d="m256 135 11 23 25 4-18 18 4 25-22-12-22 12 4-25-18-18 25-4z" fill="url(#gold)"/>
+ <rect x="113" y="365" width="286" height="67" rx="13" fill="#0a1a2b" stroke="url(#gold)" stroke-width="4"/>
+ <text x="256" y="411" fill="#fff" font-family="Arial,sans-serif" font-size="55" font-weight="900" text-anchor="middle" letter-spacing="7">LSPD</text>
+ <text x="256" y="464" fill="#f4e2b6" font-family="Arial,sans-serif" font-size="22" font-weight="700" text-anchor="middle" letter-spacing="3">POLICE DEPARTMENT</text>
+ <circle cx="99" cy="158" r="8" fill="url(#gold)"/><circle cx="413" cy="158" r="8" fill="url(#gold)"/>
+</g></svg>

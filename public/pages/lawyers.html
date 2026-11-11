@@ -1,0 +1,2079 @@
+<style>
+  /* ============================================================
+     LSPD MDT – ANWALTSKAMMER
+     ============================================================ */
+
+  .lawyers-page {
+    width: 100%;
+    min-height: 100%;
+    box-sizing: border-box;
+    padding: 18px 22px 90px;
+    color: #e8edf5;
+  }
+
+  /* ============================================================
+     HEADER
+     ============================================================ */
+
+  .lawyers-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 18px;
+  }
+
+  .lawyers-header-left {
+    min-width: 0;
+  }
+
+  .lawyers-eyebrow {
+    margin-bottom: 5px;
+
+    color: #83b8eb;
+    font-size: 10px;
+    font-weight: 700;
+
+    text-transform: uppercase;
+    letter-spacing: .10em;
+  }
+
+  .lawyers-title {
+    margin: 0;
+
+    color: #f4f7fb;
+    font-size: 25px;
+    font-weight: 750;
+    line-height: 1.15;
+    letter-spacing: -.35px;
+  }
+
+  .lawyers-subtitle {
+    margin-top: 6px;
+
+    color: #8f9bad;
+    font-size: 12px;
+    line-height: 1.45;
+  }
+
+  .lawyers-header-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+
+  /* ============================================================
+     BUTTON
+     ============================================================ */
+
+  .lawyers-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+
+    height: 36px;
+    padding: 0 13px;
+
+    border: 1px solid rgba(255,255,255,.07);
+    border-radius: 8px;
+
+    background: #151a22;
+    color: #dbe3ee;
+
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 650;
+
+    cursor: pointer;
+
+    transition:
+      background .15s ease,
+      border-color .15s ease,
+      color .15s ease,
+      transform .10s ease;
+  }
+
+  .lawyers-btn:hover {
+    background: #1b222d;
+    border-color: rgba(255,255,255,.13);
+    color: #f1f5fa;
+  }
+
+  .lawyers-btn:active {
+    transform: translateY(1px);
+  }
+
+  .lawyers-btn.primary {
+    background: #1a4a79;
+    border-color: rgba(58,132,204,.65);
+    color: #fff;
+  }
+
+  .lawyers-btn.primary:hover {
+    background: #1f5a92;
+    border-color: rgba(74,150,220,.78);
+  }
+
+  .lawyers-btn i {
+    font-size: 11px;
+  }
+
+  /* ============================================================
+     TOOLBAR
+     ============================================================ */
+
+  .lawyers-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 14px;
+
+    padding: 11px;
+
+    margin-bottom: 20px;
+
+    background: #11161d;
+    border: 1px solid rgba(255,255,255,.055);
+    border-radius: 10px;
+  }
+
+  .lawyers-search-wrap {
+    position: relative;
+    flex: 1;
+    min-width: 220px;
+  }
+
+  .lawyers-search-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+
+    transform: translateY(-50%);
+
+    color: #667386;
+    font-size: 12px;
+
+    pointer-events: none;
+  }
+
+  .lawyers-search {
+    width: 100%;
+    height: 36px;
+    box-sizing: border-box;
+
+    padding: 0 12px 0 34px;
+
+    border: 1px solid rgba(255,255,255,.075);
+    border-radius: 8px;
+
+    outline: none;
+
+    background: #0d1117;
+    color: #e9eef6;
+
+    font-family: inherit;
+    font-size: 12px;
+
+    transition:
+      border-color .15s ease,
+      box-shadow .15s ease,
+      background .15s ease;
+  }
+
+  .lawyers-search::placeholder {
+    color: #657184;
+  }
+
+  .lawyers-search:hover {
+    border-color: rgba(255,255,255,.11);
+  }
+
+  .lawyers-search:focus {
+    background: #0e1319;
+    border-color: rgba(58,132,204,.65);
+    box-shadow: 0 0 0 2px rgba(58,132,204,.09);
+  }
+
+  /* ============================================================
+     STATS
+     ============================================================ */
+
+  .lawyers-stats {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    flex-shrink: 0;
+  }
+
+  .lawyers-stat {
+    min-width: 72px;
+
+    padding: 7px 10px;
+
+    background: #0d1117;
+    border: 1px solid rgba(255,255,255,.055);
+    border-radius: 7px;
+
+    text-align: center;
+  }
+
+  .lawyers-stat-value {
+    display: block;
+
+    color: #edf2f8;
+    font-size: 14px;
+    font-weight: 750;
+    line-height: 1;
+  }
+
+  .lawyers-stat-label {
+    display: block;
+
+    margin-top: 4px;
+
+    color: #687588;
+    font-size: 9px;
+    font-weight: 700;
+
+    text-transform: uppercase;
+    letter-spacing: .08em;
+  }
+
+  /* ============================================================
+     SECTION
+     ============================================================ */
+
+  .lawyers-section {
+    margin-bottom: 21px;
+  }
+
+  .lawyers-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 12px;
+    margin-bottom: 9px;
+  }
+
+  .lawyers-section-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    margin: 0;
+
+    color: #eaf0f7;
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+
+  .lawyers-section-title::before {
+    content: "";
+
+    width: 3px;
+    height: 16px;
+
+    border-radius: 2px;
+
+    background: rgba(58,132,204,.75);
+  }
+
+  .lawyers-section-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    min-width: 23px;
+    height: 21px;
+    padding: 0 7px;
+
+    border: 1px solid rgba(58,132,204,.14);
+    border-radius: 11px;
+
+    background: rgba(58,132,204,.11);
+    color: #83b8eb;
+
+    font-size: 10px;
+    font-weight: 750;
+  }
+
+  /* ============================================================
+     CARD
+     ============================================================ */
+
+  .lawyers-card {
+    overflow: hidden;
+
+    background: #11161d;
+    border: 1px solid rgba(255,255,255,.055);
+    border-radius: 10px;
+
+    box-shadow: 0 2px 10px rgba(0,0,0,.10);
+  }
+
+  .lawyers-table-wrap {
+    width: 100%;
+    overflow-x: auto;
+    scrollbar-width: thin;
+  }
+
+  .lawyers-table {
+    width: 100%;
+    min-width: 1450px;
+
+    border-collapse: collapse;
+    table-layout: auto;
+  }
+
+  .lawyers-table.trainee-table {
+    min-width: 800px;
+  }
+
+  /* ============================================================
+     TABLE HEADER
+     ============================================================ */
+
+  .lawyers-table th {
+    padding: 10px 12px;
+
+    background: #151b23;
+    border-bottom: 1px solid rgba(255,255,255,.065);
+
+    color: #6f7b8d;
+
+    font-size: 9px;
+    font-weight: 750;
+
+    text-align: left;
+    text-transform: uppercase;
+    letter-spacing: .075em;
+
+    white-space: nowrap;
+  }
+
+  /* ============================================================
+     TABLE BODY
+     ============================================================ */
+
+  .lawyers-table td {
+    padding: 10px 12px;
+
+    border-bottom: 1px solid rgba(255,255,255,.040);
+
+    color: #dce3ec;
+
+    font-size: 11px;
+    line-height: 1.3;
+
+    vertical-align: middle;
+    white-space: nowrap;
+  }
+
+  .lawyers-table tbody tr:last-child td {
+    border-bottom: 0;
+  }
+
+  .lawyers-table tbody tr {
+    transition: background .12s ease;
+  }
+
+  .lawyers-table tbody tr:hover {
+    background: rgba(255,255,255,.018);
+  }
+
+  .lawyers-table td.muted {
+    color: #687588;
+  }
+
+  /* ============================================================
+     STATUS
+     ============================================================ */
+
+  .lawyer-status {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    min-width: 84px;
+    height: 23px;
+    padding: 0 8px;
+
+    border-radius: 12px;
+
+    font-size: 9px;
+    font-weight: 750;
+    letter-spacing: .02em;
+    white-space: nowrap;
+  }
+
+  .lawyer-status.reachable {
+    background: rgba(49,156,94,.12);
+    border: 1px solid rgba(49,156,94,.23);
+    color: #6bd99a;
+  }
+
+  .lawyer-status.unreachable {
+    background: rgba(188,72,72,.12);
+    border: 1px solid rgba(188,72,72,.23);
+    color: #ef8989;
+  }
+
+  .lawyer-status.trainee {
+    background: rgba(207,145,45,.12);
+    border: 1px solid rgba(207,145,45,.23);
+    color: #e5b65f;
+  }
+
+  .lawyer-status.unknown {
+    background: rgba(130,143,161,.08);
+    border: 1px solid rgba(130,143,161,.15);
+    color: #9aa6b7;
+  }
+
+  /* ============================================================
+     JA / NEIN
+     ============================================================ */
+
+  .lawyer-bool {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    min-width: 40px;
+    height: 21px;
+    padding: 0 7px;
+
+    border-radius: 11px;
+
+    font-size: 9px;
+    font-weight: 750;
+    letter-spacing: .03em;
+  }
+
+  .lawyer-bool.yes {
+    background: rgba(49,156,94,.11);
+    border: 1px solid rgba(49,156,94,.21);
+    color: #6bd99a;
+  }
+
+  .lawyer-bool.no {
+    background: rgba(130,143,161,.07);
+    border: 1px solid rgba(130,143,161,.14);
+    color: #8995a7;
+  }
+
+  /* ============================================================
+     EMPTY / ERROR
+     ============================================================ */
+
+  .lawyers-state {
+    padding: 38px 20px !important;
+
+    text-align: center;
+
+    color: #697588 !important;
+    font-size: 12px !important;
+    line-height: 1.5;
+  }
+
+  .lawyers-state strong {
+    display: block;
+
+    margin-bottom: 5px;
+
+    color: #aeb8c7;
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  .lawyers-state.error {
+    color: #e18a8a !important;
+  }
+
+  .lawyers-state.error strong {
+    color: #f09a9a;
+  }
+
+  /* ============================================================
+     FOOTER
+     ============================================================ */
+
+  .lawyers-footer {
+    display: flex;
+    justify-content: flex-end;
+
+    margin-top: 9px;
+
+    color: #566274;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: .02em;
+  }
+
+  /* ============================================================
+     RESPONSIVE
+     ============================================================ */
+
+  @media (max-width: 900px) {
+
+    .lawyers-page {
+      padding: 16px 16px 80px;
+    }
+
+    .lawyers-header {
+      flex-direction: column;
+    }
+
+    .lawyers-header-right {
+      width: 100%;
+    }
+
+    .lawyers-btn {
+      width: 100%;
+    }
+
+    .lawyers-toolbar {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .lawyers-search-wrap {
+      min-width: 0;
+    }
+
+    .lawyers-stats {
+      justify-content: flex-start;
+      flex-wrap: wrap;
+    }
+
+  }
+
+  @media (max-width: 520px) {
+
+    .lawyers-stats {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      width: 100%;
+    }
+
+    .lawyers-stat {
+      min-width: 0;
+    }
+
+  }
+</style>
+
+
+<div class="lawyers-page">
+
+  <!-- ==========================================================
+       HEADER
+       ========================================================== -->
+
+  <div class="lawyers-header">
+
+    <div class="lawyers-header-left">
+
+      <div class="lawyers-eyebrow">
+        Los Santos Police Department
+      </div>
+
+      <h1 class="lawyers-title">
+        Anwaltskammer
+      </h1>
+
+      <div class="lawyers-subtitle">
+        Übersicht über zugelassene Rechtsanwälte und deren Lizenzen
+      </div>
+
+    </div>
+
+
+    <div class="lawyers-header-right">
+
+      <button
+        type="button"
+        class="lawyers-btn primary"
+        onclick="refreshLawyers()">
+
+        <i class="fas fa-rotate-right"></i>
+
+        <span>Aktualisieren</span>
+
+      </button>
+
+    </div>
+
+  </div>
+
+
+  <!-- ==========================================================
+       TOOLBAR
+       ========================================================== -->
+
+  <div class="lawyers-toolbar">
+
+    <div class="lawyers-search-wrap">
+
+      <span class="lawyers-search-icon">
+        <i class="fas fa-magnifying-glass"></i>
+      </span>
+
+      <input
+        id="lawyersSearch"
+        class="lawyers-search"
+        type="text"
+        autocomplete="off"
+        placeholder="Anwalt, Reisepassnummer, Telefon, Prüfer ...">
+
+    </div>
+
+
+    <div class="lawyers-stats">
+
+      <div class="lawyers-stat">
+
+        <span
+          id="lawyersTotalCount"
+          class="lawyers-stat-value">
+          0
+        </span>
+
+        <span class="lawyers-stat-label">
+          Gesamt
+        </span>
+
+      </div>
+
+
+      <div class="lawyers-stat">
+
+        <span
+          id="lawyersAttorneyCount"
+          class="lawyers-stat-value">
+          0
+        </span>
+
+        <span class="lawyers-stat-label">
+          Anwälte
+        </span>
+
+      </div>
+
+
+      <div class="lawyers-stat">
+
+        <span
+          id="lawyersTraineeCount"
+          class="lawyers-stat-value">
+          0
+        </span>
+
+        <span class="lawyers-stat-label">
+          Anwärter
+        </span>
+
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <!-- ==========================================================
+       RECHTSANWÄLTE
+       ========================================================== -->
+
+  <section class="lawyers-section">
+
+    <div class="lawyers-section-header">
+
+      <h2 class="lawyers-section-title">
+
+        Rechtsanwälte
+
+        <span
+          id="lawyersAttorneySectionCount"
+          class="lawyers-section-count">
+          0
+        </span>
+
+      </h2>
+
+    </div>
+
+
+    <div class="lawyers-card">
+
+      <div class="lawyers-table-wrap">
+
+        <table class="lawyers-table">
+
+          <thead>
+
+            <tr>
+              <th>Status</th>
+              <th>Anwalt</th>
+              <th>Reisepassnummer</th>
+              <th>Telefon</th>
+              <th>Pflichtverteidiger</th>
+              <th>Lizenz</th>
+              <th>Lizenz (gültig ab)</th>
+              <th>Lizenz (gültig bis)</th>
+              <th>Verlängerung</th>
+              <th>Prüfer</th>
+              <th>Anmerkung</th>
+            </tr>
+
+          </thead>
+
+
+          <tbody id="lawyersAttorneyBody">
+          </tbody>
+
+        </table>
+
+      </div>
+
+    </div>
+
+  </section>
+
+
+  <!-- ==========================================================
+       ANWÄRTER
+       ========================================================== -->
+
+  <section class="lawyers-section">
+
+    <div class="lawyers-section-header">
+
+      <h2 class="lawyers-section-title">
+
+        Anwärter
+
+        <span
+          id="lawyersTraineeSectionCount"
+          class="lawyers-section-count">
+          0
+        </span>
+
+      </h2>
+
+    </div>
+
+
+    <div class="lawyers-card">
+
+      <div class="lawyers-table-wrap">
+
+        <table
+          class="lawyers-table trainee-table">
+
+          <thead>
+
+            <tr>
+              <th>Status</th>
+              <th>Anwärter</th>
+              <th>Reisepassnummer</th>
+              <th>Telefon</th>
+              <th>Anmerkung</th>
+            </tr>
+
+          </thead>
+
+
+          <tbody id="lawyersTraineeBody">
+          </tbody>
+
+        </table>
+
+      </div>
+
+    </div>
+
+  </section>
+
+
+  <!-- ==========================================================
+       UHR
+       ========================================================== -->
+
+  <div class="lawyers-footer">
+
+    <span id="lawyersClock">
+      --:--:--
+    </span>
+
+  </div>
+
+</div>
+
+
+<script>
+(function () {
+
+  "use strict";
+
+
+  /* ==========================================================
+     STATE
+     ========================================================== */
+
+  window.lawyersPageState = {
+
+    data: [],
+
+    attorneys: [],
+
+    trainees: [],
+
+    filteredAttorneys: [],
+
+    filteredTrainees: [],
+
+    loading: false,
+
+    search: ""
+
+  };
+
+
+  /* ==========================================================
+     CACHE
+     ========================================================== */
+
+  if (!window.fibCache) {
+    window.fibCache = {};
+  }
+
+
+  if (!window.fibCache.lawyers) {
+
+    window.fibCache.lawyers = {
+
+      data: null,
+
+      timestamp: 0
+
+    };
+
+  }
+
+
+  /* ==========================================================
+     HELFER
+     ========================================================== */
+
+  function $(id) {
+
+    return document.getElementById(id);
+
+  }
+
+
+  function escapeHtml(value) {
+
+    if (
+      value === null ||
+      value === undefined
+    ) {
+
+      return "";
+
+    }
+
+
+    return String(value)
+
+      .replace(/&/g, "&amp;")
+
+      .replace(/</g, "&lt;")
+
+      .replace(/>/g, "&gt;")
+
+      .replace(/"/g, "&quot;")
+
+      .replace(/'/g, "&#039;");
+
+  }
+
+
+  function normalize(value) {
+
+    if (
+      value === null ||
+      value === undefined
+    ) {
+
+      return "";
+
+    }
+
+
+    return String(value)
+      .toLowerCase()
+      .trim();
+
+  }
+
+
+  function cleanValue(value) {
+
+    if (
+      value === null ||
+      value === undefined
+    ) {
+
+      return "";
+
+    }
+
+
+    return String(value)
+      .replace(/\r\n/g, "\n")
+      .trim();
+
+  }
+
+
+  function hasMeaningfulValue(value) {
+
+    const text =
+      cleanValue(value);
+
+
+    if (!text) {
+      return false;
+    }
+
+
+    return (
+      text !== "-" &&
+      text !== "—"
+    );
+
+  }
+
+
+  /* ==========================================================
+     SESSION TOKEN
+     ========================================================== */
+
+  function getLawyersSessionToken() {
+
+    try {
+
+      if (
+        typeof getSystemSessionToken ===
+        "function"
+      ) {
+
+        const token =
+          getSystemSessionToken();
+
+        if (token) {
+          return token;
+        }
+
+      }
+
+    } catch (error) {
+      console.warn(error);
+    }
+
+
+    try {
+
+      if (
+        typeof sessionToken !== "undefined" &&
+        sessionToken
+      ) {
+
+        return sessionToken;
+
+      }
+
+    } catch (error) {
+      // ignorieren
+    }
+
+
+    try {
+
+      if (
+        window.currentSessionToken
+      ) {
+
+        return window.currentSessionToken;
+
+      }
+
+    } catch (error) {
+      // ignorieren
+    }
+
+
+    try {
+
+      if (
+        window.sessionToken
+      ) {
+
+        return window.sessionToken;
+
+      }
+
+    } catch (error) {
+      // ignorieren
+    }
+
+
+    return "";
+
+  }
+
+
+  /* ==========================================================
+     DATEN VORBEREITEN
+     ========================================================== */
+
+  function prepareData(rawData) {
+
+    if (!Array.isArray(rawData)) {
+      return [];
+    }
+
+
+    return rawData.map(
+      function (row) {
+
+        return {
+
+          sheetRow:
+            row?.sheetRow ?? "",
+
+          status:
+            cleanValue(row?.status),
+
+          lawyer:
+            cleanValue(row?.lawyer),
+
+          passport:
+            cleanValue(row?.passport),
+
+          phone:
+            cleanValue(row?.phone),
+
+          defense:
+            cleanValue(row?.defense),
+
+          license:
+            cleanValue(row?.license),
+
+          licenseValidFrom:
+            cleanValue(row?.licenseValidFrom),
+
+          licenseValidUntil:
+            cleanValue(row?.licenseValidUntil),
+
+          renewal:
+            cleanValue(row?.renewal),
+
+          examiner:
+            cleanValue(row?.examiner),
+
+          note:
+            cleanValue(row?.note)
+
+        };
+
+      }
+    );
+
+  }
+
+
+  /* ==========================================================
+     ECHTER ANWALT
+     ========================================================== */
+
+  function hasRealLawyerData(row) {
+
+    if (!row) {
+      return false;
+    }
+
+
+    return (
+
+      hasMeaningfulValue(row.lawyer) ||
+
+      hasMeaningfulValue(row.passport) ||
+
+      hasMeaningfulValue(row.phone) ||
+
+      hasMeaningfulValue(row.licenseValidFrom) ||
+
+      hasMeaningfulValue(row.licenseValidUntil) ||
+
+      hasMeaningfulValue(row.examiner) ||
+
+      hasMeaningfulValue(row.note)
+
+    );
+
+  }
+
+
+  /* ==========================================================
+     ECHTER ANWÄRTER
+     ========================================================== */
+
+  function hasRealTraineeData(row) {
+
+    if (!row) {
+      return false;
+    }
+
+
+    return (
+
+      hasMeaningfulValue(row.lawyer) ||
+
+      hasMeaningfulValue(row.passport) ||
+
+      hasMeaningfulValue(row.phone) ||
+
+      hasMeaningfulValue(row.note)
+
+    );
+
+  }
+
+
+  /* ==========================================================
+     BEREICHE TRENNEN
+     ========================================================== */
+
+  function splitData(data) {
+
+    const attorneyRows =
+      data.slice(0, 19);
+
+
+    const traineeRows =
+      data.slice(20);
+
+
+    window.lawyersPageState.attorneys =
+      attorneyRows.filter(
+        hasRealLawyerData
+      );
+
+
+    window.lawyersPageState.trainees =
+      traineeRows.filter(
+        hasRealTraineeData
+      );
+
+  }
+
+
+  /* ==========================================================
+     SUCHE
+     ========================================================== */
+
+  function matchesSearch(row, search) {
+
+    if (!search) {
+      return true;
+    }
+
+
+    const haystack = [
+
+      row.status,
+      row.lawyer,
+      row.passport,
+      row.phone,
+      row.defense,
+      row.license,
+      row.licenseValidFrom,
+      row.licenseValidUntil,
+      row.renewal,
+      row.examiner,
+      row.note
+
+    ]
+
+      .map(normalize)
+
+      .join(" ");
+
+
+    return haystack.includes(
+      normalize(search)
+    );
+
+  }
+
+
+  function filterLawyers() {
+
+    const search =
+      window.lawyersPageState.search;
+
+
+    window.lawyersPageState.filteredAttorneys =
+
+      window.lawyersPageState.attorneys
+
+        .filter(
+          function (row) {
+
+            return matchesSearch(
+              row,
+              search
+            );
+
+          }
+        );
+
+
+    window.lawyersPageState.filteredTrainees =
+
+      window.lawyersPageState.trainees
+
+        .filter(
+          function (row) {
+
+            return matchesSearch(
+              row,
+              search
+            );
+
+          }
+        );
+
+
+    renderTables();
+
+  }
+
+
+  /* ==========================================================
+     STATUS
+     ========================================================== */
+
+  function formatStatus(value) {
+
+    const text =
+      cleanValue(value);
+
+
+    const normalized =
+      normalize(text);
+
+
+    let css =
+      "unknown";
+
+
+    if (
+      normalized === "erreichbar"
+    ) {
+
+      css =
+        "reachable";
+
+    } else if (
+      normalized === "nicht erreichbar"
+    ) {
+
+      css =
+        "unreachable";
+
+    } else if (
+      normalized === "anwärter"
+    ) {
+
+      css =
+        "trainee";
+
+    }
+
+
+    return `
+      <span class="lawyer-status ${css}">
+        ${escapeHtml(text || "Unbekannt")}
+      </span>
+    `;
+
+  }
+
+
+  function formatTraineeStatus() {
+
+    return `
+      <span class="lawyer-status trainee">
+        Anwärter
+      </span>
+    `;
+
+  }
+
+
+  /* ==========================================================
+     BOOLEAN
+     ========================================================== */
+
+  function formatBoolean(value) {
+
+    const text =
+      normalize(value);
+
+
+    if (
+      text === "true" ||
+      text === "ja" ||
+      text === "1" ||
+      text === "yes"
+    ) {
+
+      return `
+        <span class="lawyer-bool yes">
+          JA
+        </span>
+      `;
+
+    }
+
+
+    return `
+      <span class="lawyer-bool no">
+        NEIN
+      </span>
+    `;
+
+  }
+
+
+  /* ==========================================================
+     DATUM
+     ========================================================== */
+
+  function formatDate(value) {
+
+    const text =
+      cleanValue(value);
+
+
+    if (!text) {
+      return "—";
+    }
+
+
+    return escapeHtml(text);
+
+  }
+
+
+  /* ==========================================================
+     VERLÄNGERUNG
+     ========================================================== */
+
+  function formatRenewal(value) {
+
+    const text =
+      cleanValue(value);
+
+
+    if (!text) {
+      return "—";
+    }
+
+
+    if (
+      text === "1" ||
+      text === "1."
+    ) {
+
+      return "1.";
+
+    }
+
+
+    if (
+      text === "2" ||
+      text === "2."
+    ) {
+
+      return "2.";
+
+    }
+
+
+    return escapeHtml(text);
+
+  }
+
+
+  /* ==========================================================
+     RECHTSANWÄLTE RENDERN
+     ========================================================== */
+
+  function renderAttorneys() {
+
+    const body =
+      $("lawyersAttorneyBody");
+
+
+    if (!body) {
+      return;
+    }
+
+
+    const rows =
+      window.lawyersPageState
+        .filteredAttorneys;
+
+
+    if (!rows.length) {
+
+      body.innerHTML = `
+        <tr>
+          <td
+            colspan="11"
+            class="lawyers-state">
+
+            <strong>
+              Keine Rechtsanwälte gefunden
+            </strong>
+
+            Für die aktuelle Suche sind keine
+            Rechtsanwälte vorhanden.
+
+          </td>
+        </tr>
+      `;
+
+      return;
+    }
+
+
+    body.innerHTML =
+
+      rows.map(
+        function (row) {
+
+          return `
+            <tr>
+
+              <td>
+                ${formatStatus(row.status)}
+              </td>
+
+              <td>
+                ${
+                  row.lawyer
+                    ? escapeHtml(row.lawyer)
+                    : '<span class="muted">—</span>'
+                }
+              </td>
+
+              <td>
+                ${
+                  row.passport
+                    ? escapeHtml(row.passport)
+                    : '<span class="muted">—</span>'
+                }
+              </td>
+
+              <td>
+                ${
+                  row.phone
+                    ? escapeHtml(row.phone)
+                    : '<span class="muted">—</span>'
+                }
+              </td>
+
+              <td>
+                ${formatBoolean(row.defense)}
+              </td>
+
+              <td>
+                ${formatBoolean(row.license)}
+              </td>
+
+              <td>
+                ${formatDate(row.licenseValidFrom)}
+              </td>
+
+              <td>
+                ${formatDate(row.licenseValidUntil)}
+              </td>
+
+              <td>
+                ${formatRenewal(row.renewal)}
+              </td>
+
+              <td>
+                ${
+                  row.examiner
+                    ? escapeHtml(row.examiner)
+                    : '<span class="muted">—</span>'
+                }
+              </td>
+
+              <td>
+                ${
+                  row.note
+                    ? escapeHtml(row.note)
+                    : '<span class="muted">—</span>'
+                }
+              </td>
+
+            </tr>
+          `;
+
+        }
+      )
+
+      .join("");
+
+  }
+
+
+  /* ==========================================================
+     ANWÄRTER RENDERN
+     ========================================================== */
+
+  function renderTrainees() {
+
+    const body =
+      $("lawyersTraineeBody");
+
+
+    if (!body) {
+      return;
+    }
+
+
+    const rows =
+      window.lawyersPageState
+        .filteredTrainees;
+
+
+    if (!rows.length) {
+
+      body.innerHTML = `
+        <tr>
+          <td
+            colspan="5"
+            class="lawyers-state">
+
+            <strong>
+              Keine Anwärter gefunden
+            </strong>
+
+            Für die aktuelle Suche sind keine
+            Anwärter vorhanden.
+
+          </td>
+        </tr>
+      `;
+
+      return;
+    }
+
+
+    body.innerHTML =
+
+      rows.map(
+        function (row) {
+
+          return `
+            <tr>
+
+              <td>
+                ${formatTraineeStatus()}
+              </td>
+
+              <td>
+                ${
+                  row.lawyer
+                    ? escapeHtml(row.lawyer)
+                    : '<span class="muted">—</span>'
+                }
+              </td>
+
+              <td>
+                ${
+                  row.passport
+                    ? escapeHtml(row.passport)
+                    : '<span class="muted">—</span>'
+                }
+              </td>
+
+              <td>
+                ${
+                  row.phone
+                    ? escapeHtml(row.phone)
+                    : '<span class="muted">—</span>'
+                }
+              </td>
+
+              <td>
+                ${
+                  row.note
+                    ? escapeHtml(row.note)
+                    : '<span class="muted">—</span>'
+                }
+              </td>
+
+            </tr>
+          `;
+
+        }
+      )
+
+      .join("");
+
+  }
+
+
+  /* ==========================================================
+     RENDER
+     ========================================================== */
+
+  function renderTables() {
+
+    renderAttorneys();
+
+    renderTrainees();
+
+
+    const attorneyCount =
+      window.lawyersPageState
+        .filteredAttorneys.length;
+
+
+    const traineeCount =
+      window.lawyersPageState
+        .filteredTrainees.length;
+
+
+    const totalCount =
+      attorneyCount +
+      traineeCount;
+
+
+    const totalElement =
+      $("lawyersTotalCount");
+
+
+    const attorneyElement =
+      $("lawyersAttorneyCount");
+
+
+    const traineeElement =
+      $("lawyersTraineeCount");
+
+
+    const attorneySectionElement =
+      $("lawyersAttorneySectionCount");
+
+
+    const traineeSectionElement =
+      $("lawyersTraineeSectionCount");
+
+
+    if (totalElement) {
+
+      totalElement.textContent =
+        totalCount;
+
+    }
+
+
+    if (attorneyElement) {
+
+      attorneyElement.textContent =
+        attorneyCount;
+
+    }
+
+
+    if (traineeElement) {
+
+      traineeElement.textContent =
+        traineeCount;
+
+    }
+
+
+    if (attorneySectionElement) {
+
+      attorneySectionElement.textContent =
+        attorneyCount;
+
+    }
+
+
+    if (traineeSectionElement) {
+
+      traineeSectionElement.textContent =
+        traineeCount;
+
+    }
+
+  }
+
+
+  /* ==========================================================
+     LADEN
+     ========================================================== */
+
+  function loadLawyers() {
+
+    if (
+      window.lawyersPageState.loading
+    ) {
+
+      return;
+
+    }
+
+
+    const token =
+      getLawyersSessionToken();
+
+
+    if (!token) {
+
+      showLoadError(
+        "Kein gültiger Session-Token vorhanden."
+      );
+
+      return;
+
+    }
+
+
+    window.lawyersPageState.loading =
+      true;
+
+
+    CloudApi.run
+
+      .withSuccessHandler(
+        function (result) {
+
+          window.lawyersPageState.loading =
+            false;
+
+
+          if (
+            !Array.isArray(result)
+          ) {
+
+            showLoadError(
+              "Die Daten der Anwaltskammer konnten nicht geladen werden."
+            );
+
+            return;
+          }
+
+
+          /* Cache */
+
+          if (
+            window.fibCache &&
+            window.fibCache.lawyers
+          ) {
+
+            window.fibCache.lawyers.data =
+              result;
+
+            window.fibCache.lawyers.timestamp =
+              Date.now();
+
+          }
+
+
+          /* Daten */
+
+          window.lawyersPageState.data =
+            prepareData(result);
+
+
+          /* Bereiche */
+
+          splitData(
+            window.lawyersPageState.data
+          );
+
+
+          /* Suche */
+
+          const searchInput =
+            $("lawyersSearch");
+
+
+          window.lawyersPageState.search =
+
+            searchInput
+
+              ? searchInput.value.trim()
+
+              : "";
+
+
+          /* Render */
+
+          filterLawyers();
+
+        }
+      )
+
+
+      .withFailureHandler(
+        function (error) {
+
+          window.lawyersPageState.loading =
+            false;
+
+
+          let message =
+            "Die Daten der Anwaltskammer konnten nicht geladen werden.";
+
+
+          if (
+            error &&
+            error.message
+          ) {
+
+            message =
+              error.message;
+
+          }
+
+
+          showLoadError(
+            message
+          );
+
+        }
+      )
+
+
+      .getLawyers(
+        token
+      );
+
+  }
+
+
+  /* ==========================================================
+     FEHLER
+     ========================================================== */
+
+  function showLoadError(message) {
+
+    const attorneyBody =
+      $("lawyersAttorneyBody");
+
+
+    const traineeBody =
+      $("lawyersTraineeBody");
+
+
+    if (attorneyBody) {
+
+      attorneyBody.innerHTML = `
+        <tr>
+
+          <td
+            colspan="11"
+            class="lawyers-state error">
+
+            <strong>
+              Daten konnten nicht geladen werden
+            </strong>
+
+            ${escapeHtml(message)}
+
+          </td>
+
+        </tr>
+      `;
+
+    }
+
+
+    if (traineeBody) {
+
+      traineeBody.innerHTML = `
+        <tr>
+
+          <td
+            colspan="5"
+            class="lawyers-state error">
+
+            <strong>
+              Daten konnten nicht geladen werden
+            </strong>
+
+            ${escapeHtml(message)}
+
+          </td>
+
+        </tr>
+      `;
+
+    }
+
+  }
+
+
+  /* ==========================================================
+     AKTUALISIEREN
+     ========================================================== */
+
+  window.refreshLawyers =
+    function () {
+
+      window.FIBMDTCache?.refresh("getLawyers");
+      loadLawyers();
+
+    };
+
+
+  /* ==========================================================
+     SUCHE
+     ========================================================== */
+
+  function setupSearch() {
+
+    const input =
+      $("lawyersSearch");
+
+
+    if (!input) {
+      return;
+    }
+
+
+    if (
+      input.dataset.lawyersSearchBound ===
+      "true"
+    ) {
+      return;
+    }
+
+
+    input.dataset.lawyersSearchBound =
+      "true";
+
+
+    input.addEventListener(
+      "input",
+      function () {
+
+        window.lawyersPageState.search =
+          input.value.trim();
+
+
+        filterLawyers();
+
+      }
+    );
+
+  }
+
+
+  /* ==========================================================
+     UHR
+     ========================================================== */
+
+  function updateLawyersClock() {
+
+    const element =
+      $("lawyersClock");
+
+
+    if (!element) {
+      return;
+    }
+
+
+    element.textContent =
+      new Date().toLocaleTimeString(
+        "de-DE"
+      );
+
+  }
+
+
+  /* ==========================================================
+     INIT
+     ========================================================== */
+
+  function initLawyersPage() {
+
+    setupSearch();
+
+    updateLawyersClock();
+
+
+    if (
+      window.lawyersClockInterval
+    ) {
+
+      clearInterval(
+        window.lawyersClockInterval
+      );
+
+    }
+
+
+    window.lawyersClockInterval =
+      setInterval(
+        updateLawyersClock,
+        1000
+      );
+
+
+    loadLawyers();
+
+  }
+
+
+  /* ==========================================================
+     START
+     ========================================================== */
+
+  if (
+    document.readyState ===
+    "loading"
+  ) {
+
+    document.addEventListener(
+      "DOMContentLoaded",
+      initLawyersPage
+    );
+
+  } else {
+
+    initLawyersPage();
+
+  }
+
+})();
+</script>

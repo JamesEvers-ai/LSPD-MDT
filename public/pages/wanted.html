@@ -1,0 +1,1465 @@
+<style>
+  /* ============================================================
+     LSPD MDT – FAHNDUNGSREGISTER
+     Supabase / Global Modal Edition
+     ============================================================ */
+
+  .wanted-page {
+    width: 100%;
+    min-height: 100%;
+    box-sizing: border-box;
+    padding: 18px 22px 90px;
+    color: #e8edf5;
+  }
+
+  .wanted-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 18px;
+  }
+
+  .wanted-header-left { min-width: 0; }
+
+  .wanted-title {
+    margin: 0;
+    font-size: 25px;
+    font-weight: 700;
+    letter-spacing: -.3px;
+    color: #f4f7fb;
+  }
+
+  .wanted-subtitle {
+    margin-top: 5px;
+    font-size: 13px;
+    color: #8f9bad;
+  }
+
+  .wanted-header-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+
+  .wanted-btn {
+    height: 38px;
+    padding: 0 14px;
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 8px;
+    background: #151a22;
+    color: #dbe3ee;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .15s ease, border-color .15s ease, transform .1s ease, opacity .15s ease;
+  }
+
+  .wanted-btn:hover:not(:disabled) {
+    background: #1b222d;
+    border-color: rgba(255,255,255,.14);
+  }
+
+  .wanted-btn:active:not(:disabled) { transform: translateY(1px); }
+  .wanted-btn:disabled { opacity: .5; cursor: not-allowed; }
+
+  .wanted-btn.primary {
+    background: #1c4f82;
+    border-color: #286aa9;
+    color: #fff;
+  }
+
+  .wanted-btn.primary:hover:not(:disabled) { background: #23629f; }
+
+  .wanted-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 12px;
+    margin-bottom: 18px;
+    background: #11161d;
+    border: 1px solid rgba(255,255,255,.06);
+    border-radius: 10px;
+  }
+
+  .wanted-search-wrap {
+    position: relative;
+    flex: 1;
+    min-width: 220px;
+  }
+
+  .wanted-search-icon {
+    position: absolute;
+    left: 13px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #697588;
+    font-size: 15px;
+    pointer-events: none;
+  }
+
+  .wanted-search {
+    width: 100%;
+    height: 38px;
+    box-sizing: border-box;
+    padding: 0 13px 0 36px;
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 8px;
+    background: #0d1117;
+    color: #e9eef6;
+    outline: none;
+    font-size: 13px;
+  }
+
+  .wanted-search::placeholder { color: #657184; }
+  .wanted-search:focus {
+    border-color: rgba(58,132,204,.65);
+    box-shadow: 0 0 0 2px rgba(58,132,204,.10);
+  }
+
+  .wanted-filters {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .wanted-filter {
+    height: 38px;
+    min-width: 130px;
+    padding: 0 10px;
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 8px;
+    background: #0d1117;
+    color: #dbe3ee;
+    outline: none;
+    font-size: 12px;
+  }
+
+  .wanted-filter:focus {
+    border-color: rgba(58,132,204,.65);
+    box-shadow: 0 0 0 2px rgba(58,132,204,.10);
+  }
+
+  .wanted-stats {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .wanted-stat {
+    min-width: 75px;
+    padding: 7px 10px;
+    background: #0d1117;
+    border: 1px solid rgba(255,255,255,.06);
+    border-radius: 7px;
+    text-align: center;
+  }
+
+  .wanted-stat-value {
+    display: block;
+    color: #edf2f8;
+    font-size: 15px;
+    font-weight: 700;
+  }
+
+  .wanted-stat-label {
+    display: block;
+    margin-top: 2px;
+    color: #687588;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+  }
+
+  .wanted-section { margin-bottom: 20px; }
+
+  .wanted-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 9px;
+  }
+
+  .wanted-section-title {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    margin: 0;
+    color: #edf2f8;
+    font-size: 16px;
+    font-weight: 700;
+  }
+
+  .wanted-section-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 24px;
+    height: 22px;
+    padding: 0 7px;
+    border-radius: 11px;
+    background: #1a2635;
+    color: #83b8eb;
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  .wanted-card {
+    overflow: hidden;
+    background: #11161d;
+    border: 1px solid rgba(255,255,255,.06);
+    border-radius: 10px;
+  }
+
+  .wanted-table-wrap { width: 100%; overflow-x: auto; }
+
+  .wanted-table {
+    width: 100%;
+    min-width: 1400px;
+    border-collapse: collapse;
+    table-layout: auto;
+  }
+
+  .wanted-table.archive-table { min-width: 1050px; }
+
+  .wanted-table th {
+    padding: 11px 12px;
+    background: #151b23;
+    border-bottom: 1px solid rgba(255,255,255,.07);
+    color: #7f8b9d;
+    font-size: 10px;
+    font-weight: 700;
+    text-align: left;
+    text-transform: uppercase;
+    letter-spacing: .55px;
+    white-space: nowrap;
+  }
+
+  .wanted-table td {
+    padding: 11px 12px;
+    border-bottom: 1px solid rgba(255,255,255,.045);
+    color: #dce3ec;
+    font-size: 12px;
+    vertical-align: middle;
+    white-space: nowrap;
+  }
+
+  .wanted-table tbody tr:last-child td { border-bottom: 0; }
+  .wanted-table tbody tr:hover { background: rgba(255,255,255,.018); }
+  .wanted-table td.muted { color: #697588; }
+
+  .wanted-type {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 72px;
+    height: 23px;
+    padding: 0 8px;
+    border-radius: 12px;
+    background: rgba(71,113,160,.12);
+    border: 1px solid rgba(71,113,160,.20);
+    color: #9bc5ef;
+    font-size: 10px;
+    font-weight: 700;
+  }
+
+  .wanted-status {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 88px;
+    height: 24px;
+    padding: 0 8px;
+    border-radius: 12px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .15px;
+  }
+
+  .wanted-status.active {
+    background: rgba(188,72,72,.13);
+    border: 1px solid rgba(188,72,72,.25);
+    color: #ef8989;
+  }
+
+  .wanted-status.watch {
+    background: rgba(207,145,45,.13);
+    border: 1px solid rgba(207,145,45,.25);
+    color: #e5b65f;
+  }
+
+  .wanted-status.captured {
+    background: rgba(49,156,94,.13);
+    border: 1px solid rgba(49,156,94,.25);
+    color: #6bd99a;
+  }
+
+  .wanted-status.unknown {
+    background: rgba(130,143,161,.10);
+    border: 1px solid rgba(130,143,161,.18);
+    color: #9aa6b7;
+  }
+
+  .wanted-danger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 62px;
+    height: 22px;
+    padding: 0 8px;
+    border-radius: 11px;
+    font-size: 10px;
+    font-weight: 700;
+  }
+
+  .wanted-danger.low { background: rgba(49,156,94,.12); border: 1px solid rgba(49,156,94,.22); color: #6bd99a; }
+  .wanted-danger.medium { background: rgba(207,145,45,.12); border: 1px solid rgba(207,145,45,.22); color: #e5b65f; }
+  .wanted-danger.high { background: rgba(214,110,40,.13); border: 1px solid rgba(214,110,40,.24); color: #f0985a; }
+  .wanted-danger.extreme { background: rgba(214,48,73,.15); border: 1px solid rgba(214,48,73,.28); color: #ff6b6b; }
+  .wanted-danger.unknown { background: rgba(130,143,161,.10); border: 1px solid rgba(130,143,161,.18); color: #9aa6b7; }
+
+  .wanted-bool {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 42px;
+    height: 22px;
+    padding: 0 7px;
+    border-radius: 11px;
+    font-size: 10px;
+    font-weight: 700;
+  }
+
+  .wanted-bool.yes { background: rgba(188,72,72,.12); border: 1px solid rgba(188,72,72,.22); color: #ef8989; }
+  .wanted-bool.no { background: rgba(130,143,161,.08); border: 1px solid rgba(130,143,161,.15); color: #8995a7; }
+
+  .wanted-primary-text {
+    font-weight: 650;
+    color: #edf2f8;
+  }
+
+  .wanted-secondary-text {
+    margin-top: 3px;
+    color: #687588;
+    font-size: 10px;
+  }
+
+  .wanted-row-actions { display: flex; gap: 6px; }
+
+  .wanted-icon-btn {
+    width: 27px;
+    height: 27px;
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 6px;
+    background: #151a22;
+    color: #aeb8c7;
+    font-size: 11px;
+    line-height: 1;
+    cursor: pointer;
+    transition: background .15s ease, border-color .15s ease, color .15s ease;
+  }
+
+  .wanted-icon-btn:hover { background: #1b222d; }
+  .wanted-icon-btn.delete { border-color: rgba(188,72,72,.28); color: #ef8989; }
+  .wanted-icon-btn.delete:hover { background: rgba(188,72,72,.12); }
+
+  .wanted-state {
+    padding: 38px 20px;
+    text-align: center;
+    color: #697588;
+    font-size: 13px;
+  }
+
+  .wanted-state strong {
+    display: block;
+    margin-bottom: 6px;
+    color: #aeb8c7;
+    font-size: 14px;
+  }
+
+  .wanted-state.loading {
+    padding: 44px 20px;
+    color: #7e8da2;
+  }
+
+  .wanted-loading-content {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+  }
+
+  .wanted-loading-spinner {
+    width: 14px;
+    height: 14px;
+    box-sizing: border-box;
+    border: 2px solid rgba(127, 168, 215, .22);
+    border-top-color: #6ea8dc;
+    border-radius: 50%;
+    animation: wantedLoadingSpin .7s linear infinite;
+    flex: 0 0 auto;
+  }
+
+  .wanted-loading-text {
+    color: #93a4ba;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: .1px;
+  }
+
+  @keyframes wantedLoadingSpin {
+    to { transform: rotate(360deg); }
+  }
+
+  .wanted-state.error { color: #e18a8a; }
+  .wanted-state.error strong { color: #f09a9a; }
+
+  .wanted-footer {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 10px;
+    color: #596577;
+    font-size: 10px;
+  }
+
+  /* ============================================================
+     FORM INSIDE GLOBAL MODAL
+     ============================================================ */
+
+  .wanted-modal-surface {
+    padding: 13px;
+    border: 1px solid rgba(58,132,204,.14);
+    border-radius: 9px;
+    background: rgba(28,79,130,.07);
+  }
+
+  .wanted-modal-form {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+  }
+
+  .wanted-modal-group {
+    min-width: 0;
+  }
+
+  .wanted-modal-group.full {
+    grid-column: 1 / -1;
+  }
+
+  .wanted-modal-group-checkbox {
+    display: flex;
+    align-items: flex-end;
+  }
+
+  .wanted-modal-label {
+    display: block;
+    margin-bottom: 7px;
+    color: #7f8b9d;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+  }
+
+  .wanted-modal-label .required {
+    color: #83b8eb;
+  }
+
+  .wanted-modal-input {
+    width: 100%;
+    min-height: 40px;
+    box-sizing: border-box;
+    padding: 0 11px;
+    border: 1px solid #273449;
+    border-radius: 8px;
+    background: #0b1120;
+    color: #eef3f8;
+    outline: none;
+    font: inherit;
+    font-size: 11px;
+  }
+
+  .wanted-modal-input::placeholder {
+    color: #596577;
+  }
+
+  .wanted-modal-input:focus {
+    border-color: #347dbd;
+    box-shadow: 0 0 0 2px rgba(58,132,204,.11);
+    background: #0c1424;
+  }
+
+  select.wanted-modal-input {
+    cursor: pointer;
+  }
+
+  textarea.wanted-modal-input {
+    min-height: 130px;
+    padding: 10px 11px;
+    resize: vertical;
+    line-height: 1.55;
+  }
+
+  .wanted-modal-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 40px;
+    color: #dce3ec;
+    font-size: 11px;
+  }
+
+  .wanted-modal-checkbox input {
+    width: 14px;
+    height: 14px;
+    accent-color: #347dbd;
+  }
+
+  .wanted-modal-info {
+    margin-bottom: 14px;
+    padding: 10px 12px;
+    border: 1px solid rgba(58,132,204,.16);
+    border-radius: 8px;
+    background: rgba(28,79,130,.12);
+    color: #91a8c0;
+    font-size: 10px;
+    line-height: 1.5;
+  }
+
+  .wanted-modal-info .required-mark {
+    color: #83b8eb;
+    font-weight: 700;
+  }
+
+  .wanted-modal-help {
+    margin-top: 6px;
+    color: #596577;
+    font-size: 9px;
+    line-height: 1.5;
+  }
+
+  .wanted-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0,1fr));
+    gap: 9px;
+    margin-bottom: 12px;
+  }
+
+  .wanted-detail-card {
+    padding: 10px 11px;
+    border: 1px solid rgba(255,255,255,.06);
+    border-radius: 7px;
+    background: rgba(255,255,255,.015);
+  }
+
+  .wanted-detail-label {
+    color: #687588;
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+  }
+
+  .wanted-detail-value {
+    margin-top: 4px;
+    color: #e4e9f0;
+    font-size: 12px;
+    line-height: 1.45;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .wanted-modal-error {
+    margin-top: 12px;
+    padding: 9px 11px;
+    background: rgba(188,72,72,.12);
+    border: 1px solid rgba(188,72,72,.24);
+    border-radius: 7px;
+    color: #ef8989;
+    font-size: 12px;
+  }
+
+  @media (max-width: 1100px) {
+    .wanted-toolbar { align-items: stretch; flex-direction: column; }
+    .wanted-filters { width: 100%; }
+    .wanted-filter { flex: 1; }
+  }
+
+  @media (max-width: 900px) {
+    .wanted-header { flex-direction: column; }
+    .wanted-header-right { width: 100%; }
+    .wanted-header-right .wanted-btn { flex: 1; }
+    .wanted-stats { justify-content: flex-start; flex-wrap: wrap; }
+  }
+
+  @media (max-width: 700px) {
+    .wanted-modal-form,
+    .wanted-detail-grid { grid-template-columns: 1fr; }
+    .wanted-modal-group.full { grid-column: auto; }
+  }
+</style>
+
+<div class="wanted-page">
+  <div class="wanted-header">
+    <div class="wanted-header-left">
+      <h1 class="wanted-title">Fahndungsregister</h1>
+      <div class="wanted-subtitle">Übersicht über gesuchte Personen und Fahrzeuge</div>
+    </div>
+
+    <div class="wanted-header-right">
+      <button type="button" id="wantedNewButton" class="wanted-btn primary" style="display:none">+ Neue Fahndung</button>
+      <button type="button" id="wantedRefreshButton" class="wanted-btn">↻ Aktualisieren</button>
+    </div>
+  </div>
+
+  <div class="wanted-toolbar">
+    <div class="wanted-search-wrap">
+      <span class="wanted-search-icon">⌕</span>
+      <input id="wantedSearch" class="wanted-search" type="text" autocomplete="off" placeholder="Name, Alias, Passnummer, Kennzeichen, Straftat ...">
+    </div>
+
+    <div class="wanted-filters">
+      <select id="wantedTypeFilter" class="wanted-filter" aria-label="Art filtern">
+        <option value="all">Alle Arten</option>
+        <option value="person">Personen</option>
+        <option value="vehicle">Fahrzeuge</option>
+      </select>
+
+      <select id="wantedStatusFilter" class="wanted-filter" aria-label="Status filtern">
+        <option value="all">Alle Status</option>
+        <option value="wanted">Gesucht</option>
+        <option value="observation">Beobachtung</option>
+        <option value="captured">Gefasst</option>
+      </select>
+    </div>
+
+    <div class="wanted-stats">
+      <div class="wanted-stat"><span id="wantedTotalCount" class="wanted-stat-value">0</span><span class="wanted-stat-label">Gesamt</span></div>
+      <div class="wanted-stat"><span id="wantedActiveCount" class="wanted-stat-value">0</span><span class="wanted-stat-label">Aktiv</span></div>
+      <div class="wanted-stat"><span id="wantedCapturedCount" class="wanted-stat-value">0</span><span class="wanted-stat-label">Gefasst</span></div>
+    </div>
+  </div>
+
+  <section class="wanted-section">
+    <div class="wanted-section-header">
+      <h2 class="wanted-section-title">Aktive Fahndungen <span id="wantedActiveSectionCount" class="wanted-section-count">0</span></h2>
+    </div>
+    <div class="wanted-card">
+      <div class="wanted-table-wrap">
+        <table class="wanted-table">
+          <thead>
+            <tr>
+              <th>Art</th>
+              <th>Person / Fahrzeug</th>
+              <th>Kennung</th>
+              <th>Status</th>
+              <th>Straftat / Grund</th>
+              <th>Bewaffnet</th>
+              <th>Gefährlichkeit</th>
+              <th>Zuletzt gesehen</th>
+              <th>Gesucht seit</th>
+              <th>Ersteller</th>
+              <th>Aktionen</th>
+            </tr>
+          </thead>
+          <tbody id="wantedActiveBody">
+            <tr>
+              <td colspan="11" class="wanted-state loading">
+                <div class="wanted-loading-content">
+                  <span class="wanted-loading-spinner" aria-hidden="true"></span>
+                  <span class="wanted-loading-text">Fahndungsregister wird geladen …</span>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section class="wanted-section">
+    <div class="wanted-section-header">
+      <h2 class="wanted-section-title">Gefasste Personen / Fahrzeuge <span id="wantedCapturedSectionCount" class="wanted-section-count">0</span></h2>
+    </div>
+    <div class="wanted-card">
+      <div class="wanted-table-wrap">
+        <table class="wanted-table archive-table">
+          <thead>
+            <tr>
+              <th>Art</th>
+              <th>Person / Fahrzeug</th>
+              <th>Kennung</th>
+              <th>Straftat / Grund</th>
+              <th>Gefasst am</th>
+              <th>Ersteller</th>
+              <th>Aktionen</th>
+            </tr>
+          </thead>
+          <tbody id="wantedCapturedBody">
+            <tr>
+              <td colspan="7" class="wanted-state loading">
+                <div class="wanted-loading-content">
+                  <span class="wanted-loading-spinner" aria-hidden="true"></span>
+                  <span class="wanted-loading-text">Fahndungsregister wird geladen …</span>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <div class="wanted-footer"><span id="wantedClock">--:--:--</span></div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  const state = window.wantedPageState = window.wantedPageState || {
+    initialized: false,
+    data: [],
+    filtered: [],
+    active: [],
+    captured: [],
+    loaded: false,
+    loading: false,
+    permissions: { view: false, create: false, edit: false, delete: false },
+    config: null,
+    search: "",
+    typeFilter: "all",
+    statusFilter: "all",
+    modalMode: null,
+    modalId: null,
+    modalButton: null,
+    clockInterval: null
+  };
+
+  function $(id) { return document.getElementById(id); }
+
+  function escapeHtml(value) {
+    return String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  function text(value) { return String(value ?? "").trim(); }
+  function normalize(value) { return text(value).toLowerCase(); }
+
+  function token() {
+    try {
+      if (typeof getSystemSessionToken === "function") {
+        const t = getSystemSessionToken();
+        if (t) return t;
+      }
+    } catch (e) {}
+
+    try {
+      if (typeof sessionToken !== "undefined" && sessionToken) return sessionToken;
+    } catch (e) {}
+
+    return window.currentSessionToken || window.sessionToken || "";
+  }
+
+  function modal() {
+    return window.FIB_MDT_MODAL || null;
+  }
+
+  function showModalError(title, message) {
+    const m = modal();
+    if (!m) {
+      window.alert(message || title || "Fehler");
+      return;
+    }
+
+    m.open({
+      title: title || "Fehler",
+      subtitle: "Fahndungsregister",
+      body: '<div class="wanted-modal-error">' + escapeHtml(message || "Ein unbekannter Fehler ist aufgetreten.") + '</div>',
+      saveVisible: false,
+      focus: false
+    });
+  }
+
+  function closeModal() {
+    const m = modal();
+    if (m) m.close();
+    state.modalMode = null;
+    state.modalId = null;
+    state.modalButton = null;
+  }
+
+  function valueOf(id) {
+    const el = $(id);
+    return el ? text(el.value) : "";
+  }
+
+  function checkedOf(id) {
+    const el = $(id);
+    return !!(el && el.checked);
+  }
+
+  function setValue(id, value) {
+    const el = $(id);
+    if (el) el.value = value ?? "";
+  }
+
+  function setChecked(id, value) {
+    const el = $(id);
+    if (el) el.checked = !!value;
+  }
+
+  function typeLabel(type) {
+    return normalize(type) === "vehicle" ? "Fahrzeug" : "Person";
+  }
+
+  function statusConfig(status) {
+    const key = normalize(status);
+    const values = {
+      wanted: { label: "Gesucht", cls: "active" },
+      observation: { label: "Beobachtung", cls: "watch" },
+      captured: { label: "Gefasst", cls: "captured" }
+    };
+    return values[key] || { label: "Unbekannt", cls: "unknown" };
+  }
+
+  function dangerConfig(level) {
+    const key = normalize(level);
+    const values = {
+      low: { label: "Niedrig", cls: "low" },
+      medium: { label: "Mittel", cls: "medium" },
+      high: { label: "Hoch", cls: "high" },
+      extreme: { label: "Sehr hoch", cls: "extreme" }
+    };
+    return values[key] || { label: "Unbekannt", cls: "unknown" };
+  }
+
+  function formatDate(value) {
+    const raw = text(value);
+    if (!raw) return "—";
+    const date = new Date(raw);
+    if (!Number.isNaN(date.getTime()) && /T|Z|-/.test(raw)) {
+      return date.toLocaleDateString("de-DE");
+    }
+    return escapeHtml(raw);
+  }
+
+  function formatBoolean(value) {
+    if (value === true || ["true", "ja", "1", "yes"].includes(normalize(value))) {
+      return '<span class="wanted-bool yes">JA</span>';
+    }
+    return '<span class="wanted-bool no">NEIN</span>';
+  }
+
+  function identifier(row) {
+    return row.type === "vehicle" ? row.plate : row.person_id;
+  }
+
+  function secondary(row) {
+    if (row.type === "vehicle") {
+      const parts = [text(row.vehicle_model), text(row.vehicle_color)].filter(Boolean);
+      return parts.join(" · ");
+    }
+    return text(row.alias);
+  }
+
+  function cleanRow(row) {
+    const r = row || {};
+    return {
+      id: text(r.id),
+      type: normalize(r.type) === "vehicle" ? "vehicle" : "person",
+      name: text(r.name),
+      alias: text(r.alias),
+      person_id: text(r.person_id),
+      plate: text(r.plate),
+      vehicle_model: text(r.vehicle_model),
+      vehicle_color: text(r.vehicle_color),
+      reason: text(r.reason),
+      armed: r.armed === true || normalize(r.armed) === "true",
+      danger_level: normalize(r.danger_level),
+      last_seen: text(r.last_seen),
+      wanted_since: text(r.wanted_since),
+      captured_at: text(r.captured_at),
+      description: text(r.description),
+      notes: text(r.notes),
+      status: normalize(r.status) || "wanted",
+      created_at: text(r.created_at),
+      created_by_user_id: text(r.created_by_user_id),
+      created_by_name: text(r.created_by_name),
+      updated_at: text(r.updated_at),
+      updated_by_user_id: text(r.updated_by_user_id),
+      updated_by_name: text(r.updated_by_name)
+    };
+  }
+
+  function matches(row) {
+    if (state.typeFilter !== "all" && row.type !== state.typeFilter) return false;
+    if (state.statusFilter !== "all" && row.status !== state.statusFilter) return false;
+
+    const q = normalize(state.search);
+    if (!q) return true;
+
+    const haystack = [
+      row.type, row.name, row.alias, row.person_id, row.plate,
+      row.vehicle_model, row.vehicle_color, row.reason,
+      row.danger_level, row.last_seen, row.wanted_since,
+      row.captured_at, row.description, row.notes,
+      row.created_by_name, row.updated_by_name
+    ].map(normalize).join(" ");
+
+    return haystack.includes(q);
+  }
+
+  function loadingRow(colspan) {
+    return '<tr><td colspan="' + colspan + '" class="wanted-state loading">' +
+      '<div class="wanted-loading-content">' +
+        '<span class="wanted-loading-spinner" aria-hidden="true"></span>' +
+        '<span class="wanted-loading-text">Fahndungsregister wird geladen …</span>' +
+      '</div>' +
+    '</td></tr>';
+  }
+
+  function showLoadingState() {
+    const active = $("wantedActiveBody");
+    const captured = $("wantedCapturedBody");
+    if (active) active.innerHTML = loadingRow(11);
+    if (captured) captured.innerHTML = loadingRow(7);
+  }
+
+  function render() {
+    if (!state.loaded) {
+      showLoadingState();
+      return;
+    }
+
+    state.filtered = state.data.filter(matches);
+    state.active = state.filtered.filter(row => row.status !== "captured");
+    state.captured = state.filtered.filter(row => row.status === "captured");
+
+    renderActive();
+    renderCaptured();
+
+    const total = $("wantedTotalCount");
+    const active = $("wantedActiveCount");
+    const captured = $("wantedCapturedCount");
+    const activeSection = $("wantedActiveSectionCount");
+    const capturedSection = $("wantedCapturedSectionCount");
+
+    if (total) total.textContent = state.filtered.length;
+    if (active) active.textContent = state.active.length;
+    if (captured) captured.textContent = state.captured.length;
+    if (activeSection) activeSection.textContent = state.active.length;
+    if (capturedSection) capturedSection.textContent = state.captured.length;
+  }
+
+  function emptyRow(message, colspan) {
+    return '<tr><td colspan="' + colspan + '" class="wanted-state"><strong>' +
+      escapeHtml(message) + '</strong>Für den gewählten Filter liegen keine Einträge vor.</td></tr>';
+  }
+
+  function renderActive() {
+    const body = $("wantedActiveBody");
+    if (!body) return;
+
+    if (!state.active.length) {
+      body.innerHTML = emptyRow("Keine aktiven Fahndungen gefunden", 11);
+      return;
+    }
+
+    body.innerHTML = state.active.map(function(row) {
+      const status = statusConfig(row.status);
+      const danger = dangerConfig(row.danger_level);
+      const sub = secondary(row);
+      const id = identifier(row);
+      const actions = [];
+
+      if (state.permissions.edit) {
+        actions.push('<button type="button" class="wanted-icon-btn" data-action="edit" data-id="' + escapeHtml(row.id) + '" title="Bearbeiten">✎</button>');
+      }
+      if (state.permissions.delete) {
+        actions.push('<button type="button" class="wanted-icon-btn delete" data-action="delete" data-id="' + escapeHtml(row.id) + '" title="Löschen">✕</button>');
+      }
+
+      return '<tr>' +
+        '<td><span class="wanted-type">' + escapeHtml(typeLabel(row.type)) + '</span></td>' +
+        '<td><div class="wanted-primary-text">' + escapeHtml(row.name || "—") + '</div>' + (sub ? '<div class="wanted-secondary-text">' + escapeHtml(sub) + '</div>' : '') + '</td>' +
+        '<td>' + (id ? escapeHtml(id) : '<span class="muted">—</span>') + '</td>' +
+        '<td><span class="wanted-status ' + status.cls + '">' + escapeHtml(status.label) + '</span></td>' +
+        '<td>' + (row.reason ? escapeHtml(row.reason) : '<span class="muted">—</span>') + '</td>' +
+        '<td>' + formatBoolean(row.armed) + '</td>' +
+        '<td><span class="wanted-danger ' + danger.cls + '">' + escapeHtml(danger.label) + '</span></td>' +
+        '<td>' + (row.last_seen ? escapeHtml(row.last_seen) : '<span class="muted">—</span>') + '</td>' +
+        '<td>' + formatDate(row.wanted_since) + '</td>' +
+        '<td>' + (row.created_by_name ? escapeHtml(row.created_by_name) : '<span class="muted">—</span>') + '</td>' +
+        '<td><div class="wanted-row-actions">' + actions.join("") + '</div></td>' +
+      '</tr>';
+    }).join("");
+
+    attachActions(body);
+  }
+
+  function renderCaptured() {
+    const body = $("wantedCapturedBody");
+    if (!body) return;
+
+    if (!state.captured.length) {
+      body.innerHTML = emptyRow("Keine gefassten Personen oder Fahrzeuge gefunden", 7);
+      return;
+    }
+
+    body.innerHTML = state.captured.map(function(row) {
+      const sub = secondary(row);
+      const id = identifier(row);
+      const actions = [];
+
+      if (state.permissions.edit) {
+        actions.push('<button type="button" class="wanted-icon-btn" data-action="edit" data-id="' + escapeHtml(row.id) + '" title="Bearbeiten">✎</button>');
+      }
+      if (state.permissions.delete) {
+        actions.push('<button type="button" class="wanted-icon-btn delete" data-action="delete" data-id="' + escapeHtml(row.id) + '" title="Löschen">✕</button>');
+      }
+
+      return '<tr>' +
+        '<td><span class="wanted-type">' + escapeHtml(typeLabel(row.type)) + '</span></td>' +
+        '<td><div class="wanted-primary-text">' + escapeHtml(row.name || "—") + '</div>' + (sub ? '<div class="wanted-secondary-text">' + escapeHtml(sub) + '</div>' : '') + '</td>' +
+        '<td>' + (id ? escapeHtml(id) : '<span class="muted">—</span>') + '</td>' +
+        '<td>' + (row.reason ? escapeHtml(row.reason) : '<span class="muted">—</span>') + '</td>' +
+        '<td>' + formatDate(row.captured_at) + '</td>' +
+        '<td>' + (row.created_by_name ? escapeHtml(row.created_by_name) : '<span class="muted">—</span>') + '</td>' +
+        '<td><div class="wanted-row-actions">' + actions.join("") + '</div></td>' +
+      '</tr>';
+    }).join("");
+
+    attachActions(body);
+  }
+
+  function attachActions(body) {
+    body.querySelectorAll("[data-action]").forEach(function(btn) {
+      btn.addEventListener("click", function() {
+        const action = btn.getAttribute("data-action");
+        const id = btn.getAttribute("data-id");
+        if (action === "edit") openEditModal(id);
+        if (action === "delete") openDeleteModal(id);
+      });
+    });
+  }
+
+  function loadWanted(showLoader) {
+    if (state.loading) return;
+    const t = token();
+    if (!t) {
+      showTableError("Keine gültige Sitzung vorhanden.");
+      return;
+    }
+
+    state.loading = true;
+    state.loaded = false;
+    if (showLoader) {
+      showLoadingState();
+    }
+
+    CloudApi.run
+      .withSuccessHandler(function(result) {
+        state.loading = false;
+        state.loaded = true;
+        state.data = Array.isArray(result) ? result.map(cleanRow) : [];
+        render();
+      })
+      .withFailureHandler(function(error) {
+        state.loading = false;
+        state.loaded = false;
+        showTableError(error && error.message ? error.message : "Die Daten konnten nicht geladen werden.");
+      })
+      .getWanted(t, "", 200);
+  }
+
+  function showTableError(message) {
+    state.loaded = false;
+    const active = $("wantedActiveBody");
+    const captured = $("wantedCapturedBody");
+    if (active) active.innerHTML = '<tr><td colspan="11" class="wanted-state error"><strong>Daten konnten nicht geladen werden</strong>' + escapeHtml(message) + '</td></tr>';
+    if (captured) captured.innerHTML = '<tr><td colspan="7" class="wanted-state error"><strong>Daten konnten nicht geladen werden</strong>' + escapeHtml(message) + '</td></tr>';
+  }
+
+  function loadConfig() {
+    const t = token();
+    if (!t) {
+      showTableError("Keine gültige Sitzung vorhanden.");
+      return;
+    }
+
+    CloudApi.run
+      .withSuccessHandler(function(config) {
+        state.config = config || {};
+        state.permissions = (config && config.permissions) || state.permissions;
+        const createButton = $("wantedNewButton");
+        if (createButton) createButton.style.display = state.permissions.create ? "" : "none";
+        loadWanted(true);
+      })
+      .withFailureHandler(function(error) {
+        showTableError(error && error.message ? error.message : "Die Fahndungsberechtigungen konnten nicht geladen werden.");
+      })
+      .getWantedConfig(t);
+  }
+
+  function formHtml(row) {
+    const current = row || {};
+    const type = normalize(current.type) === "vehicle" ? "vehicle" : "person";
+
+    return '<div id="wantedModalFormRoot" class="wanted-modal-surface">' +
+      '<div class="wanted-modal-info">Pflichtfelder sind mit <span class="required-mark">*</span> gekennzeichnet. Die Fahndung wird mit dem angemeldeten Benutzer als Ersteller gespeichert.</div>' +
+      '<div class="wanted-modal-form">' +
+        '<div class="wanted-modal-group">' +
+          '<label class="wanted-modal-label" for="wantedFieldType">Art <span class="required">*</span></label>' +
+          '<select id="wantedFieldType" class="wanted-modal-input">' +
+            '<option value="person"' + (type === "person" ? ' selected' : '') + '>Person</option>' +
+            '<option value="vehicle"' + (type === "vehicle" ? ' selected' : '') + '>Fahrzeug</option>' +
+          '</select>' +
+        '</div>' +
+        '<div class="wanted-modal-group">' +
+          '<label id="wantedNameLabel" class="wanted-modal-label" for="wantedFieldName">' + (type === "vehicle" ? 'Fahrzeugbezeichnung' : 'Name') + ' <span class="required">*</span></label>' +
+          '<input id="wantedFieldName" class="wanted-modal-input" type="text" value="' + escapeHtml(current.name || "") + '">' +
+        '</div>' +
+        '<div class="wanted-modal-group" id="wantedPersonOnlyAlias">' +
+          '<label class="wanted-modal-label" for="wantedFieldAlias">Alias</label>' +
+          '<input id="wantedFieldAlias" class="wanted-modal-input" type="text" value="' + escapeHtml(current.alias || "") + '">' +
+        '</div>' +
+        '<div class="wanted-modal-group" id="wantedPersonOnlyId">' +
+          '<label class="wanted-modal-label" for="wantedFieldPersonId">Reisepassnummer</label>' +
+          '<input id="wantedFieldPersonId" class="wanted-modal-input" type="text" value="' + escapeHtml(current.person_id || "") + '">' +
+        '</div>' +
+        '<div class="wanted-modal-group" id="wantedVehicleOnlyPlate">' +
+          '<label class="wanted-modal-label" for="wantedFieldPlate">Kennzeichen</label>' +
+          '<input id="wantedFieldPlate" class="wanted-modal-input" type="text" value="' + escapeHtml(current.plate || "") + '">' +
+        '</div>' +
+        '<div class="wanted-modal-group" id="wantedVehicleOnlyModel">' +
+          '<label class="wanted-modal-label" for="wantedFieldVehicleModel">Fahrzeugmodell</label>' +
+          '<input id="wantedFieldVehicleModel" class="wanted-modal-input" type="text" value="' + escapeHtml(current.vehicle_model || "") + '">' +
+        '</div>' +
+        '<div class="wanted-modal-group" id="wantedVehicleOnlyColor">' +
+          '<label class="wanted-modal-label" for="wantedFieldVehicleColor">Fahrzeugfarbe</label>' +
+          '<input id="wantedFieldVehicleColor" class="wanted-modal-input" type="text" value="' + escapeHtml(current.vehicle_color || "") + '">' +
+        '</div>' +
+        '<div class="wanted-modal-group">' +
+          '<label class="wanted-modal-label" for="wantedFieldStatus">Status</label>' +
+          '<select id="wantedFieldStatus" class="wanted-modal-input">' +
+            '<option value="wanted"' + (normalize(current.status) === "wanted" || !current.status ? ' selected' : '') + '>Gesucht</option>' +
+            '<option value="observation"' + (normalize(current.status) === "observation" ? ' selected' : '') + '>Beobachtung</option>' +
+            '<option value="captured"' + (normalize(current.status) === "captured" ? ' selected' : '') + '>Gefasst</option>' +
+          '</select>' +
+        '</div>' +
+        '<div class="wanted-modal-group">' +
+          '<label class="wanted-modal-label" for="wantedFieldDanger">Gefährlichkeit</label>' +
+          '<select id="wantedFieldDanger" class="wanted-modal-input">' +
+            '<option value="low"' + (normalize(current.danger_level) === "low" ? ' selected' : '') + '>Niedrig</option>' +
+            '<option value="medium"' + (normalize(current.danger_level) === "medium" || !current.danger_level ? ' selected' : '') + '>Mittel</option>' +
+            '<option value="high"' + (normalize(current.danger_level) === "high" ? ' selected' : '') + '>Hoch</option>' +
+            '<option value="extreme"' + (normalize(current.danger_level) === "extreme" ? ' selected' : '') + '>Sehr hoch</option>' +
+          '</select>' +
+        '</div>' +
+        '<div class="wanted-modal-group">' +
+          '<label class="wanted-modal-label" for="wantedFieldWantedSince">Gesucht seit</label>' +
+          '<input id="wantedFieldWantedSince" class="wanted-modal-input" type="date" value="' + escapeHtml((current.wanted_since || "").slice(0,10)) + '">' +
+        '</div>' +
+        '<div class="wanted-modal-group">' +
+          '<label class="wanted-modal-label" for="wantedFieldCapturedAt">Gefasst am</label>' +
+          '<input id="wantedFieldCapturedAt" class="wanted-modal-input" type="date" value="' + escapeHtml((current.captured_at || "").slice(0,10)) + '">' +
+        '</div>' +
+        '<div class="wanted-modal-group">' +
+          '<label class="wanted-modal-label" for="wantedFieldLastSeen">Zuletzt gesehen</label>' +
+          '<input id="wantedFieldLastSeen" class="wanted-modal-input" type="text" value="' + escapeHtml(current.last_seen || "") + '">' +
+        '</div>' +
+        '<div class="wanted-modal-group wanted-modal-group-checkbox">' +
+          '<label class="wanted-modal-checkbox"><input id="wantedFieldArmed" type="checkbox"' + (current.armed ? ' checked' : '') + '> Bewaffnet</label>' +
+        '</div>' +
+        '<div class="wanted-modal-group full">' +
+          '<label class="wanted-modal-label" for="wantedFieldReason">Straftat / Grund <span class="required">*</span></label>' +
+          '<textarea id="wantedFieldReason" class="wanted-modal-input" rows="3">' + escapeHtml(current.reason || "") + '</textarea>' +
+          '<div class="wanted-modal-help">Der konkrete Fahndungsgrund bzw. die zugrunde liegende Straftat.</div>' +
+        '</div>' +
+        '<div class="wanted-modal-group full">' +
+          '<label class="wanted-modal-label" for="wantedFieldDescription">Beschreibung</label>' +
+          '<textarea id="wantedFieldDescription" class="wanted-modal-input" rows="3">' + escapeHtml(current.description || "") + '</textarea>' +
+        '</div>' +
+        '<div class="wanted-modal-group full">' +
+          '<label class="wanted-modal-label" for="wantedFieldNotes">Interne Anmerkungen</label>' +
+          '<textarea id="wantedFieldNotes" class="wanted-modal-input" rows="3">' + escapeHtml(current.notes || "") + '</textarea>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  }
+
+  function applyTypeFields() {
+    const type = valueOf("wantedFieldType");
+    const person = type !== "vehicle";
+    ["wantedPersonOnlyAlias", "wantedPersonOnlyId"].forEach(function(id) {
+      const el = $(id);
+      if (el) el.style.display = person ? "" : "none";
+    });
+    ["wantedVehicleOnlyPlate", "wantedVehicleOnlyModel", "wantedVehicleOnlyColor"].forEach(function(id) {
+      const el = $(id);
+      if (el) el.style.display = person ? "none" : "";
+    });
+    const label = $("wantedNameLabel");
+    if (label) label.innerHTML = (person ? "Name" : "Fahrzeugbezeichnung") + ' <span class="required">*</span>';
+  }
+
+  function collectFormData() {
+    const type = valueOf("wantedFieldType") || "person";
+    return {
+      type: type,
+      name: valueOf("wantedFieldName"),
+      alias: valueOf("wantedFieldAlias"),
+      person_id: valueOf("wantedFieldPersonId"),
+      plate: valueOf("wantedFieldPlate"),
+      vehicle_model: valueOf("wantedFieldVehicleModel"),
+      vehicle_color: valueOf("wantedFieldVehicleColor"),
+      status: valueOf("wantedFieldStatus") || "wanted",
+      danger_level: valueOf("wantedFieldDanger") || "medium",
+      wanted_since: valueOf("wantedFieldWantedSince"),
+      captured_at: valueOf("wantedFieldCapturedAt"),
+      last_seen: valueOf("wantedFieldLastSeen"),
+      armed: checkedOf("wantedFieldArmed"),
+      reason: valueOf("wantedFieldReason"),
+      description: valueOf("wantedFieldDescription"),
+      notes: valueOf("wantedFieldNotes")
+    };
+  }
+
+  function validateForm(data) {
+    if (!data.name) return "Name bzw. Fahrzeugbezeichnung ist ein Pflichtfeld.";
+    if (!data.reason) return "Bitte eine Straftat bzw. einen Fahndungsgrund angeben.";
+    if (data.type === "person" && data.plate) return "Bei Personen bitte kein Kennzeichen angeben.";
+    if (data.type === "vehicle" && data.person_id) return "Bei Fahrzeugen bitte keine Reisepassnummer angeben.";
+    if (data.status === "captured" && !data.captured_at) return "Bei einer gefassten Fahndung ist das Erfassungsdatum erforderlich.";
+    return null;
+  }
+
+  function openCreateModal() {
+    if (!state.permissions.create) {
+      showModalError("Keine Berechtigung", "Du besitzt keine Berechtigung, Fahndungen zu erstellen.");
+      return;
+    }
+
+    const m = modal();
+    if (!m) {
+      window.alert("Das globale MDT-Modal ist nicht verfügbar.");
+      return;
+    }
+
+    state.modalMode = "create";
+    state.modalId = null;
+
+    m.open({
+      title: "Neue Fahndung",
+      subtitle: "Fahndungsregister",
+      body: formHtml({ type: "person", status: "wanted", danger_level: "medium" }),
+      buttons: [
+        { label: "Abbrechen", variant: "secondary", onClick: function() { closeModal(); } },
+        { label: "Fahndung erstellen", variant: "primary", onClick: saveModal }
+      ],
+      keepCancelButton: false,
+      focus: false
+    });
+
+    bindFormEvents();
+  }
+
+  function openEditModal(id) {
+    if (!state.permissions.edit) return;
+    const row = state.data.find(item => String(item.id) === String(id));
+    if (!row) return;
+
+    const m = modal();
+    if (!m) return;
+
+    state.modalMode = "edit";
+    state.modalId = row.id;
+
+    m.open({
+      title: "Fahndung bearbeiten",
+      subtitle: typeLabel(row.type) + " · " + (row.name || row.id),
+      body: formHtml(row),
+      buttons: [
+        { label: "Abbrechen", variant: "secondary", onClick: function() { closeModal(); } },
+        { label: "Speichern", variant: "primary", onClick: saveModal }
+      ],
+      keepCancelButton: false,
+      focus: false
+    });
+
+    bindFormEvents();
+  }
+
+  function bindFormEvents() {
+    const type = $("wantedFieldType");
+    if (type) type.addEventListener("change", applyTypeFields);
+    applyTypeFields();
+  }
+
+  function getSaveButton() {
+    const m = modal();
+    if (!m) return null;
+    const footer = m.getFooter ? m.getFooter() : null;
+    if (!footer) return null;
+    const buttons = footer.querySelectorAll("button");
+    for (let i = buttons.length - 1; i >= 0; i--) {
+      if (buttons[i].textContent.trim() !== "Schließen" && !buttons[i].disabled) return buttons[i];
+    }
+    return buttons.length ? buttons[buttons.length - 1] : null;
+  }
+
+  function saveModal(button) {
+    const data = collectFormData();
+    const error = validateForm(data);
+    if (error) {
+      showModalError("Eingabe prüfen", error);
+      return false;
+    }
+
+    const t = token();
+    if (!t) {
+      showModalError("Sitzung abgelaufen", "Es ist keine gültige Sitzung mehr vorhanden.");
+      return false;
+    }
+
+    const busyButton = button || state.modalButton || getSaveButton();
+    state.modalButton = busyButton || null;
+
+    if (busyButton && modal() && modal().setButtonLoading) {
+      modal().setButtonLoading(busyButton, true, state.modalMode === "create" ? "Wird erstellt ..." : "Wird gespeichert ...");
+    }
+
+    const success = function() {
+      closeModal();
+      loadWanted(true);
+    };
+
+    const failure = function(errorObj) {
+      if (busyButton && modal() && modal().setButtonLoading) {
+        modal().setButtonLoading(busyButton, false, state.modalMode === "create" ? "Fahndung erstellen" : "Speichern");
+      }
+      showModalError("Speichern fehlgeschlagen", errorObj && errorObj.message ? errorObj.message : "Die Fahndung konnte nicht gespeichert werden.");
+    };
+
+    if (state.modalMode === "create") {
+      if (!state.permissions.create) return false;
+      CloudApi.run.withSuccessHandler(success).withFailureHandler(failure).createWanted(t, data);
+    } else {
+      if (!state.permissions.edit || !state.modalId) return false;
+      CloudApi.run.withSuccessHandler(success).withFailureHandler(failure).updateWanted(t, state.modalId, data);
+    }
+
+    return true;
+  }
+
+  function openDeleteModal(id) {
+    if (!state.permissions.delete) return;
+
+    const row = state.data.find(item => String(item.id) === String(id));
+    if (!row) return;
+
+    const m = modal();
+    if (!m) return;
+
+    m.open({
+      title: "Fahndung löschen",
+      subtitle: typeLabel(row.type) + " · " + (row.name || row.id),
+      body: '<div class="wanted-modal-error" style="margin-top:0;background:rgba(188,72,72,.08)">Diese Fahndung wird endgültig aus dem Fahndungsregister gelöscht. Dieser Vorgang kann nicht rückgängig gemacht werden.</div>' +
+        '<div class="wanted-detail-grid" style="margin-top:12px">' +
+          '<div class="wanted-detail-card"><div class="wanted-detail-label">Eintrag</div><div class="wanted-detail-value">' + escapeHtml(row.name || "—") + '</div></div>' +
+          '<div class="wanted-detail-card"><div class="wanted-detail-label">Grund</div><div class="wanted-detail-value">' + escapeHtml(row.reason || "—") + '</div></div>' +
+        '</div>',
+      buttons: [
+        { label: "Abbrechen", variant: "secondary", onClick: function() { closeModal(); } },
+        { label: "Endgültig löschen", variant: "danger", onClick: function(button) { return deleteWanted(row.id, button); } }
+      ],
+      keepCancelButton: false,
+      focus: false
+    });
+  }
+
+  function deleteWanted(id, button) {
+    if (!state.permissions.delete) return false;
+    const t = token();
+    if (!t) {
+      showModalError("Sitzung abgelaufen", "Es ist keine gültige Sitzung mehr vorhanden.");
+      return false;
+    }
+
+    const busyButton = button || state.modalButton;
+    if (busyButton && modal() && modal().setButtonLoading) {
+      modal().setButtonLoading(busyButton, true, "Wird gelöscht ...");
+    }
+
+    CloudApi.run
+      .withSuccessHandler(function() {
+        closeModal();
+        loadWanted(true);
+      })
+      .withFailureHandler(function(errorObj) {
+        if (busyButton && modal() && modal().setButtonLoading) {
+          modal().setButtonLoading(busyButton, false, "Endgültig löschen");
+        }
+        showModalError("Löschen fehlgeschlagen", errorObj && errorObj.message ? errorObj.message : "Die Fahndung konnte nicht gelöscht werden.");
+      })
+      .deleteWanted(t, id);
+
+    return true;
+  }
+
+  function setup() {
+    const newButton = $("wantedNewButton");
+    if (newButton) newButton.addEventListener("click", openCreateModal);
+
+    const refreshButton = $("wantedRefreshButton");
+    if (refreshButton) refreshButton.addEventListener("click", function() { loadWanted(true); });
+
+    const search = $("wantedSearch");
+    if (search) search.addEventListener("input", function() { state.search = search.value; render(); });
+
+    const typeFilter = $("wantedTypeFilter");
+    if (typeFilter) typeFilter.addEventListener("change", function() { state.typeFilter = typeFilter.value; render(); });
+
+    const statusFilter = $("wantedStatusFilter");
+    if (statusFilter) statusFilter.addEventListener("change", function() { state.statusFilter = statusFilter.value; render(); });
+
+    const clock = $("wantedClock");
+    function tick() {
+      if (clock) clock.textContent = new Date().toLocaleTimeString("de-DE");
+    }
+    tick();
+    if (state.clockInterval) clearInterval(state.clockInterval);
+    state.clockInterval = setInterval(tick, 1000);
+
+    loadConfig();
+  }
+
+  function initializeWantedPage() {
+    if (state.initialized) return;
+    state.initialized = true;
+    setup();
+  }
+
+  window.refreshWanted = function() { loadWanted(true); };
+  window.addEventListener("fib-mdt:refresh-request", function (event) { if (document.getElementById("wantedActiveBody") && !(event.detail && event.detail.source === "mutation")) loadWanted(false); });
+  window.addEventListener("fib-mdt:data-changed", function (event) { const modal=document.getElementById("fibGlobalModalOverlay"); if (document.getElementById("wantedActiveBody") && !(modal && modal.classList.contains("open")) && /Wanted|Fahnd|wanted/i.test(String(event.detail && event.detail.method || ""))) loadWanted(false); });
+  window.initializeWantedPage = initializeWantedPage;
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initializeWantedPage);
+  } else {
+    setTimeout(initializeWantedPage, 0);
+  }
+})();
+</script>

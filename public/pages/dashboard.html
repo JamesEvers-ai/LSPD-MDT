@@ -1,0 +1,1325 @@
+<style>
+  /* ============================================================
+     LSPD MDT – DASHBOARD
+     ============================================================ */
+
+  .dashboard {
+    width: 100%;
+    min-height: 100%;
+    box-sizing: border-box;
+    padding: 18px 22px 90px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  .dashboard-welcome,
+  .dashboard-stat,
+  .dashboard-card {
+    position: relative;
+    min-width: 0;
+    background: #11161d;
+    border: 1px solid rgba(255,255,255,.07);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .dashboard-welcome::before,
+  .dashboard-stat::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: #1c4f82;
+  }
+
+  /* ============================================================
+     WELCOME
+     ============================================================ */
+
+  .dashboard-welcome {
+    padding: 22px 24px;
+  }
+
+  .dashboard-welcome-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+  }
+
+  .dashboard-welcome-text {
+    min-width: 0;
+  }
+
+  .dashboard-eyebrow {
+    margin-bottom: 6px;
+    color: #83b8eb;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+
+  .dashboard-title {
+    margin: 0;
+    color: #f4f7fb;
+    font-size: 25px;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+
+  .dashboard-subtitle {
+    margin-top: 7px;
+    color: #8f9bad;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  .dashboard-clock {
+    flex-shrink: 0;
+    color: #dce3ec;
+    font-size: 22px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  /* ============================================================
+     STATISTICS
+     ============================================================ */
+
+  .dashboard-stats {
+    display: grid;
+    grid-template-columns: repeat(4,minmax(0,1fr));
+    gap: 10px;
+  }
+
+  .dashboard-stat {
+    padding: 18px;
+  }
+
+  .dashboard-stat-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .dashboard-stat-label {
+    color: #8f9bad;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .dashboard-stat-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    background: rgba(28,79,130,.16);
+    border: 1px solid rgba(40,106,169,.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #83b8eb;
+    font-size: 15px;
+    flex-shrink: 0;
+  }
+
+  .dashboard-stat-value {
+    margin-top: 12px;
+    color: #f4f7fb;
+    font-size: 27px;
+    font-weight: 700;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .dashboard-stat-subtitle {
+    margin-top: 7px;
+    color: #687588;
+    font-size: 11px;
+  }
+
+  /* ============================================================
+     MAIN GRID
+     ============================================================ */
+
+  .dashboard-main-grid {
+    display: grid;
+    grid-template-columns: minmax(0,1.7fr) minmax(280px,1fr);
+    gap: 10px;
+    align-items: stretch;
+  }
+
+  .dashboard-column {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  /* ============================================================
+     CARDS
+     ============================================================ */
+
+  .dashboard-card {
+    flex: 0 0 auto;
+  }
+
+  .dashboard-card-header {
+    min-height: 50px;
+    box-sizing: border-box;
+    padding: 0 16px;
+    background: #151b23;
+    border-bottom: 1px solid rgba(255,255,255,.06);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .dashboard-card-title {
+    margin: 0;
+    color: #eef3f8;
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  .dashboard-card-header-icon {
+    color: #83b8eb;
+    font-size: 13px;
+  }
+
+  .dashboard-card-body {
+    padding: 16px;
+  }
+
+  /* ============================================================
+     QUICK ACTIONS
+     ============================================================ */
+
+  .dashboard-quick-actions {
+    display: grid;
+    grid-template-columns: repeat(2,minmax(0,1fr));
+    gap: 8px;
+  }
+
+  .dashboard-quick-action {
+    appearance: none;
+    width: 100%;
+    min-height: 78px;
+    padding: 12px;
+    box-sizing: border-box;
+    background: #0d1117;
+    border: 1px solid rgba(255,255,255,.07);
+    border-radius: 8px;
+    color: #dce3ec;
+    text-align: left;
+    cursor: pointer;
+    transition: background .15s ease,border-color .15s ease,transform .15s ease;
+  }
+
+  .dashboard-quick-action:hover {
+    background: rgba(28,79,130,.12);
+    border-color: rgba(40,106,169,.55);
+    transform: translateY(-1px);
+  }
+
+  .dashboard-quick-action:focus-visible {
+    outline: 2px solid rgba(131,184,235,.65);
+    outline-offset: 2px;
+  }
+
+  .dashboard-quick-action-icon {
+    width: 28px;
+    height: 28px;
+    margin-bottom: 9px;
+    border-radius: 7px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(28,79,130,.17);
+    border: 1px solid rgba(40,106,169,.28);
+    color: #83b8eb;
+    font-size: 14px;
+    line-height: 1;
+  }
+
+  .dashboard-quick-action-title {
+    color: #eef3f8;
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  .dashboard-quick-action-description {
+    margin-top: 3px;
+    color: #687588;
+    font-size: 10px;
+    line-height: 1.35;
+  }
+
+  .dashboard-quick-empty {
+    grid-column: 1 / -1;
+  }
+
+  /* ============================================================
+     ANNOUNCEMENTS
+     ============================================================ */
+
+  .dashboard-announcement {
+    display: flex;
+    align-items: flex-start;
+    gap: 11px;
+    padding: 11px 0;
+  }
+
+  .dashboard-announcement + .dashboard-announcement {
+    border-top: 1px solid rgba(255,255,255,.06);
+  }
+
+  .dashboard-announcement-indicator {
+    width: 7px;
+    height: 7px;
+    margin-top: 5px;
+    border-radius: 50%;
+    background: #347dbd;
+    flex-shrink: 0;
+    box-shadow: 0 0 0 4px rgba(52,125,189,.10);
+  }
+
+  .dashboard-announcement-content {
+    min-width: 0;
+  }
+
+  .dashboard-announcement-title {
+    color: #eef3f8;
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  .dashboard-announcement-text {
+    margin-top: 4px;
+    color: #8f9bad;
+    font-size: 11px;
+    line-height: 1.5;
+  }
+
+  .dashboard-announcement-date {
+    margin-top: 5px;
+    color: #596577;
+    font-size: 10px;
+  }
+
+  /* ============================================================
+     PROFILE
+     ============================================================ */
+
+  .dashboard-profile {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .dashboard-profile-avatar {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: #1c4f82;
+    border: 1px solid #286aa9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+
+  .dashboard-profile-avatar.has-image {
+    background: #0d1117;
+  }
+
+  .dashboard-profile-avatar img {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+  }
+
+  .dashboard-profile-info {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .dashboard-profile-name,
+  .dashboard-profile-rank {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .dashboard-profile-name {
+    color: #eef3f8;
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  .dashboard-profile-rank {
+    margin-top: 3px;
+    color: #8f9bad;
+    font-size: 11px;
+  }
+
+  .dashboard-profile-badge {
+    padding: 4px 7px;
+    border-radius: 5px;
+    background: rgba(28,79,130,.15);
+    border: 1px solid rgba(40,106,169,.38);
+    color: #83b8eb;
+    font-size: 10px;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  .dashboard-profile-badge.inactive {
+    color: #9aa4b2;
+    background: rgba(255,255,255,.04);
+    border-color: rgba(255,255,255,.08);
+  }
+
+  /* ============================================================
+     SYSTEM INFORMATION
+     ============================================================ */
+
+  .dashboard-permission-info {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .dashboard-permission-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 9px 10px;
+    background: #0d1117;
+    border: 1px solid rgba(255,255,255,.06);
+    border-radius: 7px;
+  }
+
+  .dashboard-permission-label {
+    color: #8f9bad;
+    font-size: 11px;
+  }
+
+  .dashboard-permission-value {
+    color: #dce3ec;
+    font-size: 11px;
+    font-weight: 700;
+    text-align: right;
+  }
+
+  .dashboard-permission-value.granted {
+    color: #83b8eb;
+  }
+
+  .dashboard-permission-value.denied,
+  .dashboard-permission-value.muted {
+    color: #687588;
+  }
+
+  /* ============================================================
+     EMPTY / ERROR / LOADING
+     ============================================================ */
+
+  .dashboard-empty {
+    padding: 28px 18px;
+    text-align: center;
+    border: 1px dashed rgba(255,255,255,.08);
+    border-radius: 8px;
+    background: #0d1117;
+  }
+
+  .dashboard-empty-icon {
+    width: 34px;
+    height: 34px;
+    margin: 0 auto 9px;
+    border-radius: 8px;
+    background: rgba(28,79,130,.16);
+    border: 1px solid rgba(40,106,169,.40);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #83b8eb;
+    font-size: 14px;
+  }
+
+  .dashboard-empty-title {
+    color: #eef3f8;
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  .dashboard-empty-text {
+    margin-top: 4px;
+    color: #687588;
+    font-size: 10px;
+    line-height: 1.45;
+  }
+
+  /* ============================================================
+     RESPONSIVE
+     ============================================================ */
+
+  @media (max-width: 1100px) {
+    .dashboard-stats {
+      grid-template-columns: repeat(2,minmax(0,1fr));
+    }
+
+    .dashboard-main-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 700px) {
+    .dashboard {
+      padding: 14px 14px 70px;
+      gap: 12px;
+    }
+
+    .dashboard-welcome-content {
+      align-items: flex-start;
+      flex-direction: column;
+    }
+
+    .dashboard-clock {
+      font-size: 19px;
+    }
+
+    .dashboard-stats,
+    .dashboard-quick-actions {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+<div class="dashboard" id="fibDashboard">
+  <section class="dashboard-welcome">
+    <div class="dashboard-welcome-content">
+      <div class="dashboard-welcome-text">
+        <div class="dashboard-eyebrow">Los Santos Police Department</div>
+        <h1 class="dashboard-title" id="dashboardWelcomeTitle">Willkommen</h1>
+        <div class="dashboard-subtitle">Übersicht über das Los Santos Police Department</div>
+      </div>
+      <div class="dashboard-clock" id="dashboardClock">--:--:--</div>
+    </div>
+  </section>
+
+  <section class="dashboard-stats" id="dashboardStats">
+    <div class="dashboard-stat">
+      <div class="dashboard-stat-top">
+        <div class="dashboard-stat-label">Haftbefehle</div>
+        <div class="dashboard-stat-icon"><i class="fa-solid fa-gavel"></i></div>
+      </div>
+      <div class="dashboard-stat-value" id="dashboardWarrantCount">—</div>
+      <div class="dashboard-stat-subtitle">Aktuell erfasste Haftbefehle</div>
+    </div>
+
+    <div class="dashboard-stat">
+      <div class="dashboard-stat-top">
+        <div class="dashboard-stat-label">Fahndungen</div>
+        <div class="dashboard-stat-icon"><i class="fa-solid fa-magnifying-glass"></i></div>
+      </div>
+      <div class="dashboard-stat-value" id="dashboardSearchCount">—</div>
+      <div class="dashboard-stat-subtitle">Aktuell aktive Fahndungen</div>
+    </div>
+
+    <div class="dashboard-stat">
+      <div class="dashboard-stat-top">
+        <div class="dashboard-stat-label">Akten</div>
+        <div class="dashboard-stat-icon"><i class="fa-solid fa-folder-open"></i></div>
+      </div>
+      <div class="dashboard-stat-value" id="dashboardRecordCount">—</div>
+      <div class="dashboard-stat-subtitle">Erfasste Akten im MDT</div>
+    </div>
+
+    <div class="dashboard-stat">
+      <div class="dashboard-stat-top">
+        <div class="dashboard-stat-label">Benutzer</div>
+        <div class="dashboard-stat-icon"><i class="fa-solid fa-user-group"></i></div>
+      </div>
+      <div class="dashboard-stat-value" id="dashboardUserCount">—</div>
+      <div class="dashboard-stat-subtitle">Aktive MDT-Benutzer</div>
+    </div>
+  </section>
+
+  <section class="dashboard-main-grid">
+    <div class="dashboard-column">
+      <div class="dashboard-card">
+        <div class="dashboard-card-header">
+          <h2 class="dashboard-card-title">Schnellzugriff</h2>
+          <div class="dashboard-card-header-icon"><i class="fa-solid fa-bolt"></i></div>
+        </div>
+        <div class="dashboard-card-body">
+          <div class="dashboard-quick-actions" id="dashboardQuickActions"></div>
+        </div>
+      </div>
+
+      <div class="dashboard-card">
+        <div class="dashboard-card-header">
+          <h2 class="dashboard-card-title">Bekanntmachungen</h2>
+          <div class="dashboard-card-header-icon"><i class="fa-solid fa-bullhorn"></i></div>
+        </div>
+        <div class="dashboard-card-body" id="dashboardAnnouncements">
+          <div class="dashboard-empty">
+            <div class="dashboard-empty-icon"><i class="fa-solid fa-bell"></i></div>
+            <div class="dashboard-empty-title">Keine Bekanntmachungen</div>
+            <div class="dashboard-empty-text">Aktuell liegen keine neuen Bekanntmachungen vor.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="dashboard-column">
+      <div class="dashboard-card">
+        <div class="dashboard-card-header">
+          <h2 class="dashboard-card-title">Mein Profil</h2>
+          <div class="dashboard-card-header-icon"><i class="fa-solid fa-user"></i></div>
+        </div>
+        <div class="dashboard-card-body">
+          <div class="dashboard-profile">
+            <div class="dashboard-profile-avatar" id="dashboardProfileAvatar"></div>
+            <div class="dashboard-profile-info">
+              <div class="dashboard-profile-name" id="dashboardUserName">—</div>
+              <div class="dashboard-profile-rank" id="dashboardUserRank">Kein Rang</div>
+            </div>
+            <div class="dashboard-profile-badge" id="dashboardUserStatus">Aktiv</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dashboard-card">
+        <div class="dashboard-card-header">
+          <h2 class="dashboard-card-title">Systeminformationen</h2>
+          <div class="dashboard-card-header-icon"><i class="fa-solid fa-shield-halved"></i></div>
+        </div>
+        <div class="dashboard-card-body">
+          <div class="dashboard-permission-info" id="dashboardPermissionInformation">
+            <div class="dashboard-permission-row">
+              <div class="dashboard-permission-label">Zugriffsstatus</div>
+              <div class="dashboard-permission-value granted" id="dashboardAccessStatus">Autorisiert</div>
+            </div>
+            <div class="dashboard-permission-row">
+              <div class="dashboard-permission-label">Rang</div>
+              <div class="dashboard-permission-value" id="dashboardSystemRank">—</div>
+            </div>
+            <div class="dashboard-permission-row">
+              <div class="dashboard-permission-label">Masterzugriff</div>
+              <div class="dashboard-permission-value" id="dashboardMasterStatus">Nein</div>
+            </div>
+            <div class="dashboard-permission-row">
+              <div class="dashboard-permission-label">Berechtigungen</div>
+              <div class="dashboard-permission-value" id="dashboardPermissionCount">0</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  const previousState = window.__FIB_MDT_DASHBOARD__;
+
+  if (previousState && typeof previousState.cleanup === "function") {
+    try {
+      previousState.cleanup();
+    } catch (error) {
+      console.warn("[LSPD MDT] Dashboard-Cleanup fehlgeschlagen:", error);
+    }
+  }
+
+  const DASHBOARD_PERMISSION = "dashboard.view";
+
+  const state = previousState || {
+    clockInterval: null,
+    rankRequestId: 0,
+    statisticsRequestId: 0,
+    initialized: false,
+    accessGranted: false,
+    rankName: "",
+    rankId: ""
+  };
+
+  window.__FIB_MDT_DASHBOARD__ = state;
+
+  const instanceId = String(Date.now()) + "_" + Math.random().toString(36).slice(2);
+  state.instanceId = instanceId;
+  state.initialized = false;
+
+  function isCurrentInstance() {
+    return state.instanceId === instanceId;
+  }
+
+  function getDashboardCurrentUser() {
+    try {
+      if (typeof currentUser !== "undefined" && currentUser) {
+        return currentUser;
+      }
+    } catch (error) {}
+
+    try {
+      if (window.currentUser) {
+        return window.currentUser;
+      }
+    } catch (error) {}
+
+    try {
+      if (window.user) {
+        return window.user;
+      }
+    } catch (error) {}
+
+    return null;
+  }
+
+  function getDashboardSessionToken() {
+    try {
+      if (typeof sessionToken !== "undefined" && sessionToken) {
+        return String(sessionToken);
+      }
+    } catch (error) {}
+
+    try {
+      if (window.sessionToken) {
+        return String(window.sessionToken);
+      }
+    } catch (error) {}
+
+    try {
+      return String(
+        sessionStorage.getItem("fib_mdt_session") ||
+        sessionStorage.getItem("lspd_mdt_session") ||
+        ""
+      );
+    } catch (error) {
+      return "";
+    }
+  }
+
+  function escapeDashboardHtml(value) {
+    return String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  function getDashboardNavigationItem(pageId) {
+    const navigation =
+      typeof NAVIGATION !== "undefined" && Array.isArray(NAVIGATION)
+        ? NAVIGATION
+        : Array.isArray(window.NAVIGATION)
+          ? window.NAVIGATION
+          : [];
+
+    for (const section of navigation) {
+      if (!section || !Array.isArray(section.items)) continue;
+
+      for (const item of section.items) {
+        if (String(item?.id || "").trim() === String(pageId || "").trim()) {
+          return item;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  function dashboardIsMaster() {
+    try {
+      if (typeof isMaster !== "undefined" && isMaster === true) {
+        return true;
+      }
+    } catch (error) {}
+
+    try {
+      return window.isMaster === true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  function dashboardHasPermission(permission) {
+    if (!permission) return true;
+    if (dashboardIsMaster()) return true;
+
+    try {
+      if (typeof hasPermission === "function" && hasPermission(permission)) {
+        return true;
+      }
+    } catch (error) {}
+
+    try {
+      if (Array.isArray(myPermissions) && myPermissions.includes(permission)) {
+        return true;
+      }
+    } catch (error) {}
+
+    try {
+      if (Array.isArray(window.myPermissions) && window.myPermissions.includes(permission)) {
+        return true;
+      }
+    } catch (error) {}
+
+    return false;
+  }
+
+  function dashboardCanAccessPage(pageId) {
+    const item = getDashboardNavigationItem(pageId);
+
+    if (!item) {
+      return false;
+    }
+
+    if (item.masterOnly && !dashboardIsMaster()) {
+      return false;
+    }
+
+    if (Array.isArray(item.permissions) && item.permissions.length) {
+      return item.permissions.some(function (permission) {
+        return dashboardHasPermission(permission);
+      });
+    }
+
+    return dashboardHasPermission(item.permission);
+  }
+
+  function hasDashboardAccess() {
+    if (dashboardIsMaster()) {
+      return true;
+    }
+
+    return dashboardHasPermission(DASHBOARD_PERMISSION);
+  }
+
+  function renderDashboardAccessDenied(root) {
+    if (!root) {
+      return;
+    }
+
+    root.innerHTML = `
+      <div class="dashboard-empty" style="margin:18px 22px;">
+        <div class="dashboard-empty-icon">
+          <i class="fa-solid fa-lock"></i>
+        </div>
+        <div class="dashboard-empty-title">
+          Kein Zugriff
+        </div>
+        <div class="dashboard-empty-text">
+          Für das Dashboard ist die Berechtigung „dashboard.view“ erforderlich.
+        </div>
+      </div>
+    `;
+  }
+
+  function getDashboardInitials(name) {
+    const normalized = String(name || "").trim();
+
+    if (!normalized) return "?";
+
+    const parts = normalized.split(/\s+/).filter(Boolean);
+
+    if (parts.length === 1) {
+      return parts[0].substring(0, 2).toUpperCase();
+    }
+
+    return (
+      parts[0].charAt(0) +
+      parts[parts.length - 1].charAt(0)
+    ).toUpperCase();
+  }
+
+  function getDashboardRankId(user) {
+    if (!user) return "";
+
+    const candidates = [
+      user.rankId,
+      user.RankID,
+      user.RankId,
+      user.rank
+    ];
+
+    for (const candidate of candidates) {
+      const value = String(candidate ?? "").trim();
+      if (value) return value;
+    }
+
+    return "";
+  }
+
+  function updateDashboardRank(rankName) {
+    const value = String(rankName || "Kein Rang").trim() || "Kein Rang";
+
+    const rankElement = document.getElementById("dashboardUserRank");
+    const systemRankElement = document.getElementById("dashboardSystemRank");
+
+    if (rankElement) rankElement.textContent = value;
+    if (systemRankElement) systemRankElement.textContent = value;
+  }
+
+  function loadDashboardRank() {
+    const user = getDashboardCurrentUser();
+    const token = getDashboardSessionToken();
+
+    if (!user) {
+      updateDashboardRank("Kein Rang");
+      return;
+    }
+
+    const directName = String(
+      user.rankName || user.RankName || user.rank_name || ""
+    ).trim();
+
+    if (directName) {
+      state.rankName = directName;
+      state.rankId = getDashboardRankId(user);
+      updateDashboardRank(directName);
+      return;
+    }
+
+    const rankId = getDashboardRankId(user);
+
+    if (!rankId) {
+      updateDashboardRank("Kein Rang");
+      return;
+    }
+
+    if (state.rankId === rankId && state.rankName) {
+      updateDashboardRank(state.rankName);
+      return;
+    }
+
+    if (!token || typeof CloudApi === "undefined" || !CloudApi.run) {
+      updateDashboardRank("Kein Rang");
+      return;
+    }
+
+    const requestId = ++state.rankRequestId;
+    state.rankId = rankId;
+    updateDashboardRank("Rang wird geladen...");
+
+    CloudApi.run
+      .withSuccessHandler(function (result) {
+        if (!isCurrentInstance() || requestId !== state.rankRequestId) return;
+
+        const name = String(result?.name || result?.rank?.name || "").trim();
+
+        if (name) {
+          state.rankName = name;
+          updateDashboardRank(name);
+        } else {
+          updateDashboardRank("Kein Rang");
+        }
+      })
+      .withFailureHandler(function () {
+        if (!isCurrentInstance() || requestId !== state.rankRequestId) return;
+        updateDashboardRank("Kein Rang");
+      })
+      .getRankById(token, rankId);
+  }
+
+  function updateDashboardUser() {
+    const user = getDashboardCurrentUser();
+
+    const nameElement = document.getElementById("dashboardUserName");
+    const titleElement = document.getElementById("dashboardWelcomeTitle");
+    const statusElement = document.getElementById("dashboardUserStatus");
+    const avatarElement = document.getElementById("dashboardProfileAvatar");
+
+    if (!user) {
+      if (nameElement) nameElement.textContent = "Unbekannter Benutzer";
+      if (titleElement) titleElement.textContent = "Willkommen";
+      if (statusElement) {
+        statusElement.textContent = "Nicht verfügbar";
+        statusElement.classList.add("inactive");
+      }
+      updateDashboardRank("Kein Rang");
+      return;
+    }
+
+    const userName = String(
+      user.name || user.Name || user.username || user.Username || "Unbekannter Benutzer"
+    ).trim();
+
+    if (nameElement) nameElement.textContent = userName;
+    if (titleElement) titleElement.textContent = "Willkommen, " + userName;
+
+    const isActive = user.active !== false && user.Active !== false;
+
+    if (statusElement) {
+      statusElement.textContent = isActive ? "Aktiv" : "Inaktiv";
+      statusElement.classList.toggle("inactive", !isActive);
+    }
+
+    if (!avatarElement) return;
+
+    avatarElement.innerHTML = "";
+    avatarElement.classList.remove("has-image");
+
+    const profileImage = String(
+      user.profileImage || user.ProfileImage || ""
+    ).trim();
+
+    if (!profileImage) {
+      avatarElement.textContent = getDashboardInitials(userName);
+      return;
+    }
+
+    const image = document.createElement("img");
+    image.src = profileImage;
+    image.alt = "Profilbild";
+    image.draggable = false;
+
+    image.addEventListener("error", function () {
+      avatarElement.innerHTML = "";
+      avatarElement.classList.remove("has-image");
+      avatarElement.textContent = getDashboardInitials(userName);
+    }, { once: true });
+
+    avatarElement.appendChild(image);
+    avatarElement.classList.add("has-image");
+  }
+
+  function updateDashboardPermissionInformation() {
+    const accessElement = document.getElementById("dashboardAccessStatus");
+    const masterElement = document.getElementById("dashboardMasterStatus");
+    const permissionCountElement = document.getElementById("dashboardPermissionCount");
+
+    const user = getDashboardCurrentUser();
+
+    if (!user) {
+      if (accessElement) {
+        accessElement.textContent = "Nicht verfügbar";
+        accessElement.classList.remove("granted");
+        accessElement.classList.add("denied");
+      }
+      if (masterElement) {
+        masterElement.textContent = "Nein";
+        masterElement.classList.remove("granted");
+        masterElement.classList.add("denied");
+      }
+      if (permissionCountElement) permissionCountElement.textContent = "0";
+      updateDashboardRank("Kein Rang");
+      return;
+    }
+
+    const master = dashboardIsMaster() || user.master === true || user.Master === true;
+
+    if (accessElement) {
+      accessElement.textContent = "Autorisiert";
+      accessElement.classList.add("granted");
+      accessElement.classList.remove("denied");
+    }
+
+    if (masterElement) {
+      masterElement.textContent = master ? "Ja" : "Nein";
+      masterElement.classList.toggle("granted", master);
+      masterElement.classList.toggle("denied", !master);
+    }
+
+    let permissions = [];
+
+    try {
+      if (Array.isArray(myPermissions)) permissions = myPermissions;
+    } catch (error) {}
+
+    if (!permissions.length && Array.isArray(window.myPermissions)) {
+      permissions = window.myPermissions;
+    }
+
+    if (permissionCountElement) {
+      permissionCountElement.textContent = master ? "Master" : String(permissions.length);
+    }
+  }
+
+  function updateDashboardClock() {
+    const clockElement = document.getElementById("dashboardClock");
+    if (!clockElement) return;
+
+    clockElement.textContent = new Date().toLocaleTimeString("de-DE", {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit"
+    });
+  }
+
+  function startDashboardClock() {
+    if (state.clockInterval) {
+      clearInterval(state.clockInterval);
+      state.clockInterval = null;
+    }
+
+    updateDashboardClock();
+    state.clockInterval = setInterval(updateDashboardClock, 1000);
+  }
+
+  function setDashboardStat(id, value) {
+    const element = document.getElementById(id);
+    if (!element) return;
+
+    if (value === null || value === undefined || value === "") {
+      element.textContent = "—";
+      return;
+    }
+
+    const numeric = Number(value);
+    element.textContent = Number.isFinite(numeric) ? String(numeric) : String(value);
+  }
+
+  function renderDashboardStatistics(data) {
+    if (!data || typeof data !== "object") return;
+
+    setDashboardStat(
+      "dashboardWarrantCount",
+      data.warrants ?? data.activeWarrants
+    );
+
+    setDashboardStat(
+      "dashboardSearchCount",
+      data.searches ?? data.wanted ?? data.activeWanted
+    );
+
+    /*
+     * `records` ist der neue bevorzugte Schlüssel.
+     * Ältere Statistik-Endpunkte dürfen weiterhin funktionieren,
+     * liefern aber bei fehlendem records-Wert bewusst kein falsches
+     * Ergebnis für den Akten-Zähler.
+     */
+    setDashboardStat(
+      "dashboardRecordCount",
+      data.records ?? data.cases
+    );
+
+    setDashboardStat(
+      "dashboardUserCount",
+      data.users ?? data.activeUsers
+    );
+  }
+
+  function loadDashboardStatistics() {
+    const token = getDashboardSessionToken();
+
+    if (!token || typeof CloudApi === "undefined" || !CloudApi.run) {
+      return;
+    }
+
+    const requestId = ++state.statisticsRequestId;
+    const runner = CloudApi.run;
+
+    const success = function (data) {
+      if (!isCurrentInstance() || requestId !== state.statisticsRequestId) return;
+      renderDashboardStatistics(data);
+    };
+
+    const failure = function (error) {
+      if (!isCurrentInstance() || requestId !== state.statisticsRequestId) return;
+
+      console.warn(
+        "[LSPD MDT] Dashboard-Statistiken konnten nicht geladen werden:",
+        error
+      );
+    };
+
+    /*
+     * Bevorzugt einen dedizierten Dashboard-Endpunkt, falls vorhanden.
+     * Danach kompatibler Fallback auf den bisherigen Statistik-Endpunkt.
+     */
+    try {
+      if (typeof runner.getDashboardStatistics === "function") {
+        runner
+          .withSuccessHandler(success)
+          .withFailureHandler(failure)
+          .getDashboardStatistics(token);
+        return;
+      }
+    } catch (error) {
+      console.warn("[LSPD MDT] getDashboardStatistics nicht verfügbar:", error);
+    }
+
+    try {
+      runner
+        .withSuccessHandler(success)
+        .withFailureHandler(failure)
+        .getWarrantStatistics(token);
+    } catch (error) {
+      console.warn("[LSPD MDT] Kein Statistik-Endpunkt verfügbar:", error);
+    }
+  }
+
+  function getQuickActions() {
+    return [
+      {
+        page: "patrols",
+        title: "Leitstelle",
+        description: "Aktive Streifen und Einsatzübersicht"
+      },
+      {
+        page: "officers",
+        title: "Beamte",
+        description: "LSPD-Beamte und Dienstinformationen"
+      },
+      {
+        page: "records",
+        title: "Akten & Berichte",
+        description: "Akten, Berichte und Ermittlungsdaten"
+      },
+      {
+        page: "warrants",
+        title: "Haftbefehle",
+        description: "Haftbefehle und Verfahrensdaten"
+      },
+      {
+        page: "wanted",
+        title: "Fahndung",
+        description: "Aktuelle Fahndungen verwalten"
+      },
+      {
+        page: "lawyers",
+        title: "Anwaltskammer",
+        description: "Verzeichnis der zugelassenen Anwälte"
+      },
+      {
+        page: "announcements",
+        title: "Bekanntmachungen",
+        description: "Aktuelle Verfügungen und Mitteilungen"
+      }
+    ];
+  }
+
+  function buildDashboardQuickActions() {
+    const container = document.getElementById("dashboardQuickActions");
+    if (!container) return;
+
+    container.innerHTML = "";
+
+    const actions = getQuickActions().filter(function (action) {
+      return dashboardCanAccessPage(action.page);
+    });
+
+    if (!actions.length) {
+      container.innerHTML = `
+        <div class="dashboard-empty dashboard-quick-empty">
+          <div class="dashboard-empty-icon">
+            <i class="fa-solid fa-lock"></i>
+          </div>
+          <div class="dashboard-empty-title">Keine Schnellzugriffe verfügbar</div>
+          <div class="dashboard-empty-text">Für deinen aktuellen Account wurden keine zugänglichen Bereiche gefunden.</div>
+        </div>
+      `;
+      return;
+    }
+
+    actions.forEach(function (action) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "dashboard-quick-action";
+
+      const item = getDashboardNavigationItem(action.page);
+      const icon = item?.icon || "•";
+
+      button.innerHTML = `
+        <div class="dashboard-quick-action-icon">
+          ${escapeDashboardHtml(icon)}
+        </div>
+        <div class="dashboard-quick-action-title">
+          ${escapeDashboardHtml(action.title)}
+        </div>
+        <div class="dashboard-quick-action-description">
+          ${escapeDashboardHtml(action.description)}
+        </div>
+      `;
+
+      button.addEventListener("click", function () {
+        if (!isCurrentInstance()) return;
+
+        if (typeof navigateTo === "function") {
+          navigateTo(action.page);
+          return;
+        }
+
+        if (typeof window.navigateTo === "function") {
+          window.navigateTo(action.page);
+          return;
+        }
+
+        console.warn("[LSPD MDT] Keine globale Navigationsfunktion gefunden:", action.page);
+      });
+
+      container.appendChild(button);
+    });
+  }
+
+  function initializeDashboard() {
+    const root = document.getElementById("fibDashboard");
+
+    if (!root || !isCurrentInstance()) {
+      return;
+    }
+
+    /*
+     * Zugriffsprüfung erfolgt VOR allen weiteren
+     * Dashboard-Initialisierungen und Server-Requests.
+     */
+    state.accessGranted = hasDashboardAccess();
+
+    if (!state.accessGranted) {
+      if (state.clockInterval) {
+        clearInterval(state.clockInterval);
+        state.clockInterval = null;
+      }
+
+      state.rankRequestId += 1;
+      state.statisticsRequestId += 1;
+      state.initialized = true;
+
+      renderDashboardAccessDenied(root);
+      return;
+    }
+
+    updateDashboardUser();
+    updateDashboardPermissionInformation();
+    buildDashboardQuickActions();
+    startDashboardClock();
+    loadDashboardRank();
+    loadDashboardStatistics();
+
+    state.initialized = true;
+  }
+
+  state.cleanup = function () {
+    state.rankRequestId += 1;
+    state.statisticsRequestId += 1;
+
+    if (state.clockInterval) {
+      clearInterval(state.clockInterval);
+      state.clockInterval = null;
+    }
+
+    state.initialized = false;
+  };
+
+  window.initializeDashboard = initializeDashboard;
+
+  initializeDashboard();
+})();
+</script>

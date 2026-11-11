@@ -1,0 +1,95 @@
+<style>
+.vehicle-catalog-page{width:100%;min-height:100%;box-sizing:border-box;padding:22px 24px 90px;color:#eef3f8;overflow:auto}
+.vc-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:20px}
+.vc-eyebrow{font-size:10px;letter-spacing:.12em;font-weight:800;color:#83b8eb;text-transform:uppercase;margin-bottom:6px}
+.vc-title{font-size:25px;font-weight:750;margin:0 0 6px}.vc-subtitle{color:#93a4b7;font-size:13px}
+.vc-toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.vc-search{flex:1 1 260px;min-width:180px;background:#111b27;border:1px solid #26384b;border-radius:10px;color:#edf4fb;padding:12px 14px;font:inherit;outline:none}
+.vc-search:focus,.vc-field:focus{border-color:#579bd7;box-shadow:0 0 0 3px #579bd722}
+.vc-button{border:1px solid #35516d;background:#1b3045;color:#e8f3ff;border-radius:9px;padding:10px 14px;font-weight:700;cursor:pointer}
+.vc-button:hover{background:#25435f}.vc-button.primary{background:#23639a;border-color:#347db8}.vc-button.danger{background:#512b32;border-color:#78434b}
+.vc-filters{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin:0 0 20px}
+.vc-filter{border:1px solid #2b3c50;background:#121d2a;color:#aebed0;border-radius:999px;padding:7px 12px;font-size:11px;font-weight:750;cursor:pointer}
+.vc-filter.active{background:#244c70;border-color:#4e8fc2;color:#e8f5ff}
+.vc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(245px,1fr));gap:16px}
+.vc-card{overflow:hidden;border:1px solid #26384b;border-radius:13px;background:linear-gradient(155deg,#172331,#101923);box-shadow:0 8px 22px #0002;min-width:0}
+.vc-image{height:158px;background:linear-gradient(135deg,#1b2b3b,#101923);display:flex;align-items:center;justify-content:center;overflow:hidden;border-bottom:1px solid #293a4c}
+.vc-image img{width:100%;height:100%;object-fit:cover}.vc-no-image{color:#71869c;font-size:12px;letter-spacing:.08em;font-weight:800}
+.vc-card-body{padding:14px}.vc-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.vc-name{font-size:16px;font-weight:750;color:#f0f5fa;line-height:1.3}.vc-tag{flex:none;border:1px solid #4779a3;background:#1d3b57;color:#b9dcfa;border-radius:6px;padding:4px 7px;font-size:10px;font-weight:800}
+.vc-description{font-size:12px;color:#9aabbd;line-height:1.5;margin-top:9px;white-space:pre-wrap;overflow-wrap:anywhere}
+.vc-card-actions{display:flex;gap:7px;margin-top:12px}.vc-card-actions button{font-size:11px;padding:7px 9px}
+.vc-empty,.vc-loading{padding:35px 15px;text-align:center;color:#8fa2b7;border:1px dashed #304256;border-radius:12px;grid-column:1/-1}
+.vc-count{font-size:11px;color:#8397ac;margin:0 0 12px}
+.vc-admin{display:none;margin:0 0 20px;padding:16px;border:1px solid #35516b;border-radius:12px;background:#121e2b}
+.vc-admin.open{display:block}.vc-admin h3{font-size:14px;margin:0 0 13px}.vc-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.vc-field{width:100%;box-sizing:border-box;background:#0d1722;border:1px solid #2c4055;border-radius:8px;color:#eaf2fa;padding:10px 11px;font:inherit;font-size:12px;outline:none}
+.vc-field.full{grid-column:1/-1}.vc-form-actions{display:flex;gap:8px;margin-top:12px;justify-content:flex-end}
+.vc-status{font-size:12px;color:#91b7d8;min-height:18px;margin-top:8px}
+@media(max-width:640px){.vehicle-catalog-page{padding:16px 13px 70px}.vc-head{display:block}.vc-form-grid{grid-template-columns:1fr}.vc-field.full{grid-column:auto}}
+</style>
+<div class="vehicle-catalog-page" id="vehicleCatalogPage">
+ <div class="vc-head"><div><div class="vc-eyebrow">Los Santos Police Department · Fuhrpark</div><h1 class="vc-title">Fahrzeugkatalog</h1><div class="vc-subtitle">Übersicht der im LSPD geführten Fahrzeuge und ihrer Fahrzeugklassen.</div></div><button class="vc-button primary" id="vcAddButton" hidden>＋ Fahrzeug hinzufügen</button></div>
+ <div class="vc-admin" id="vcAdmin">
+  <h3 id="vcFormTitle">Fahrzeug anlegen</h3>
+  <div class="vc-form-grid">
+   <input class="vc-field" id="vcName" placeholder="Fahrzeugname / Modell">
+   <select class="vc-field" id="vcClass"><option value="STR">STR – Straßenwagen</option><option value="STR (UM)">STR (UM) – Straßenwagen (UM)</option><option value="OFF">OFF – Offroad</option><option value="OFF (UM)">OFF (UM) – Offroad (UM)</option><option value="HSP">HSP – Hochgeschwindigkeit</option><option value="HSP (UM)">HSP (UM) – Hochgeschwindigkeit (UM)</option><option value="OVW">OVW – Overwatch</option></select>
+   <input class="vc-field full" id="vcImage" placeholder="Imgur-Bildlink (idealerweise direkter i.imgur.com-Link)">
+   <textarea class="vc-field full" id="vcDescription" rows="2" placeholder="Beschreibung / Hinweise (optional)"></textarea>
+  </div>
+  <div class="vc-form-actions"><button class="vc-button" id="vcCancel">Abbrechen</button><button class="vc-button primary" id="vcSave">Speichern</button></div><div class="vc-status" id="vcStatus"></div>
+ </div>
+ <div class="vc-toolbar"><input class="vc-search" id="vcSearch" type="search" placeholder="Fahrzeug oder Beschreibung suchen …"><button class="vc-button" id="vcRefresh">Aktualisieren</button></div>
+ <div class="vc-filters" id="vcFilters"></div>
+ <div class="vc-count" id="vcCount"></div>
+ <div class="vc-grid" id="vcGrid"><div class="vc-loading">Fahrzeugkatalog wird geladen …</div></div>
+</div>
+<div id="vcDeleteDialog" style="display:none;position:fixed;inset:0;z-index:99999;background:#050a10c9;align-items:center;justify-content:center;padding:20px">
+ <div style="width:min(420px,100%);background:#172331;border:1px solid #3b5269;border-radius:13px;padding:20px;box-shadow:0 20px 60px #0009">
+  <div style="font-size:16px;font-weight:750;margin-bottom:8px">Fahrzeug entfernen?</div>
+  <div id="vcDeleteText" style="font-size:13px;color:#aebed0;line-height:1.5"></div>
+  <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:18px"><button class="vc-button" id="vcDeleteCancel">Abbrechen</button><button class="vc-button danger" id="vcDeleteConfirm">Entfernen</button></div>
+ </div>
+</div>
+<script>
+(function(){
+ "use strict";
+ const CLASSES=[["STR","Straßenwagen"],["STR (UM)","Straßenwagen (UM)"],["OFF","Offroad"],["OFF (UM)","Offroad (UM)"],["HSP","Hochgeschwindigkeit"],["HSP (UM)","Hochgeschwindigkeit (UM)"],["OVW","Overwatch"]];
+ const state={items:[],canManage:false,filter:"",search:"",editId:null,deleteId:null};
+ const $=id=>document.getElementById(id);
+ const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+ async function api(method,...args){if(typeof window.runServer!=="function")throw new Error("API ist nicht verfügbar.");return window.runServer(method,...args);}
+ function notify(message,isError){$("vcStatus").textContent=message||"";$("vcStatus").style.color=isError?"#e59a9a":"#91b7d8";if(isError&&window.showError)window.showError(message);}
+ function renderFilters(){
+  $("vcFilters").innerHTML='<button class="vc-filter '+(!state.filter?'active':'')+'" data-class="">Alle Klassen</button>'+CLASSES.map(([v,l])=>'<button class="vc-filter '+(state.filter===v?'active':'')+'" data-class="'+esc(v)+'">'+esc(l)+'</button>').join("");
+ }
+ function visibleItems(){return state.items.filter(x=>(!state.filter||x.vehicle_class===state.filter)&&(!state.search||[x.name,x.description,x.vehicle_class].join(" ").toLowerCase().includes(state.search.toLowerCase())));}
+ function render(){
+  renderFilters();const items=visibleItems();$("vcCount").textContent=items.length+" von "+state.items.length+" Fahrzeugen";
+  $("vcGrid").innerHTML=items.length?items.map(x=>'<article class="vc-card"><div class="vc-image">'+(x.image_url?'<img src="'+esc(x.image_url)+'" alt="'+esc(x.name)+'" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.remove();this.parentElement.innerHTML=\'<span class=&quot;vc-no-image&quot;>BILD NICHT VERFÜGBAR</span>\'">':'<span class="vc-no-image">KEIN BILDMATERIAL</span>')+'</div><div class="vc-card-body"><div class="vc-card-top"><div class="vc-name">'+esc(x.name)+'</div><span class="vc-tag">'+esc(x.vehicle_class)+'</span></div>'+(x.description?'<div class="vc-description">'+esc(x.description)+'</div>':'')+(state.canManage?'<div class="vc-card-actions"><button class="vc-button" data-edit="'+esc(x.id)+'">Bearbeiten</button><button class="vc-button danger" data-delete="'+esc(x.id)+'">Entfernen</button></div>':'')+'</div></article>').join(""):'<div class="vc-empty">Keine Fahrzeuge gefunden. Passe die Suche oder den Klassenfilter an.</div>';
+ }
+ async function load(){
+  $("vcGrid").innerHTML='<div class="vc-loading">Fahrzeugkatalog wird geladen …</div>';
+  try{const r=await api("getVehicleCatalog");state.items=Array.isArray(r?.items)?r.items:[];state.canManage=!!r?.canManage;$("vcAddButton").hidden=!state.canManage;render();}
+  catch(e){$("vcGrid").innerHTML='<div class="vc-empty">'+esc(e.message||"Fahrzeugkatalog konnte nicht geladen werden.")+'</div>';}
+ }
+ function resetForm(){state.editId=null;$("vcFormTitle").textContent="Fahrzeug anlegen";$("vcName").value="";$("vcClass").value="STR";$("vcImage").value="";$("vcDescription").value="";notify("");}
+ function openForm(item){state.editId=item?.id||null;$("vcFormTitle").textContent=item?"Fahrzeug bearbeiten":"Fahrzeug anlegen";$("vcName").value=item?.name||"";$("vcClass").value=item?.vehicle_class||"STR";$("vcImage").value=item?.image_url||"";$("vcDescription").value=item?.description||"";$("vcAdmin").classList.add("open");$("vcName").focus();}
+ async function save(){const name=$("vcName").value.trim(),vehicleClass=$("vcClass").value,imageUrl=$("vcImage").value.trim(),description=$("vcDescription").value.trim();if(!name){notify("Bitte einen Fahrzeugnamen angeben.",true);return;}if(imageUrl&&!/^https:\/\//i.test(imageUrl)){notify("Bitte einen HTTPS-Bildlink verwenden.",true);return;}const btn=$("vcSave");btn.disabled=true;try{await api("saveVehicleCatalogItem",{id:state.editId,name,vehicleClass,imageUrl,description,active:true});$("vcAdmin").classList.remove("open");resetForm();await load();}catch(e){notify(e.message||"Speichern fehlgeschlagen.",true);}finally{btn.disabled=false;}}
+ function askRemove(id){const item=state.items.find(x=>x.id===id);if(!item)return;state.deleteId=id;$("vcDeleteText").textContent="Soll „"+item.name+"“ wirklich aus dem Fahrzeugkatalog entfernt werden?";$("vcDeleteDialog").style.display="flex";}
+ async function remove(){const id=state.deleteId;if(!id)return;$("vcDeleteConfirm").disabled=true;try{await api("deleteVehicleCatalogItem",id);$("vcDeleteDialog").style.display="none";state.deleteId=null;await load();}catch(e){if(window.showError)window.showError(e.message||"Entfernen fehlgeschlagen.");}finally{$("vcDeleteConfirm").disabled=false;}}
+ $("vcAddButton").addEventListener("click",()=>{openForm(null);});
+ $("vcCancel").addEventListener("click",()=>{$("vcAdmin").classList.remove("open");resetForm();});
+ $("vcSave").addEventListener("click",save);
+ $("vcRefresh").addEventListener("click",load);
+ $("vcSearch").addEventListener("input",e=>{state.search=e.target.value;render();});
+ $("vcFilters").addEventListener("click",e=>{const b=e.target.closest("[data-class]");if(!b)return;state.filter=b.dataset.class;render();});
+ $("vcGrid").addEventListener("click",e=>{const edit=e.target.closest("[data-edit]"),del=e.target.closest("[data-delete]");if(edit){const item=state.items.find(x=>x.id===edit.dataset.edit);if(item)openForm(item);}if(del)askRemove(del.dataset.delete);});
+ $("vcDeleteCancel").addEventListener("click",()=>{$("vcDeleteDialog").style.display="none";state.deleteId=null;});
+ $("vcDeleteConfirm").addEventListener("click",remove);
+ $("vcDeleteDialog").addEventListener("click",e=>{if(e.target.id==="vcDeleteDialog"){$("vcDeleteDialog").style.display="none";state.deleteId=null;}});
+ window.addEventListener("fib-mdt:data-changed",e=>{if(["saveVehicleCatalogItem","deleteVehicleCatalogItem"].includes(e.detail?.method))load();});
+ load();
+})();
+</script>
