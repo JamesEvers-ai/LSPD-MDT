@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<link rel="icon" type="image/svg+xml" href="/favicon.svg">
-<link rel="alternate icon" type="image/png" href="/assets/lspd-icon-32.png">
-<link rel="apple-touch-icon" href="/assets/lspd-icon-180.png">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg?v=363">
+<link rel="alternate icon" type="image/png" href="/assets/lspd-icon-32.png?v=363">
+<link rel="apple-touch-icon" href="/assets/lspd-icon-180.png?v=363">
 <title>LSPD – Antrag auf Klassifizierung</title>
 <style>
 :root{color-scheme:dark;--bg:#090e15;--panel:#111a26;--line:#26384d;--blue:#3987c9;--text:#e7eef7;--muted:#91a1b5}
@@ -43,11 +43,39 @@ button:disabled{opacity:.55;cursor:wait}
 .notice.error{background:#301b20;border-color:#793b45;color:#ffc0c5}
 .foot{margin-top:14px;color:#687c91;font-size:10px;text-align:center}
 @media(max-width:600px){.grid,.person-fields{grid-template-columns:1fr}.wide,.person-fields .full{grid-column:auto}.actions{align-items:stretch;flex-direction:column}.actions button{width:100%}}
+
+/* LSPD 3.63 — original department seal identity */
+:root{color-scheme:light;--bg:#e9dfc9;--panel:#fbf7ed;--line:#c8ae7d;--blue:#24475d;--text:#172f40;--muted:#65717a}
+body{background:
+ radial-gradient(ellipse at 50% -18%,rgba(194,151,79,.26),transparent 52%),
+ repeating-linear-gradient(0deg,rgba(93,68,34,.018) 0,rgba(93,68,34,.018) 1px,transparent 1px,transparent 5px),
+ #e9dfc9;color:#172f40;padding:30px 16px}
+.shell{max-width:940px;margin:3vh auto}
+.brand{gap:15px;color:#19364c;letter-spacing:.13em;font-size:11px}
+.brand img{width:68px;height:68px;object-fit:contain;border-radius:50%;background:#f8f1df;border:2px solid #b88a42;padding:2px;box-shadow:0 5px 15px rgba(47,36,19,.16)}
+.card{margin-top:18px;background:linear-gradient(145deg,#fffdf7,#f5eddb);border:1px solid #c6a66c;border-top:5px solid #17384f;border-radius:8px;padding:clamp(22px,4vw,38px);box-shadow:0 18px 48px rgba(54,43,26,.16)}
+h1{color:#17384f;letter-spacing:-.025em}
+.intro{color:#64717a}
+label{color:#334c5d}
+input,select,textarea{border:1px solid #c9b991;background:#fffdf8;color:#20394b;border-radius:5px}
+input:focus,select:focus,textarea:focus{border-color:#a77a35;box-shadow:0 0 0 3px rgba(183,138,61,.16)}
+.hint,.counter{color:#77796f}
+.section-head{border-bottom:1px solid #d9c8a5;padding-bottom:9px}
+.section-title{color:#17384f;letter-spacing:.09em}
+.person-card{border:1px solid #d4c29d;border-left:4px solid #b58a47;border-radius:6px;background:#fffaf0;box-shadow:0 3px 10px rgba(55,43,23,.045)}
+.person-title{color:#23475e;letter-spacing:.1em}
+button{border:1px solid #a77d3e;background:linear-gradient(180deg,#244b65,#17364d);color:#fff;border-radius:5px}
+button.secondary{background:#f5ecd9;border-color:#c8b487;color:#29465a}
+button.remove{background:#f7e9e5;border-color:#c58e7f;color:#8b352b}
+.notice{background:#edf4e9;border:1px solid #8eae83;color:#315b35;border-radius:5px}
+.notice.error{background:#f8e9e5;border-color:#cb9487;color:#87372d}
+.foot{color:#73766e}
+@media(max-width:600px){.brand img{width:56px;height:56px}}
 </style>
 </head>
 <body>
 <main class="shell">
- <div class="brand"><img src="/assets/lspd-logo.svg" alt="LSPD Logo"><span>Los Santos Police Department · San Andreas</span></div>
+ <div class="brand"><img src="/assets/lspd-logo.png" alt="LSPD Logo"><span>Los Santos Police Department · San Andreas</span></div>
  <section class="card">
   <h1>Antrag auf Klassifizierung</h1>
   <p class="intro">Über dieses externe Dokument kann die Aufnahme einer oder mehrerer Personen in das Klassifizierungsregister des LSPD beantragt werden. Jede Person wird intern als eigenständiger Antrag geführt und kann separat genehmigt oder abgelehnt werden.</p>
