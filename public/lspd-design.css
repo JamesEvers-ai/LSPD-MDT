@@ -391,3 +391,178 @@ body:has(.classification-request-page){background:#edf1f5!important}
 .classification-request-page{background:#edf1f5!important;color:#1c2d42!important}
 .classification-request-page .card,.classification-request-page form{background:#fff!important;border:1px solid #d8e0e8!important;box-shadow:0 8px 26px rgba(16,39,69,.07)!important}
 .classification-request-page .brand img{background:transparent!important;border:0!important;border-radius:0!important}
+
+/* ============================================================
+   LSPD 3.66 — unified blue / gold panel system
+   Final layer normalizes legacy page modules without changing
+   their behavior or data flow.
+   ============================================================ */
+:root{
+  --lspd-navy:#0d2342;--lspd-navy-2:#17395f;--lspd-blue:#245889;
+  --lspd-blue-soft:#eaf1f8;--lspd-gold:#e5c229;--lspd-paper:#eef2f7;
+  --lspd-surface:#fff;--lspd-line:#d5deea;--lspd-muted:#64758a;
+  --lspd-text:#1b2d43;--fib-bg:#eef2f7;--fib-panel:#fff;
+  --fib-panel-2:#f5f8fb;--fib-line:#d5deea;--fib-line-strong:#b9c8d9;
+  --fib-text:#1b2d43;--fib-muted:#64758a;--fib-blue:#245889;
+  --fib-blue-soft:#eaf1f8;--fib-shadow:0 5px 18px rgba(13,35,66,.07);
+}
+html,body,#pageContainer,.main,.content,.dashboard,.agents-page,.patrols-page,
+.records-page,.classification-page,.wanted-page,.warrants-page,.announcements-page,
+.calendar-page,.lawyers-page,.vacations-page,.logs-page,.gangs-page,.bonuses-page,
+.system-page,.fines-page,.ifines-page,.vehicle-catalog-page{
+ background-color:#eef2f7!important;color:#1b2d43!important;
+}
+/* Solid shared surfaces replace transparent and legacy dark panels. */
+.dashboard-welcome,.dashboard-stat,.dashboard-card,.agents-toolbar,.agents-list,
+.agents-system-modal,.agents-system-modal-body,.agents-section-card,.agents-entry-item,
+.agents-personnel-tabs,.agents-training-form,.agents-note-form,.patrol-own-status,
+.patrol-toolbar,.patrol-display-config,.patrol-card,.records-detail-content,
+.records-detail-panel,.records-card,.records-toolbar,.classification-card,
+.classification-toolbar,.wanted-card,.warrants-card,.announcement-card,.calendar-card,
+.lawyer-card,.vacation-card,.logs-card,.gang-card,.bonus-card,.system-card,
+.ifines-card,.ifines-lawbook-table,.vehicle-card,.vehicle-catalog-card,
+[class*="detail-panel"],[class*="detail-card"],[class*="content-panel"],
+[class*="content-card"],[class*="section-panel"],[class*="section-card"],
+[class*="settings-panel"],[class*="management-panel"]{
+ background:#fff!important;color:#1b2d43!important;border-color:#d5deea!important;
+ box-shadow:0 4px 16px rgba(13,35,66,.055)!important;
+}
+/* Header bars: official navy with a restrained yellow accent. */
+.agents-list-header,.dashboard-card-header,.patrol-toolbar-header,
+.records-detail-header,.classification-card-header,.ifines-card-header,
+[class*="panel-header"],[class*="section-header"]{
+ background:#f2f6fa!important;color:#17395f!important;border-color:#d5deea!important;
+}
+.agents-system-modal-header,.fib-global-modal-header{
+ background:#102b4b!important;color:#fff!important;border-bottom:2px solid #e5c229!important;
+}
+.agents-system-modal-header *,.fib-global-modal-header *{color:inherit!important}
+/* Personnel list and personnel file. */
+.agents-page,.agents-page *{text-shadow:none!important}
+.agents-page-header,.agents-toolbar,.agents-list{background:#fff!important}
+.agents-page-title,.agents-agent-name,.agents-entry-title,.agents-section-title,
+.agents-form-label,.agents-list-header-cell{color:#17395f!important}
+.agents-page-subtitle,.agents-agent-rank,.agents-agent-username,.agents-service-number,
+.agents-organization-meta,.agents-entry-meta,.agents-entry-content,.agents-empty-list,
+.agents-form-help,.agents-section-description{color:#5e7187!important}
+.agents-list-header{background:#eaf0f6!important}
+.agents-list-row{background:#fff!important;border-color:#e0e7ef!important}
+.agents-list-row:hover{background:#f4f7fb!important}
+.agents-personnel-tabs{background:#f1f5f9!important}
+.agents-personnel-tab{background:transparent!important;color:#526981!important}
+.agents-personnel-tab.active{background:#fff!important;color:#17395f!important}
+.agents-section-card,.agents-entry-item{background:#f8fafc!important}
+.agents-form-input,.agents-form-select,.agents-form-textarea,
+.agents-rank-select-button,.agents-rank-select-menu{
+ background:#fff!important;color:#1b2d43!important;border:1px solid #cbd7e4!important;
+}
+.agents-rank-option{color:#304b68!important}
+.agents-rank-option:hover,.agents-rank-option.selected{background:#eaf1f8!important;color:#17395f!important}
+/* Dispatch / patrol list. */
+.patrols-page,.patrols-page *{text-shadow:none!important}
+.patrols-title,.patrol-own-status-name,.patrol-own-status-value,.patrol-card-title,
+.patrol-member-name,.patrol-location,.patrol-vehicle,.patrol-empty-title{color:#17395f!important}
+.patrols-eyebrow,.patrol-own-status-heading{color:#987a12!important}
+.patrols-subtitle,.patrol-own-status-caption,.patrol-own-status-label,
+.patrol-toolbar label,.patrol-toolbar-section,.patrol-empty-text{color:#60748a!important}
+.patrol-own-status,.patrol-toolbar,.patrol-display-config,.patrol-card,.patrol-empty{
+ background:#fff!important;border:1px solid #d5deea!important;
+}
+.patrol-card{border-radius:9px!important;box-shadow:0 3px 12px rgba(13,35,66,.06)!important}
+.patrol-card:hover{background:#f5f8fc!important;border-color:#c6a928!important}
+.patrol-display-config-head,.patrol-display-config-grid label,.patrol-ten-code-top{color:#405a75!important}
+.patrol-ten-code-top select,.patrol-display-config-grid input[data-patrol-hex]{
+ background:#fff!important;color:#1b2d43!important;border:1px solid #cbd7e4!important;
+}
+.patrol-display-config-grid input[type=color]{background:#fff!important;border:1px solid #cbd7e4!important}
+.patrol-member{background:#f0f4f8!important;border:1px solid #dce4ed!important}
+.patrol-member-rank,.patrol-member-callsign{color:#63778d!important}
+.patrol-activity-status{background:#eaf1f8!important;color:#244b70!important;border:1px solid #d2dfeb!important}
+.patrol-join-button{background:#eaf1f8!important;color:#1c5687!important;border:1px solid #c9d9e8!important}
+.patrol-action-button{background:#f1f5f9!important;color:#294966!important;border:1px solid #d5deea!important}
+/* Classification request cards and review areas. */
+.classification-card{background:#fff!important;border:1px solid #d7e0e9!important;border-radius:10px!important}
+.classification-card-header,.classification-card-body,.classification-card-footer{color:#1b2d43!important}
+.classification-card-title,.classification-detail-value{color:#17395f!important}
+.classification-card-eyebrow,.classification-detail-label,.classification-meta{color:#65788d!important}
+.classification-reason,.classification-review{background:#f4f7fa!important;color:#304a65!important;border-color:#dce4ec!important}
+.classification-badge.organization{background:#eaf1f8!important;color:#214f78!important}
+.classification-action{background:#f0f4f8!important;color:#284967!important;border-color:#d5deea!important}
+.classification-action.primary{background:#17395f!important;color:#fff!important;border-color:#17395f!important}
+/* Record and warrant details. */
+.records-page,.records-page *,.warrants-page,.warrants-page *,
+.wanted-page,.wanted-page *{text-shadow:none!important}
+.records-detail-content,.records-detail-panel{background:#fff!important;color:#1b2d43!important}
+.records-detail-content h1,.records-detail-content h2,.records-detail-content h3,
+.records-detail-content strong{color:#17395f!important}
+.records-detail-content p,.records-detail-content label,.records-detail-content span{color:#40566e!important}
+/* Internal fine catalog — remove the remaining dark FIB-style subtheme. */
+.ifines-page{background:transparent!important;color:#1b2d43!important}
+.ifines-top{background:#102b4b!important;border-bottom:2px solid #e5c229!important;box-shadow:0 5px 18px rgba(13,35,66,.10)!important}
+.ifines-eyebrow{color:#e5c229!important}.ifines-title{color:#fff!important}.ifines-subtitle{color:#d0dbe7!important}
+.ifines-tabs{border-color:#d5deea!important}.ifines-tab{color:#5b7088!important}
+.ifines-tab.active{color:#17395f!important;background:#eaf1f8!important;border-bottom-color:#e5c229!important}
+.ifines-page input,.ifines-page select,.ifines-page textarea{background:#fff!important;border:1px solid #cbd7e4!important;color:#1b2d43!important}
+.ifines-page button{background:#17395f!important;border:1px solid #17395f!important;color:#fff!important}
+.ifines-page button.secondary{background:#f0f4f8!important;border-color:#d5deea!important;color:#294966!important}
+.ifines-card,.ifines-lawbook-table{background:#fff!important;border:1px solid #d5deea!important;box-shadow:0 4px 16px rgba(13,35,66,.055)!important}
+.ifines-table th{background:#eaf0f6!important;color:#304b68!important;border-color:#d5deea!important}
+.ifines-table td{background:#fff!important;color:#30465e!important;border-color:#e1e7ee!important}
+.ifines-category-row td{background:#edf3f8!important;color:#17395f!important;border-color:#d5deea!important}
+.ifines-paragraph,.ifines-offense{color:#1b2d43!important}.ifines-table-value{color:#245889!important}
+/* Normalize known hard-coded dark dispatch panels while preserving status chips. */
+.patrols-page [style*="background: #11161d"],.patrols-page [style*="background:#11161d"],
+.patrols-page [style*="background: #0d1117"],.patrols-page [style*="background:#0d1117"],
+.patrols-page [style*="background: #151b23"],.patrols-page [style*="background:#151b23"],
+.patrols-page [style*="background: #17212e"],.patrols-page [style*="background:#17212e"],
+.patrols-page [style*="background: #202b3b"],.patrols-page [style*="background:#202b3b"]{
+ background:#fff!important;color:#1b2d43!important;border-color:#d5deea!important;
+}
+.fib-duty-picker,.fib-duty-picker *{color:#1b2d43!important}
+.fib-duty-picker{background:#fff!important;border:1px solid #d5deea!important}
+.fib-duty-picker-head,.fib-duty-picker-footer{background:#f3f6fa!important;border-color:#d5deea!important}
+.fib-duty-picker-label{color:#5d7188!important}
+.fib-status-chip{background:#edf3f8!important;color:#17395f!important;border-color:#d5deea!important}
+.fib-status-chip-label{color:#62768c!important}
+.fib-status-chip-call{background:#fff8db!important;border-color:#e8d47a!important}
+.fib-status-chip-call .fib-status-chip-label{color:#80670d!important}
+@media(max-width:760px){.agents-page,.patrols-page,.records-page,.classification-page,.ifines-page{padding-left:14px!important;padding-right:14px!important}}
+/* Higher-specificity page-scoped rules win over styles embedded in lazy-loaded pages. */
+.agents-page .agents-toolbar,.agents-page .agents-list,.agents-page .agents-section-card,
+.agents-page .agents-entry-item,.agents-page .agents-personnel-tabs,
+.agents-page .agents-training-form,.agents-page .agents-note-form,
+.agents-page .agents-system-modal,.agents-page .agents-system-modal-body{
+ background:#fff!important;color:#1b2d43!important;border-color:#d5deea!important;
+}
+.agents-page .agents-section-card,.agents-page .agents-entry-item{background:#f8fafc!important}
+.agents-page .agents-list-header{background:#eaf0f6!important}
+.agents-page .agents-list-row{background:#fff!important;color:#30465e!important}
+.agents-page .agents-list-row:hover{background:#f4f7fb!important}
+.agents-page .agents-personnel-tabs{background:#f1f5f9!important}
+.agents-page .agents-personnel-tab{color:#526981!important}
+.agents-page .agents-personnel-tab.active{background:#fff!important;color:#17395f!important}
+.agents-page .agents-entry-title,.agents-page .agents-agent-name,
+.agents-page .agents-section-title,.agents-page .agents-form-label{color:#17395f!important}
+.agents-page .agents-entry-meta,.agents-page .agents-entry-content,
+.agents-page .agents-agent-rank,.agents-page .agents-service-number{color:#5e7187!important}
+.agents-page .agents-form-input,.agents-page .agents-form-select,
+.agents-page .agents-form-textarea,.agents-page .agents-rank-select-button,
+.agents-page .agents-rank-select-menu{background:#fff!important;color:#1b2d43!important;border-color:#cbd7e4!important}
+.patrols-page .patrol-own-status,.patrols-page .patrol-toolbar,
+.patrols-page .patrol-display-config,.patrols-page .patrol-card,
+.patrols-page .patrol-empty{background:#fff!important;color:#1b2d43!important;border-color:#d5deea!important}
+.patrols-page .patrol-card:hover{background:#f5f8fc!important;border-color:#c6a928!important}
+.patrols-page .patrol-display-config-grid label,.patrols-page .patrol-ten-code-top,
+.patrols-page .patrol-toolbar label,.patrols-page .patrol-toolbar-section{color:#405a75!important}
+.patrols-page .patrol-display-config-grid input[data-patrol-hex],
+.patrols-page .patrol-ten-code-top select{background:#fff!important;color:#1b2d43!important;border-color:#cbd7e4!important}
+.patrols-page .patrol-own-status-name,.patrols-page .patrol-own-status-value,
+.patrols-page .patrol-member-name,.patrols-page .patrol-location,
+.patrols-page .patrol-vehicle{color:#17395f!important}
+.ifines-page .ifines-top{background:#102b4b!important}
+.ifines-page .ifines-card,.ifines-page .ifines-lawbook-table{background:#fff!important;color:#1b2d43!important;border-color:#d5deea!important}
+.ifines-page .ifines-table th{background:#eaf0f6!important;color:#304b68!important}
+.ifines-page .ifines-table td{background:#fff!important;color:#30465e!important}
+.classification-page .classification-card{background:#fff!important;color:#1b2d43!important;border-color:#d5deea!important}
+.classification-page .classification-card-title,.classification-page .classification-detail-value{color:#17395f!important}
+.records-page .records-detail-content,.records-page .records-detail-panel{background:#fff!important;color:#1b2d43!important}
