@@ -150,3 +150,115 @@ td{color:#314858!important;border-color:#e4d8c0!important}
 .records-page,.agents-page,.patrols-page,.classification-page,.wanted-page,.warrants-page,.announcements-page,.calendar-page,.lawyers-page,.vacations-page,.logs-page,.gangs-page,.bonuses-page,.system-page,.fines-page{color:#243d4e!important}
 .page-loading{color:#536b78!important}
 @media(max-width:900px){.sidebar{border-right-width:2px!important}}
+
+/* =========================================================
+   LSPD 3.64 — contrast and readability correction
+   The earlier global skin left legacy dark page modules untouched.
+   These overrides deliberately restore clear, opaque surfaces.
+   ========================================================= */
+
+/* Personnel list and personnel-file modal */
+.agents-page{color:#20384b!important}
+.agents-page-title{color:#17384f!important}
+.agents-page-subtitle,.agents-page-count{color:#647786!important}
+.agents-search input{background:#fffdf8!important;color:#20384b!important;border:1px solid #cdbb96!important;box-shadow:inset 0 1px 2px rgba(50,38,18,.04)!important}
+.agents-search input::placeholder{color:#89939a!important}
+.agents-search-icon{color:#8b754f!important}
+.agents-list{background:#fffaf0!important;border:1px solid #cdbb96!important;box-shadow:0 5px 18px rgba(53,42,23,.07)!important}
+.agents-list-header{background:#e9ddc4!important;border-bottom:1px solid #cdbb96!important}
+.agents-list-header-cell{color:#536879!important}
+.agents-list-row{border-bottom:1px solid #e5d9c2!important}
+.agents-list-row:hover{background:#f3ead9!important}
+.agents-agent-name{color:#18384e!important}
+.agents-agent-rank,.agents-service-number,.agents-organization-main{color:#526879!important}
+.agents-agent-username,.agents-organization-meta span{color:#78858d!important}
+.agents-avatar{border-color:#cdbb96!important;background:#f2e8d4!important}
+.agents-avatar-placeholder{color:#536879!important}
+.agents-file-button{background:#f3ead9!important;border:1px solid #cdbb96!important;color:#29485e!important}
+.agents-file-button:hover{background:#e9ddc4!important;color:#17384f!important;border-color:#b58a45!important}
+.agents-state{color:#647786!important}
+.agents-loading-spinner{border-color:#d9c9aa!important;border-top-color:#315d72!important}
+
+.agents-system-modal-overlay{background:rgba(13,29,42,.68)!important;backdrop-filter:blur(5px)!important}
+.agents-system-modal{background:#fffaf0!important;border:1px solid #bda477!important;box-shadow:0 24px 70px rgba(9,22,34,.38)!important;color:#20384b!important}
+.agents-system-modal-header{background:#17384f!important;border-bottom:2px solid #b58a45!important}
+.agents-system-modal-title{color:#fffaf0!important}
+.agents-system-modal-description{color:#d2dce1!important}
+.agents-system-modal-close{background:rgba(255,255,255,.12)!important;color:#fffaf0!important}
+.agents-system-modal-close:hover{background:rgba(255,255,255,.22)!important;color:#fff!important}
+.agents-system-modal-body{background:#fffaf0!important;color:#20384b!important;scrollbar-color:#bda477 transparent!important}
+.agents-system-modal-actions{background:#f1e6d1!important;border-top:1px solid #d8c8a7!important}
+.agents-personnel-tabs{border-bottom:1px solid #d8c8a7!important}
+.agents-personnel-tab{color:#687b87!important}
+.agents-personnel-tab:hover{color:#17384f!important}
+.agents-personnel-tab.active{color:#17384f!important}
+.agents-personnel-tab.active::after{background:#b58a45!important;height:3px!important}
+.agents-form{color:#20384b!important}
+.agents-form-label,.agents-section-title{color:#536b7b!important}
+.agents-form-input,.agents-form-select,.agents-form-textarea{background:#fffdf8!important;border:1px solid #cdbb96!important;color:#20384b!important}
+.agents-form-input::placeholder,.agents-form-textarea::placeholder{color:#89939a!important}
+.agents-form-input:focus,.agents-form-select:focus,.agents-form-textarea:focus{background:#fff!important;border-color:#b58a45!important;box-shadow:0 0 0 3px rgba(181,138,69,.13)!important}
+.agents-rank-select-button{background:#fffdf8!important;border:1px solid #cdbb96!important;color:#20384b!important}
+.agents-rank-select-button:hover{background:#f5ecd9!important;border-color:#b58a45!important}
+.agents-rank-select-chevron{color:#71818b!important}
+.agents-rank-select-menu{background:#fffaf0!important;border:1px solid #cdbb96!important;box-shadow:0 14px 32px rgba(35,43,47,.2)!important}
+.agents-rank-option{color:#314b5d!important}
+.agents-rank-option:hover,.agents-rank-option.selected{background:#eee2ca!important;color:#17384f!important}
+.agents-rank-empty{color:#71818b!important}
+.agents-section-card,.agents-entry-item{background:#f7efdf!important;border:1px solid #dfcfad!important;color:#294457!important}
+.agents-entry-title{color:#17384f!important}
+.agents-entry-meta span,.agents-entry-content{color:#607483!important}
+.agents-entry-delete{background:#fffaf0!important;border:1px solid #d8c8a7!important;color:#8b6251!important}
+.agents-entry-delete:hover{background:#f1e3d2!important;color:#8f302b!important}
+.agents-empty-list{color:#71818b!important}
+.agents-status{background:#e9e1d2!important;color:#536879!important}
+.agents-status.success{background:#e1efdf!important;color:#28613b!important}
+.agents-status.warning{background:#f5ecd4!important;color:#806025!important}
+.agents-status.danger{background:#f5e1dc!important;color:#8e302b!important}
+.agents-personnel-loading-strip{background:#f3ead9!important;border:1px solid #dfcfad!important;color:#607483!important}
+.agents-system-button,.agents-small-button{background:#f3ead9!important;border:1px solid #cdbb96!important;color:#29485e!important}
+.agents-system-button:hover,.agents-small-button:hover{background:#e9ddc4!important;color:#17384f!important}
+.agents-small-button.primary{background:#17384f!important;border-color:#b58a45!important;color:#fffaf0!important}
+.agents-small-button.primary:hover{background:#244b62!important}
+.agents-system-modal [style*="rgba(255,255,255"]{color:#607483!important}
+
+/* Dispatch / patrol board: opaque cards and readable labels */
+.patrols-page{color:#20384b!important}
+.patrols-title{color:#17384f!important}
+.patrols-eyebrow{color:#98733c!important}
+.patrols-subtitle{color:#617786!important}
+.patrol-header-button{background:#17384f!important;border:1px solid #b58a45!important;color:#fffaf0!important}
+.patrol-header-button:hover{background:#244b62!important}
+.patrol-header-button.secondary{background:#f5ecd9!important;border:1px solid #cdbb96!important;color:#29485e!important}
+.patrol-header-button.secondary:hover{background:#e9ddc4!important}
+.patrol-own-status{background:linear-gradient(115deg,#fffaf0,#f0e4cd)!important;border:1px solid #cdbb96!important;box-shadow:0 5px 16px rgba(53,42,23,.07)!important}
+.patrol-own-status-heading{color:#98733c!important}
+.patrol-own-status-name{color:#17384f!important}
+.patrol-own-status-caption,.patrol-own-status-label{color:#687b87!important}
+.patrol-own-status-cell{border-left-color:#d8c8a7!important}
+.patrol-own-status-value{color:#29485e!important}
+.patrol-own-status-value.is-idle{color:#71818b!important}
+.patrol-toolbar,.patrol-display-config{background:#fffaf0!important;border:1px solid #d8c8a7!important;box-shadow:0 4px 14px rgba(53,42,23,.045)!important}
+.patrol-toolbar *,.patrol-display-config *{--patrol-text-override:#29485e}
+.patrol-toolbar-section{color:#29485e!important}
+.patrol-toolbar label,.patrol-toolbar .patrol-filter-label,.patrol-display-config label{color:#536b7b!important}
+.patrol-toolbar input,.patrol-toolbar select,.patrol-display-config input:not([type="color"]){background:#fffdf8!important;color:#20384b!important;border-color:#cdbb96!important}
+.patrol-ten-code-top{color:#536b7b!important}
+.patrol-ten-code-top select{background:#fffdf8!important;color:#20384b!important;border:1px solid #cdbb96!important}
+.patrol-display-config-head{color:#17384f!important}
+.patrol-display-config-head button{color:#536b7b!important}
+.patrol-display-config-grid input[data-patrol-hex]{background:#fffdf8!important;color:#20384b!important;border-color:#cdbb96!important}
+.patrol-card{background:#fffaf0!important;border:1px solid #d8c8a7!important;box-shadow:0 3px 10px rgba(53,42,23,.055)!important;color:#29485e!important}
+.patrol-card:hover{background:#f5ecd9!important;border-color:#bda477!important}
+.patrol-card *{text-shadow:none!important}
+.patrol-card [style*="color:"]{color:inherit}
+.patrol-activity-status{background:#eee4d0!important;color:#29485e!important;border:1px solid #d8c8a7!important}
+.patrol-join-button{background:#e9eee9!important;color:#315d72!important;border:1px solid #c7d3c5!important}
+.patrol-join-button:hover{background:#dce8dd!important}
+.patrol-modal-empty{background:#f5ecd9!important;color:#607483!important;border-color:#d8c8a7!important}
+.patrols-page [style*="rgba(255,255,255"]{color:#536b7b!important}
+.patrols-page [style*="background: #11161d"],.patrols-page [style*="background:#11161d"],.patrols-page [style*="background: #0d1117"],.patrols-page [style*="background:#0d1117"]{background:#fffaf0!important;color:#29485e!important}
+
+/* Global contrast safety net for the old dark module styles */
+.agents-system-modal p,.agents-system-modal span,.agents-system-modal label,.agents-system-modal div{ text-shadow:none!important }
+.agents-system-modal input,.agents-system-modal select,.agents-system-modal textarea{color:#20384b!important;background:#fffdf8!important}
