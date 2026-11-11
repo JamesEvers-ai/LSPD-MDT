@@ -1,0 +1,104 @@
+/* LSPD MDT 3.62 — civic command workspace, deliberately distinct from FIB dark UI */
+:root{
+  --lspd-ink:#172536;--lspd-navy:#10243a;--lspd-navy-2:#183653;--lspd-blue:#28649a;
+  --lspd-blue-soft:#e8f0f7;--lspd-gold:#b18a45;--lspd-paper:#f3f5f7;--lspd-surface:#fff;
+  --lspd-line:#dce2e8;--lspd-muted:#697887;--lspd-text:#1c2b39;
+  --fib-bg:#f3f5f7;--fib-panel:#fff;--fib-panel-2:#edf1f5;--fib-line:#dce2e8;
+  --fib-line-strong:#bdcbd8;--fib-text:#1c2b39;--fib-muted:#697887;--fib-blue:#28649a;
+  --fib-blue-soft:#e8f0f7;--fib-shadow:0 8px 24px rgba(19,38,57,.08);
+}
+html,body{background:var(--lspd-paper)!important;color:var(--lspd-text)!important;font-family:Inter,Arial,sans-serif!important}
+body{background-image:linear-gradient(135deg,rgba(16,36,58,.025) 25%,transparent 25%),linear-gradient(315deg,rgba(16,36,58,.025) 25%,transparent 25%)!important;background-size:22px 22px!important}
+/* fixed full navigation replaces the FIB icon rail/hover drawer */
+.sidebar{width:252px!important;background:linear-gradient(180deg,#10243a 0%,#142d47 100%)!important;border-right:0!important;box-shadow:5px 0 22px rgba(14,31,48,.12)!important;transition:none!important}
+.sidebar:hover{width:252px!important}
+.sidebar-header{height:106px!important;padding:14px 20px!important;border-bottom:1px solid rgba(255,255,255,.13)!important;gap:12px}
+.brand-icon{width:58px!important;height:58px!important;border-radius:50%!important;background:#fff!important;padding:4px!important;border:2px solid #c5a66b!important}
+.brand-text{margin-left:0!important;opacity:1!important;min-width:0}
+.brand-title{color:#fff!important;font-size:15px!important;letter-spacing:.045em!important;font-weight:800!important}
+.brand-subtitle{color:#c3d0dc!important;font-size:10px!important;letter-spacing:.09em!important;text-transform:uppercase}
+.sidebar-nav{padding:20px 13px!important}
+.nav-section{margin-bottom:22px!important}
+.nav-section-title{opacity:1!important;color:#91a8bd!important;font-size:9px!important;letter-spacing:.14em!important;padding:0 13px!important}
+.nav-item{height:43px!important;border-radius:7px!important;padding:0 13px!important;margin:3px 0!important;color:#d2dce5!important;border-left:3px solid transparent!important;background:transparent!important}
+.nav-item:hover{background:rgba(255,255,255,.09)!important;color:#fff!important}
+.nav-item.active{background:rgba(255,255,255,.14)!important;color:#fff!important;border-left-color:#c5a66b!important;box-shadow:inset 0 0 0 1px rgba(255,255,255,.06)!important}
+.nav-icon{color:#c6d4e1!important}.nav-label{opacity:1!important;margin-left:12px!important;font-size:12px!important;font-weight:550!important}
+.sidebar-user{border-top:1px solid rgba(255,255,255,.13)!important;padding:13px!important}
+.user-card{height:54px!important;padding:0 9px!important}.user-card:hover{background:rgba(255,255,255,.08)!important}
+.user-avatar{background:#d9e4ed!important;color:#17314b!important;border:2px solid rgba(197,166,107,.7)!important}
+.user-info{opacity:1!important}.user-name{color:#fff!important}.user-rank{color:#b5c5d3!important}
+.logout-button{color:#c2d0dc!important;padding-left:12px!important}.logout-button:hover{background:rgba(255,255,255,.09)!important;color:#fff!important}
+.main{padding-left:252px!important;transition:none!important}
+.content{background:var(--lspd-paper)!important}
+.topbar{height:76px!important;padding:0 30px!important;background:#fff!important;border-bottom:1px solid #dce2e8!important;box-shadow:0 2px 9px rgba(15,35,55,.04)!important;backdrop-filter:none!important}
+.page-title{font-size:18px!important;color:#172b40!important;font-weight:750!important;letter-spacing:-.02em}
+.page-title:before{content:"LSPD  /  ";font-size:10px;color:#9a7940;letter-spacing:.13em;font-weight:800;vertical-align:2px;margin-right:7px}
+.fib-own-status-strip{gap:8px!important}
+.fib-status-chip{background:#f2f5f8!important;border:1px solid #dce3e9!important;border-radius:5px!important;color:#20364b!important;box-shadow:none!important}
+.fib-status-chip-label{color:#758696!important}.fib-status-chip strong{color:#20364b!important}
+.fib-status-chip-call{background:#f7f2e8!important;border-color:#e4d5b8!important}.fib-status-chip-call .fib-status-chip-label{color:#97733a!important}
+.fib-status-chip.is-idle{background:#eef1f4!important;border-color:#dce2e8!important}
+.page-status{color:#667989!important}.status-dot{box-shadow:0 0 0 3px rgba(41,133,91,.12)!important}
+.fib-duty-start-button,.fib-duty-apply{background:#173b5d!important;border:1px solid #173b5d!important;border-radius:5px!important;color:#fff!important}
+.fib-duty-picker{background:#fff!important;border:1px solid #d9e1e8!important;box-shadow:0 16px 45px rgba(18,38,58,.18)!important;border-radius:8px!important;color:#20364b!important}
+.fib-duty-picker-head,.fib-duty-picker-footer{border-color:#e1e6eb!important}
+.fib-duty-picker-label{color:#6d7f8f!important}
+/* login becomes a formal station sign-in rather than a dark FIB login */
+#loginScreen{background:radial-gradient(ellipse at 50% 0%,rgba(46,91,130,.26),transparent 48%),linear-gradient(135deg,#10243a,#1b3a57)!important}
+.login-wrapper{max-width:460px!important}
+.login-card{background:#fff!important;border:1px solid rgba(255,255,255,.5)!important;border-top:4px solid #b18a45!important;border-radius:9px!important;padding:38px!important;box-shadow:0 26px 75px rgba(0,0,0,.28)!important;color:#1c2b39!important}
+.login-logo{width:94px!important;height:94px!important;background:#f4f6f8!important;border:1px solid #dce2e8!important;border-radius:50%!important;padding:7px!important}
+.login-title{color:#142b42!important;letter-spacing:.015em!important}.login-subtitle{color:#6d7d8b!important}
+.input-group label{color:#526475!important}.input-group input{background:#f8fafb!important;border:1px solid #cfd8e0!important;color:#172b40!important;border-radius:5px!important}
+.input-group input:focus{border-color:#28649a!important;box-shadow:0 0 0 3px rgba(40,100,154,.12)!important}
+.login-button{background:#173b5d!important;border-radius:5px!important}.login-button:hover{background:#24557f!important}
+.login-secondary-button{background:#f2f5f7!important;border:1px solid #d7e0e7!important;color:#43586b!important}
+.login-info,.login-back-button{color:#7b8995!important}
+/* shared page canvas and components */
+.dashboard,.vehicle-catalog-page,.ifines-page{background:transparent!important;color:var(--lspd-text)!important}
+.dashboard{padding:25px 30px 70px!important;gap:17px!important}
+.dashboard-welcome,.dashboard-stat,.dashboard-card{background:#fff!important;border:1px solid #dce2e8!important;border-radius:8px!important;box-shadow:0 4px 14px rgba(22,42,62,.045)!important;color:#1c2b39!important}
+.dashboard-welcome{background:linear-gradient(105deg,#fff 0%,#f7f9fb 65%,#edf2f6 100%)!important;padding:27px 30px!important;border-left:4px solid #b18a45!important}
+.dashboard-welcome::before,.dashboard-stat::before{display:none!important}
+.dashboard-eyebrow{color:#98763e!important;letter-spacing:.13em!important}
+.dashboard-title{color:#172d43!important;font-size:27px!important}
+.dashboard-subtitle{color:#687988!important}
+.dashboard-clock{color:#244e72!important}
+.dashboard-stat{padding:19px!important;border-top:3px solid #244e72!important}
+.dashboard-stat-label,.dashboard-stat-subtitle{color:#70808e!important}
+.dashboard-stat-value{color:#17324d!important}
+.dashboard-stat-icon{background:#edf3f8!important;border:1px solid #d7e2eb!important;color:#285d87!important;border-radius:7px!important}
+.dashboard-card-header{background:#f7f9fa!important;border-bottom:1px solid #e2e7eb!important}
+.dashboard-card-title{color:#20364b!important}.dashboard-card-header-icon{color:#9b7a42!important}
+.dashboard-card-body{color:#35495b!important}
+.dashboard-quick-action{background:#f7f9fb!important;border:1px solid #dce3e9!important;color:#29445d!important;border-radius:6px!important}
+.dashboard-quick-action:hover{background:#edf3f8!important;border-color:#9fb6ca!important}
+/* consistent tables, inputs, dialogs and cards across dynamically loaded pages */
+input,select,textarea{background:#fff!important;border-color:#cfd8e0!important;color:#203243!important;border-radius:5px!important}
+input::placeholder,textarea::placeholder{color:#98a4ae!important}
+button{border-radius:5px}
+button.primary,.primary-button,.btn-primary{background:#173b5d!important;border-color:#173b5d!important;color:#fff!important}
+button.secondary,.secondary-button,.btn-secondary{background:#f0f3f6!important;border-color:#d5dee6!important;color:#344b60!important}
+button.danger,.btn-danger{background:#a63b3b!important;color:#fff!important}
+table{border-color:#dce3e9!important}th{background:#edf1f4!important;color:#45596b!important;border-color:#dce3e9!important}td{color:#314456!important;border-color:#e5e9ed!important}
+[class*="-card"],[class*="-panel"],[class*="-box"]{scrollbar-color:#b7c3cd transparent}
+.fib-global-modal-header{background:#17324d!important;color:#fff!important}
+.fib-global-modal-header *{color:inherit}
+.fib-global-modal-content,.modal-content{background:#fff!important;color:#203243!important}
+/* shared accent tokens used by page modules */
+:root{--fib-bg:#f3f5f7;--fib-panel:#fff;--fib-panel-2:#edf1f5;--fib-line:#dce2e8;--fib-line-strong:#bdcbd8;--fib-text:#1c2b39;--fib-muted:#697887;--fib-blue:#28649a;--fib-blue-soft:#e8f0f7;--fib-shadow:0 8px 24px rgba(19,38,57,.08)}
+/* responsive: collapse to a compact rail only on narrow screens */
+@media(max-width:900px){.sidebar{width:68px!important}.sidebar:hover{width:68px!important}.sidebar-header{padding:12px 9px!important;justify-content:center}.brand-icon{width:46px!important;height:46px!important}.brand-text,.nav-label,.nav-section-title,.user-info{opacity:0!important;display:none!important}.sidebar-nav{padding:12px 8px!important}.nav-item{justify-content:center!important;padding:0!important}.nav-icon{width:auto!important}.main{padding-left:68px!important}.topbar{padding:0 14px!important}.dashboard{padding:16px 14px 60px!important}}
+@media(max-width:650px){.topbar{height:auto!important;min-height:66px!important;flex-wrap:wrap!important;gap:8px!important;padding:10px 12px!important}.page-title{font-size:15px!important}.fib-own-status-strip{max-width:100%!important;flex-wrap:wrap!important;justify-content:flex-start!important}.dashboard-stats{grid-template-columns:repeat(2,minmax(0,1fr))!important}.dashboard-main-grid{grid-template-columns:1fr!important}}
+#pageContainer{background:var(--lspd-paper)!important}
+.page-loading{color:#617384!important}
+/* page-module surfaces that previously used near-black fixed colors */
+.records-page,.agents-page,.patrols-page,.classification-page,.wanted-page,.warrants-page,.announcements-page,.calendar-page,.lawyers-page,.vacations-page,.logs-page,.gangs-page,.bonuses-page,.system-page,.fines-page{background:transparent!important;color:#24384b!important}
+[class$="-toolbar"],[class*="-toolbar "],[class$="-header"],[class*="-header " ]{scrollbar-color:#bdc8d2 transparent}
+[class*="-table"] th,[class*="-list"] th{background:#edf1f4!important;color:#45596b!important}
+[class*="-table"] td{color:#314456!important}
+[class*="-empty"],[class*="-muted"]{color:#71808d!important}
+[class*="-filter"], [class*="-search"]{color:#314456!important}
+/* the public form shares the same LSPD identity and paper/navy palette */
+body:has(.classification-request-page){background:#f3f5f7!important}
