@@ -3,74 +3,21 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<link rel="icon" type="image/svg+xml" href="/favicon.svg?v=368">
-<link rel="alternate icon" type="image/png" href="/assets/lspd-icon-32.png?v=368">
-<link rel="apple-touch-icon" href="/assets/lspd-icon-180.png?v=368">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg?v=370">
+<link rel="icon" type="image/x-icon" href="/favicon.ico?v=370">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=370">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png?v=370">
 <title>LSPD – Antrag auf Klassifizierung</title>
 <style>
-:root{color-scheme:dark;--bg:#090e15;--panel:#111a26;--line:#26384d;--blue:#3987c9;--text:#e7eef7;--muted:#91a1b5}
-*{box-sizing:border-box}
-body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 50% -20%,#183653 0,transparent 55%),var(--bg);color:var(--text);font:14px/1.55 Inter,system-ui,Segoe UI,sans-serif;padding:28px 16px}
-.shell{max-width:900px;margin:4vh auto}
-.brand{display:flex;align-items:center;gap:11px;font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:#82b9e8;font-weight:800}
-.brand img{width:34px;height:34px;object-fit:contain;border-radius:8px}
-.card{margin-top:14px;background:linear-gradient(145deg,rgba(21,34,49,.98),rgba(13,21,31,.98));border:1px solid var(--line);border-radius:16px;padding:clamp(20px,4vw,34px);box-shadow:0 24px 70px #0008}
-h1{font-size:clamp(24px,4vw,32px);margin:4px 0 8px;letter-spacing:-.03em}
-.intro{color:var(--muted);margin:0 0 24px}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-.field{display:flex;flex-direction:column;gap:6px;min-width:0}
-.wide{grid-column:1/-1}
-label{font-size:11px;color:#b7c7d9;font-weight:700}
-input,select,textarea{width:100%;border:1px solid #30445a;background:#0a121d;color:var(--text);border-radius:8px;padding:11px 12px;font:inherit;outline:none;min-height:44px}
-input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px #3987c926}
-textarea{min-height:105px;resize:vertical}
-.hint{font-size:10px;color:#778ba2}
-.section-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:24px 0 10px}
-.section-title{font-size:12px;font-weight:800;color:#dce8f5;letter-spacing:.04em;text-transform:uppercase}
-.counter{font-size:10px;color:#7f93aa}
-.person-list{display:grid;gap:12px}
-.person-card{border:1px solid #26384d;border-radius:10px;background:#0c1521;padding:14px}
-.person-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
-.person-title{font-size:11px;color:#9fc8ec;font-weight:800}
-.person-fields{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.person-fields .full{grid-column:1/-1}
-button{border:1px solid #397fba;background:linear-gradient(180deg,#286ca5,#1b4e7a);color:white;padding:10px 15px;border-radius:8px;font-weight:750;cursor:pointer;font:inherit;font-size:11px}
-button.secondary{background:#111d2b;border-color:#34485f;color:#c4d3e3}
-button.remove{padding:6px 9px;background:#26171d;border-color:#673541;color:#f0b6bd;font-size:10px}
-button:disabled{opacity:.55;cursor:wait}
-.actions{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:20px}
-.notice{display:none;margin-top:16px;padding:12px;border-radius:8px;background:#122a24;border:1px solid #28634d;color:#a8e2c4;white-space:pre-wrap}
-.notice.error{background:#301b20;border-color:#793b45;color:#ffc0c5}
-.foot{margin-top:14px;color:#687c91;font-size:10px;text-align:center}
-@media(max-width:600px){.grid,.person-fields{grid-template-columns:1fr}.wide,.person-fields .full{grid-column:auto}.actions{align-items:stretch;flex-direction:column}.actions button{width:100%}}
-
-/* LSPD 3.63 — original department seal identity */
-:root{color-scheme:light;--bg:#e9dfc9;--panel:#fbf7ed;--line:#c8ae7d;--blue:#24475d;--text:#172f40;--muted:#65717a}
-body{background:
- radial-gradient(ellipse at 50% -18%,rgba(194,151,79,.26),transparent 52%),
- repeating-linear-gradient(0deg,rgba(93,68,34,.018) 0,rgba(93,68,34,.018) 1px,transparent 1px,transparent 5px),
- #e9dfc9;color:#172f40;padding:30px 16px}
-.shell{max-width:940px;margin:3vh auto}
-.brand{gap:15px;color:#19364c;letter-spacing:.13em;font-size:11px}
-.brand img{width:68px;height:68px;object-fit:contain;border-radius:50%;background:#f8f1df;border:2px solid #b88a42;padding:2px;box-shadow:0 5px 15px rgba(47,36,19,.16)}
-.card{margin-top:18px;background:linear-gradient(145deg,#fffdf7,#f5eddb);border:1px solid #c6a66c;border-top:5px solid #17384f;border-radius:8px;padding:clamp(22px,4vw,38px);box-shadow:0 18px 48px rgba(54,43,26,.16)}
-h1{color:#17384f;letter-spacing:-.025em}
-.intro{color:#64717a}
-label{color:#334c5d}
-input,select,textarea{border:1px solid #c9b991;background:#fffdf8;color:#20394b;border-radius:5px}
-input:focus,select:focus,textarea:focus{border-color:#a77a35;box-shadow:0 0 0 3px rgba(183,138,61,.16)}
-.hint,.counter{color:#77796f}
-.section-head{border-bottom:1px solid #d9c8a5;padding-bottom:9px}
-.section-title{color:#17384f;letter-spacing:.09em}
-.person-card{border:1px solid #d4c29d;border-left:4px solid #b58a47;border-radius:6px;background:#fffaf0;box-shadow:0 3px 10px rgba(55,43,23,.045)}
-.person-title{color:#23475e;letter-spacing:.1em}
-button{border:1px solid #a77d3e;background:linear-gradient(180deg,#244b65,#17364d);color:#fff;border-radius:5px}
-button.secondary{background:#f5ecd9;border-color:#c8b487;color:#29465a}
-button.remove{background:#f7e9e5;border-color:#c58e7f;color:#8b352b}
-.notice{background:#edf4e9;border:1px solid #8eae83;color:#315b35;border-radius:5px}
-.notice.error{background:#f8e9e5;border-color:#cb9487;color:#87372d}
-.foot{color:#73766e}
-@media(max-width:600px){.brand img{width:56px;height:56px}}
+:root{color-scheme:light;--bg:#edf2f7;--panel:#fff;--line:#d5dfeb;--blue:#204e7b;--navy:#102847;--gold:#e2c52b;--text:#1a2d42;--muted:#718399}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:linear-gradient(180deg,#e6edf5 0,#f3f6fa 340px,var(--bg) 100%);color:var(--text);font:14px/1.55 Inter,system-ui,Segoe UI,sans-serif;padding:30px 16px}
+.shell{max-width:940px;margin:3vh auto}.brand{display:flex;align-items:center;gap:15px;font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:var(--navy);font-weight:850}.brand img{width:64px;height:64px;object-fit:contain;border-radius:50%;background:#fff;border:2px solid var(--gold);padding:2px;box-shadow:0 4px 14px rgba(16,40,71,.12)}
+.card{margin-top:18px;background:#fff;border:1px solid var(--line);border-top:4px solid var(--navy);border-radius:12px;padding:clamp(22px,4vw,38px);box-shadow:0 12px 36px rgba(16,40,71,.09)}
+h1{font-size:clamp(24px,4vw,32px);margin:4px 0 8px;letter-spacing:-.03em;color:var(--navy)}.intro{color:var(--muted);margin:0 0 24px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.field{display:flex;flex-direction:column;gap:6px;min-width:0}.wide{grid-column:1/-1}label{font-size:11px;color:var(--text-2,#40566e);font-weight:800}
+input,select,textarea{width:100%;border:1px solid #bdcbd9;background:#fff;color:var(--text);border-radius:7px;padding:11px 12px;font:inherit;outline:none;min-height:44px}input:focus,select:focus,textarea:focus{border-color:#28679b;box-shadow:0 0 0 3px #28679b20}textarea{min-height:105px;resize:vertical}.hint{font-size:10px;color:var(--muted)}
+.section-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:24px 0 10px;padding-bottom:10px;border-bottom:1px solid var(--line)}.section-title{font-size:12px;font-weight:850;color:var(--navy);letter-spacing:.06em;text-transform:uppercase}.counter{font-size:10px;color:var(--muted)}.person-list{display:grid;gap:12px}.person-card{border:1px solid var(--line);border-left:4px solid var(--gold);border-radius:9px;background:#f8fafc;padding:14px}.person-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}.person-title{font-size:11px;color:var(--navy);font-weight:850;letter-spacing:.08em}.person-fields{display:grid;grid-template-columns:1fr 1fr;gap:12px}.person-fields .full{grid-column:1/-1}
+button{border:1px solid var(--navy);background:var(--navy);color:white;padding:10px 15px;border-radius:7px;font-weight:750;cursor:pointer;font:inherit;font-size:11px}button:hover{background:var(--blue)}button.secondary{background:#f4f7fa;border-color:var(--line-strong,#bdcbd9);color:#40566e}button.remove{padding:6px 9px;background:#fff0f1;border-color:#efc6ca;color:#a8323c;font-size:10px}button:disabled{opacity:.55;cursor:wait}.actions{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:20px}.notice{display:none;margin-top:16px;padding:12px;border-radius:8px;background:#eaf6ef;border:1px solid #cce7d6;color:#237a4b;white-space:pre-wrap}.notice.error{background:#fff0f1;border-color:#efc6ca;color:#a8323c}.foot{margin-top:14px;color:#718399;font-size:10px;text-align:center}
+@media(max-width:600px){.grid,.person-fields{grid-template-columns:1fr}.wide,.person-fields .full{grid-column:auto}.actions{align-items:stretch;flex-direction:column}.actions button{width:100%}.brand img{width:54px;height:54px}}
 </style>
 </head>
 <body>
