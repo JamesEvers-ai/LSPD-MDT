@@ -1,0 +1,39 @@
+/* LSPD MDT 3.72 — shared operational interface foundation */
+:root{
+ --lspd-ink:#1b2c40;--lspd-muted:#65768a;--lspd-navy:#15365c;
+ --lspd-blue:#285f94;--lspd-gold:#d9bd37;--lspd-line:#d8e1eb;
+ --lspd-canvas:#eef3f8;--lspd-surface:#fff;--lspd-soft:#f5f8fb;
+ --lspd-radius:11px;--lspd-shadow:0 5px 18px rgba(20,48,79,.07)
+}
+#pageContainer{min-width:0;color:var(--lspd-ink);font-family:Inter,"Segoe UI",Arial,sans-serif}
+#pageContainer :is(h1,h2,h3,h4){color:var(--lspd-navy)}
+#pageContainer :is(input,select,textarea){max-width:100%;font-family:inherit}
+#pageContainer :is(input:not([type=checkbox]):not([type=radio]),select,textarea){
+ background:#fff!important;color:#1b2c40!important;border:1px solid #cbd6e2!important;
+ border-radius:7px!important;box-shadow:none!important
+}
+#pageContainer :is(input,select,textarea)::placeholder{color:#8998a9!important;opacity:1}
+#pageContainer :is(input,select,textarea):focus{outline:0!important;border-color:#3976ad!important;box-shadow:0 0 0 3px rgba(57,118,173,.13)!important}
+#pageContainer :is(button,.button,.btn){font-family:inherit}
+#pageContainer table{width:100%;border-collapse:separate;border-spacing:0;overflow:hidden;border:1px solid var(--lspd-line);border-radius:9px;background:#fff}
+#pageContainer table thead th{background:#eaf0f6!important;color:#29445f!important;border-bottom:1px solid #d6e0ea!important;font-size:10px;font-weight:800;letter-spacing:.045em;text-transform:uppercase}
+#pageContainer table tbody td{background:#fff;color:#2b3c50;border-bottom:1px solid #e7edf3}
+#pageContainer table tbody tr:last-child td{border-bottom:0}
+#pageContainer table tbody tr:hover td{background:#f5f8fb}
+#pageContainer :is(.system-page,.agents-page,.fines-page,.lawyers-page,.vehicle-catalog-page,.ifines-page,.records-page,.warrants-page,.wanted-page,.classifications-page,.patrols-page){
+ color:var(--lspd-ink)!important
+}
+#pageContainer .system-page{background:transparent!important}
+#pageContainer :is(.system-tabs,.agents-tabs,.records-tabs,.classification-tabs,.ifines-tabs){
+ background:#edf2f7!important;border:1px solid #d8e1eb!important;border-radius:10px!important
+}
+#pageContainer :is(.system-tab,.agents-tab,.records-tab,.classification-tab,.ifines-tab){color:#52657a!important}
+#pageContainer :is(.system-tab.active,.agents-tab.active,.records-tab.active,.classification-tab.active,.ifines-tab.active){
+ background:#fff!important;color:#15365c!important;box-shadow:0 1px 4px rgba(20,48,79,.12)!important
+}
+#pageContainer :is(.system-card,.agents-card,.records-card,.warrants-card,.wanted-card,.classification-card,.ifines-card,.lawyers-card,.vehicle-card){
+ background:#fff!important;color:var(--lspd-ink)!important;border-color:var(--lspd-line)!important;box-shadow:var(--lspd-shadow)
+}
+#pageContainer :is(.system-page,.agents-page,.fines-page,.lawyers-page,.vehicle-catalog-page,.ifines-page) :is(label,.field-label,.form-label){color:#40566e}
+#pageContainer :is(.empty-state,.empty,.no-results){color:#718196}
+@media(max-width:760px){#pageContainer{overflow-x:hidden}#pageContainer table{display:block;overflow-x:auto;white-space:nowrap}}

@@ -9,13 +9,13 @@ async function has(env,auth,perm){return auth.master||auth.permissions.includes(
 async function rankRows(env){return await db(env,"ranks",{query:{select:"id,name,short_name,level,active",order:"level.desc"}})}
 async function permissionsFor(env,auth){return {master:auth.master,permissions:auth.permissions}}
 async function handleAuth(path,request,env,payload){const args=Array.isArray(payload.args)?payload.args:[];const token=bearer(request,payload);
- if(path==="login"){const username=text(args[0]),password=String(args[1]??"");if(!username||!password)return bad("Benutzername und Passwort erforderlich.");const rows=await db(env,"users",{query:{select:"id,username,name,rank,password_salt,password_hash,active,approved,master,profile_image",username:`ilike.${username.replace(/[%,_*]/g," ")}`,limit:"1"}});const u=Array.isArray(rows)?rows[0]:null;if(!u||!(await verifyPassword(password,u.password_salt,u.password_hash)))return bad("Benutzername oder Passwort ist falsch.",401,"INVALID_CREDENTIALS");if(u.approved!==true)return bad("Dieser Account wartet noch auf die Freigabe durch einen Master.",403,"ACCOUNT_PENDING");if(u.active!==true)return bad("Dieser Benutzer ist deaktiviert.",403,"ACCOUNT_DISABLED");const sess=await createSession(env,u.id);return json({success:true,token:sess.token,expiresAt:sess.expiresAt,user:publicUser(u)});}
+ if(path==="login"){const username=text(args[0]),password=String(args[1]??"");if(!username||!password)return bad("Benutzername und Passwort erforderlich.");const rows=await db(env,"users",{query:{select:"id,username,name,rank,password_salt,password_hash,active,approved,master,profile_image",username:`ilike.${username.replace(/[%,_*]/g," ")}`,limit:"1"}});const u=Array.isArray(rows)?rows[0]:null;if(!u||!(await verifyPassword(password,u.password_salt,u.password_hash)))return bad("Benutzername oder Passwort ist falsch.",401,"INVALID_CREDENTIALS");if(u.approved!==true)return bad("Dieser Account wartet noch auf die Freigabe durch einen Master.",403,"ACCOUNT_PENDING");if(u.active!==true)return bad("Dieser Benutzer ist deaktiviert.",403,"ACCOUNT_DISABLED");const sess=await createSession(env,u.id);await writeAudit(env,{user:{id:u.id,name:u.name}},"login","authentication",u.id,"Anmeldung erfolgreich");return json({success:true,token:sess.token,expiresAt:sess.expiresAt,user:publicUser(u)});}
  if(path==="register"){const username=text(args[0]),name=text(args[1]),password=String(args[2]??"");if(!username||!name||!password)return bad("Benutzername, Name und Passwort sind erforderlich.");if(password.length<8)return bad("Das Passwort muss mindestens 8 Zeichen lang sein.");const existing=await db(env,"users",{query:{select:"id",username:`ilike.${username.replace(/[%,_*]/g," ")}`,limit:"1"}});if(existing?.length)return bad("Dieser Benutzername existiert bereits.",409);const salt=[...crypto.getRandomValues(new Uint8Array(16))].map(b=>b.toString(16).padStart(2,"0")).join("");await db(env,"users",{method:"POST",body:{id:id("U"),username,name,rank:null,password_salt:salt,password_hash:await sha256(salt+password),active:false,approved:false,master:false,profile_image:null,created_at:new Date().toISOString()},prefer:"return=minimal"});return json({success:true,message:"Der Account wurde beantragt und muss durch einen Master freigegeben werden."});}
  if(path==="session"){const a=await requireSession(env,args[0]||token);return a?json(publicUser(a.user)):bad("Deine Sitzung ist abgelaufen. Bitte erneut anmelden.",401);}
  if(path==="session-info"){const a=await requireSession(env,args[0]||token);return a?json({success:true,user:publicUser(a.user),expiresAt:a.session.expires_at}):bad("Sitzung abgelaufen.",401);}
  if(path==="permissions"){const a=await authz(env,args[0]||token);return json(await permissionsFor(env,a));}
- if(path==="logout"){const t=String(args[0]||token||"");if(t)await db(env,"fib_mdt_sessions",{method:"DELETE",query:{token_hash:`eq.${await sha256(t)}`},prefer:"return=minimal"});return json({success:true});}
- if(path==="password"){const t=String(args[0]||token),current=String(args[1]??""),next=String(args[2]??"");const a=await authz(env,t);if(!current||!next)return bad("Aktuelles und neues Passwort sind erforderlich.");if(next.length<8)return bad("Das neue Passwort muss mindestens 8 Zeichen lang sein.");const rows=await db(env,"users",{query:{select:"password_salt,password_hash",id:`eq.${a.user.id}`,limit:"1"}});const u=rows?.[0];if(!u||!(await verifyPassword(current,u.password_salt,u.password_hash)))return bad("Das aktuelle Passwort ist falsch.",403);const salt=[...crypto.getRandomValues(new Uint8Array(16))].map(b=>b.toString(16).padStart(2,"0")).join("");await db(env,"users",{method:"PATCH",query:{id:`eq.${a.user.id}`},body:{password_salt:salt,password_hash:await sha256(salt+next),updated_at:new Date().toISOString()},prefer:"return=minimal"});return json({success:true,message:"Passwort geändert."});}
+ if(path==="logout"){const t=String(args[0]||token||"");const actor=t?await requireSession(env,t):null;if(t)await db(env,"fib_mdt_sessions",{method:"DELETE",query:{token_hash:`eq.${await sha256(t)}`},prefer:"return=minimal"});if(actor)await writeAudit(env,actor,"logout","authentication",actor.user.id,"Abmeldung");return json({success:true});}
+ if(path==="password"){const t=String(args[0]||token),current=String(args[1]??""),next=String(args[2]??"");const a=await authz(env,t);if(!current||!next)return bad("Aktuelles und neues Passwort sind erforderlich.");if(next.length<8)return bad("Das neue Passwort muss mindestens 8 Zeichen lang sein.");const rows=await db(env,"users",{query:{select:"password_salt,password_hash",id:`eq.${a.user.id}`,limit:"1"}});const u=rows?.[0];if(!u||!(await verifyPassword(current,u.password_salt,u.password_hash)))return bad("Das aktuelle Passwort ist falsch.",403);const salt=[...crypto.getRandomValues(new Uint8Array(16))].map(b=>b.toString(16).padStart(2,"0")).join("");await db(env,"users",{method:"PATCH",query:{id:`eq.${a.user.id}`},body:{password_salt:salt,password_hash:await sha256(salt+next),updated_at:new Date().toISOString()},prefer:"return=minimal"});await writeAudit(env,a,"password_change","authentication",a.user.id,"Eigenes Passwort geändert");return json({success:true,message:"Passwort geändert."});}
  if(path==="profile-image") {
   const a=await authz(env,args[0]||token); const dataUrl=String(args[1]||""); const fileName=String(args[2]||"profile");
   const m=dataUrl.match(/^data:(image\/(?:png|jpeg|webp));base64,([A-Za-z0-9+/=]+)$/i);
@@ -29,12 +29,14 @@ async function handleAuth(path,request,env,payload){const args=Array.isArray(pay
   if(!upload.ok){const msg=await upload.text();throw Object.assign(new Error(`Profilbild konnte nicht gespeichert werden: ${msg.slice(0,240)}`),{status:upload.status});}
   const publicUrl=`${url}/storage/v1/object/public/fib-profile-images/${encodeURIComponent(path)}?v=${Date.now()}`;
   await db(env,"users",{method:"PATCH",query:{id:`eq.${a.user.id}`},body:{profile_image:publicUrl,updated_at:new Date().toISOString()},prefer:"return=minimal"});
+  await writeAudit(env,a,"profile_image_update","profile",a.user.id,"Profilbild geändert");
   return json({success:true,profileImage:publicUrl});
  }
  if(path==="profile-image/remove") {
   const a=await authz(env,args[0]||token); const old=String(a.user.profile_image||"");
   if(old){const match=old.match(/\/fib-profile-images\/([^?]+)/);if(match){const {url,key}=config(env);await fetch(`${url}/storage/v1/object/fib-profile-images/${match[1]}`,{method:"DELETE",headers:{apikey:key,Authorization:`Bearer ${key}`}}).catch(()=>{});}}
   await db(env,"users",{method:"PATCH",query:{id:`eq.${a.user.id}`},body:{profile_image:null,updated_at:new Date().toISOString()},prefer:"return=minimal"});
+  await writeAudit(env,a,"profile_image_remove","profile",a.user.id,"Profilbild entfernt");
   return json({success:true,profileImage:""});
  }
  return null;
@@ -85,15 +87,15 @@ async function moduleDispatch(method,args,env,token){
  if(action==="create"){
   const d=args[2]||{}; const title=text(d.title); if(!title)throw new Error("Ein Titel ist erforderlich.");
   const row={id:id(moduleKey.slice(0,3).toUpperCase()),title,description:text(d.description),status:text(d.status)||"active",event_date:d.eventDate||d.event_date||null,metadata:d.metadata&&typeof d.metadata==="object"?d.metadata:{},created_by:auth.user.id,created_by_name:auth.user.name,created_at:new Date().toISOString(),updated_at:new Date().toISOString()};
-  const saved=await db(env,cfg.table,{method:"POST",query:{select:"*"},body:row,prefer:"return=representation"}); await writeAudit(env,auth,"create",moduleKey,row.id,title);return normalizeModuleRow(saved?.[0]||row);
+  const saved=await db(env,cfg.table,{method:"POST",query:{select:"*"},body:row,prefer:"return=representation"}); return normalizeModuleRow(saved?.[0]||row);
  }
  const itemId=text(args[2]); if(!itemId)throw new Error("Ein Eintrag muss ausgewählt werden.");
- if(action==="delete") {await db(env,cfg.table,{method:"DELETE",query:{id:`eq.${itemId}`},prefer:"return=minimal"});await writeAudit(env,auth,"delete",moduleKey,itemId);return {success:true};}
+ if(action==="delete") {await db(env,cfg.table,{method:"DELETE",query:{id:`eq.${itemId}`},prefer:"return=minimal"});return {success:true};}
  const d=args[3]||{}; const patch={updated_at:new Date().toISOString()};
  for(const k of ["title","description","status"])if(d[k]!==undefined)patch[k]=text(d[k]);
  if(d.eventDate!==undefined||d.event_date!==undefined)patch.event_date=d.eventDate||d.event_date||null;
  if(d.metadata!==undefined)patch.metadata=d.metadata&&typeof d.metadata==="object"?d.metadata:{};
- const saved=await db(env,cfg.table,{method:"PATCH",query:{id:`eq.${itemId}`,select:"*"},body:patch,prefer:"return=representation"});await writeAudit(env,auth,"update",moduleKey,itemId,patch.title||"");return normalizeModuleRow(saved?.[0]||{id:itemId,...patch});
+ const saved=await db(env,cfg.table,{method:"PATCH",query:{id:`eq.${itemId}`,select:"*"},body:patch,prefer:"return=representation"});return normalizeModuleRow(saved?.[0]||{id:itemId,...patch});
 }
 async function internalFineDispatch(method,args,env,token){
  if(!["getInternalSanctionsOverview","getInternalFineCatalog","saveInternalFineCatalogItem","deleteInternalFineCatalogItem","getInternalFinePersonnel","createInternalFineCase","getInternalFineCases"].includes(method))return undefined;
@@ -151,13 +153,13 @@ async function internalFineDispatch(method,args,env,token){
   let saved;
   if(text(d.id)) saved=await db(env,"fib_internal_fine_catalog",{method:"PATCH",query:{id:`eq.${text(d.id)}`,select:"*"},body:row,prefer:"return=representation"});
   else {row.id=id("IFC");row.created_at=new Date().toISOString();row.created_by=au.user.id;saved=await db(env,"fib_internal_fine_catalog",{method:"POST",query:{select:"*"},body:row,prefer:"return=representation"});}
-  await writeAudit(env,au,text(d.id)?"update":"create","internal_fine_catalog",saved?.[0]?.id||row.id,title);return saved?.[0]||row;
+  return saved?.[0]||row;
  }
  if(method==="deleteInternalFineCatalogItem"){
   const au=await authz(env,token),itemId=text(args[1]);if(!au.master)throw Object.assign(new Error("Nur Master-Benutzer dürfen den Sanktionskatalog verwalten."),{status:403});if(!itemId)throw new Error("Eintrag fehlt.");
   const found=await db(env,"fib_internal_fine_catalog",{query:{select:"id,item_type",id:`eq.${itemId}`,limit:"1"}});if(!found?.length)throw Object.assign(new Error("Katalogeintrag nicht gefunden."),{status:404});
   if(found[0].item_type==="category") {const linked=await db(env,"fib_internal_fine_catalog",{query:{select:"id",category_id:`eq.${itemId}`,limit:"1"}});if(linked?.length)throw new Error("Die Kategorie enthält noch Sanktionen. Bitte zuerst diese verschieben oder entfernen.");}
-  await db(env,"fib_internal_fine_catalog",{method:"DELETE",query:{id:`eq.${itemId}`},prefer:"return=minimal"});await writeAudit(env,au,"delete","internal_fine_catalog",itemId);return {success:true};
+  await db(env,"fib_internal_fine_catalog",{method:"DELETE",query:{id:`eq.${itemId}`},prefer:"return=minimal"});return {success:true};
  }
  if(method==="createInternalFineCase"){
   const au=await authz(env,token,"ifines.manage"),d=args[1]||{},personId=text(d.personnelId),fineId=text(d.fineId||d.sanctionId);if(!personId||!fineId)throw new Error("Bitte Beamten und Sanktion auswählen.");
@@ -174,11 +176,11 @@ async function internalFineDispatch(method,args,env,token){
   const now=new Date().toISOString(),idValue=id("IFB"),amount=components.length===1&&components[0].type==="fine"?Number(components[0].amount):null;
   const metadata={record_type:"internal_fine_case",fine_id:item.id,fine_title:title,sanction_type:components.length===1?components[0].type:"composite",sanction_label:components.map(c=>c.label||sanctionLabel(c.type)).join(" + "),amount,sanction_value:components.length===1?components[0].value??null:null,sanction_unit:components.length===1?components[0].unit||"":"",sanction_components:components,personnel_id:user.id,personnel_name:user.name,personnel_rank:rank,service_number:p.service_number||"",call_sign:p.call_sign||"",department:p.department||"",unit:p.unit||"",reason:text(d.reason),issued_by:au.user.id,issued_by_name:au.user.name};
   const row={id:idValue,title:`${sanctionLabel(type)}: ${title} – ${user.name}`,description:text(d.reason)||item.description||`Interne Sanktion: ${title}`,status:"active",event_date:now,metadata,created_by:au.user.id,created_by_name:au.user.name,created_at:now,updated_at:now};
-  const saved=await db(env,"fib_internal_fines",{method:"POST",query:{select:"*"},body:row,prefer:"return=representation"});await writeAudit(env,au,"create","internal_fine_case",idValue,row.title);return normalizeModuleRow(saved?.[0]||row);
+  const saved=await db(env,"fib_internal_fines",{method:"POST",query:{select:"*"},body:row,prefer:"return=representation"});return normalizeModuleRow(saved?.[0]||row);
  }
 }
 
-async function dispatch(method,args,env,token){
+async function dispatchCore(method,args,env,token){
  // These legacy reference modules remain live in their original Google Sheets.
  if(SHEET_BACKED_METHODS.has(method)){
   if(method==="getWarrants"||method==="getWarrantStatistics") await authz(env,token,"warrants.view");
@@ -188,15 +190,14 @@ async function dispatch(method,args,env,token){
  }
  // Vehicle catalog: master-managed reference list for the Bureau.
  if(method==="getVehicleCatalog"){
-  const au=await authz(env,token,"patrols.view");
+  const au=await authz(env,token,"vehicles.view");
   const query={select:"id,name,vehicle_class,image_url,description,active,created_at,updated_at",order:"vehicle_class.asc,name.asc",limit:"500"};
   if(!au.master)query.active="eq.true";
   const items=await db(env,"fib_vehicle_catalog",{query});
-  return {items:items||[],canManage:au.master===true};
+  return {items:items||[],canManage:await has(env,au,"vehicles.manage")};
  }
  if(method==="saveVehicleCatalogItem"){
-  const au=await authz(env,token,"patrols.view");
-  if(!au.master)throw Object.assign(new Error("Die Fahrzeugverwaltung ist ausschließlich Master-Benutzern vorbehalten."),{status:403});
+  const au=await authz(env,token,"vehicles.manage");
   const d=args[0]||{},name=text(d.name),vehicleClass=text(d.vehicleClass||d.vehicle_class),imageUrl=text(d.imageUrl||d.image_url);
   const allowed=["STR","STR (UM)","OFF","OFF (UM)","HSP","HSP (UM)","OVW"];
   if(!name)throw new Error("Bitte einen Fahrzeugnamen angeben.");
@@ -210,8 +211,7 @@ async function dispatch(method,args,env,token){
   return {success:true,item:saved||row};
  }
  if(method==="deleteVehicleCatalogItem"){
-  const au=await authz(env,token,"patrols.view");
-  if(!au.master)throw Object.assign(new Error("Die Fahrzeugverwaltung ist ausschließlich Master-Benutzern vorbehalten."),{status:403});
+  const au=await authz(env,token,"vehicles.manage");
   const itemId=text(args[0]);if(!itemId)throw new Error("Fahrzeug-ID fehlt.");
   await db(env,"fib_vehicle_catalog",{method:"DELETE",query:{id:`eq.${itemId}`},prefer:"return=minimal"});
   return {success:true};
@@ -466,6 +466,73 @@ async function dispatch(method,args,env,token){
  if(method==="systemDeactivateUser"){await authz(env,token,"system.users.manage");await db(env,"users",{method:"PATCH",query:{id:`eq.${text(args[1])}`},body:{active:false},prefer:"return=minimal"});return {success:true};}
  throw Object.assign(new Error(`Serverfunktion „${method}“ ist noch nicht implementiert.`),{status:501,code:"NOT_MIGRATED"});
 }
+
+const READ_ONLY_METHODS = new Set([
+ "getVehicleCatalog","getDashboardStatistics","getMyPermissions","getAllAgents",
+ "getClassificationPermissions","getClassifications","getInternalFineCases",
+ "getInternalFineCatalog","getInternalFinePersonnel","getInternalSanctionsOverview",
+ "getPatrolDisplayConfig","getPatrolEligibleUsers","getPatrolTenCodes","getPatrols",
+ "getPersonnelFile","getPersonnelFileBundle","getPersonnelList","getPersonnelNotes",
+ "getPersonnelRankOptions","getPersonnelTrainings","getRankById","getRecord",
+ "getRecordShares","getRecords","getRecordsConfig","getWanted","getWantedConfig",
+ "getWantedEntries","getWantedEntry","getWarrantStatistics","getWarrants",
+ "systemGetAllRanks","systemGetPermissions","systemGetRankPermissions","systemGetUserRanks",
+ "systemGetUsers","getApiDiagnostics","getExternalRecord"
+]);
+function auditModule(method,args){
+ const first=String(args?.[0]??"");
+ if(["announcements","vacations","ifines","calendar","gangs","bonuses","logs"].includes(first) &&
+    /ModuleItem/.test(method)) return first;
+ if(/Patrol/i.test(method)) return "patrols";
+ if(/Personnel|Agent/i.test(method)) return "personnel";
+ if(/Record|Share/i.test(method)) return "records";
+ if(/Wanted/i.test(method)) return "wanted";
+ if(/Warrant/i.test(method)) return "warrants";
+ if(/Classification|Classified/i.test(method)) return "classification";
+ if(/InternalFine|Sanction/i.test(method)) return "ifines";
+ if(/Vehicle/i.test(method)) return "vehicle_catalog";
+ if(/^system/i.test(method)) return "system";
+ if(/Fine/i.test(method)) return "fines";
+ if(/Lawyer/i.test(method)) return "lawyers";
+ if(/Sheet|Attorney/i.test(method)) return "sheets";
+ return "mdt";
+}
+function auditAction(method){
+ if(/^(create|add|systemCreate)/i.test(method)) return "create";
+ if(/^(update|save|systemUpdate|set)/i.test(method)) return "update";
+ if(/^(delete|remove|systemDeactivate)/i.test(method)) return "delete";
+ if(/^approve/i.test(method)) return "approve";
+ if(/^reject/i.test(method)) return "reject";
+ if(/^archive/i.test(method)) return "archive";
+ if(/^revoke/i.test(method)) return "revoke";
+ if(/^join/i.test(method)) return "join";
+ if(/^leave/i.test(method)) return "leave";
+ if(/^refresh/i.test(method)) return "refresh";
+ return "execute";
+}
+async function dispatch(method,args,env,token){
+ const result = await dispatchCore(method,args,env,token);
+ if(!READ_ONLY_METHODS.has(method) && !/^(get|list|search|check|has|validate|preview|load)/i.test(method)){
+  try{
+   const actor = await authz(env,token);
+   const moduleName = auditModule(method,args);
+   const action = auditAction(method);
+   const itemId = [
+    result?.id, result?.item?.id, args?.[1]?.id,
+    typeof args?.[1] === "string" ? args[1] : null,
+    args?.[0]?.id, typeof args?.[0] === "string" ? args[0] : null
+   ].find(value => value !== undefined && value !== null && value !== "") || null;
+   const detailParts = [method];
+   const label = result?.title || args?.[0]?.title || args?.[2]?.title || args?.[0]?.name || args?.[1]?.name;
+   if(label) detailParts.push(String(label).slice(0,180));
+   await writeAudit(env,actor,action,moduleName,itemId,detailParts.join(" · "));
+  }catch(error){
+   console.warn("Central audit logging skipped:",error?.message||error);
+  }
+ }
+ return result;
+}
+
 export async function onRequest({request,env}){
  if(request.method==="OPTIONS")return new Response(null,{status:204});
  const url=new URL(request.url);try{
@@ -525,6 +592,7 @@ export async function onRequest({request,env}){
     prefer:"return=representation"
    });
    const requests=Array.isArray(saved)?saved:rows.map(row=>({id:row.id,status:row.status,requested_at:now,person_name:row.person_name,passport_number:row.passport_number,rank_function:row.rank_function}));
+   await writeAudit(env,{user:{id:null,name:applicant}},"submit","classification",requests[0]?.id||null,`Öffentlicher Klassifizierungsantrag · ${requests.length} Person(en)`);
    return json({success:true,count:requests.length,requests});
   }
 

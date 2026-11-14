@@ -1,16 +1,73 @@
-<main class="mdt-workspace mdt-workspace--logs" data-mdt-page="logs" data-lspd-module="logs">
-<section class="mdt-module" id="mdt-module-logs">
- <h2>Systemprotokolle</h2><div class="sub">Protokoll der Änderungen innerhalb des migrierten MDT.</div>
- <div class="toolbar"><input id="logs-search" placeholder="Einträge durchsuchen…" aria-label="Einträge durchsuchen"><button class="secondary" id="logs-reload">Aktualisieren</button></div>
- <div class="message" id="logs-message" role="status">Daten werden geladen …</div>
- <div class="form" id="logs-form" style="display:none">
-  <input id="logs-title" placeholder="Titel / Protokolleintrag" maxlength="180">
-  <select id="logs-status"><option value="logged">Logged</option><option value="active">Aktiv</option><option value="pending">Ausstehend</option><option value="approved">Genehmigt</option><option value="rejected">Abgelehnt</option><option value="closed">Abgeschlossen</option><option value="scheduled">Geplant</option></select>
-  <input id="logs-date" type="datetime-local" aria-label="Datum und Uhrzeit">
-  <textarea id="logs-description" placeholder="Beschreibung / Details"></textarea>
-  <div class="actions"><button id="logs-save">Speichern</button><button class="secondary" id="logs-cancel">Abbrechen</button></div>
- </div>
- <div class="items" id="logs-items"></div>
+<section class="lspd-logs-page" id="lspdLogsPage">
+  <header class="lspd-page-heading">
+    <div>
+      <div class="lspd-eyebrow">SICHERHEIT & NACHVOLLZIEHBARKEIT</div>
+      <h1>Systemprotokoll</h1>
+      <p>Nachvollziehbare Übersicht der im MDT ausgeführten Änderungen und Verwaltungsaktionen.</p>
+    </div>
+    <button type="button" class="lspd-primary-btn" id="logsReload">Aktualisieren</button>
+  </header>
+  <div class="lspd-log-stats" id="logsStats">
+    <article><span>Protokollierte Aktionen</span><strong id="logsCount">–</strong></article>
+    <article><span>Ausführende Benutzer</span><strong id="logsActors">–</strong></article>
+    <article><span>Letzte Aktivität</span><strong id="logsLatest">–</strong></article>
+  </div>
+  <div class="lspd-log-toolbar">
+    <input id="logsSearch" type="search" placeholder="Benutzer, Aktion, Bereich oder ID suchen…" autocomplete="off">
+    <select id="logsModule"><option value="">Alle Bereiche</option></select>
+    <select id="logsAction"><option value="">Alle Aktionen</option><option value="create">Erstellt</option><option value="update">Bearbeitet</option><option value="delete">Gelöscht</option><option value="approve">Genehmigt</option><option value="reject">Abgelehnt</option><option value="archive">Archiviert</option><option value="revoke">Widerrufen</option><option value="join">Beigetreten</option><option value="leave">Verlassen</option><option value="refresh">Aktualisiert</option><option value="execute">Ausgeführt</option><option value="login">Angemeldet</option><option value="logout">Abgemeldet</option><option value="password_change">Passwort geändert</option><option value="submit">Antrag eingereicht</option></select>
+  </div>
+  <div class="lspd-log-status" id="logsStatus" role="status">Protokolle werden geladen…</div>
+  <div class="lspd-log-list" id="logsList"></div>
 </section>
-<script src="/js/pages/logs.js?v=3.76" defer></script>
-</main>
+<style>
+.lspd-logs-page{--lp-navy:#12345a;--lp-blue:#245b8f;--lp-gold:#d7b72b;--lp-ink:#1d2c3d;--lp-muted:#68788b;--lp-line:#dce4ed;--lp-soft:#f4f7fa;color:var(--lp-ink);font:13px/1.5 Inter,"Segoe UI",Arial,sans-serif;padding:24px;max-width:1440px;margin:0 auto}
+.lspd-logs-page *{box-sizing:border-box}
+.lspd-page-heading{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:22px 24px;margin-bottom:16px;background:#fff;border:1px solid var(--lp-line);border-left:4px solid var(--lp-gold);border-radius:12px;box-shadow:0 5px 18px rgba(18,52,90,.06)}
+.lspd-eyebrow{font-size:10px;letter-spacing:.14em;font-weight:800;color:#947900}.lspd-page-heading h1{margin:4px 0;color:var(--lp-navy);font-size:25px;font-weight:800}.lspd-page-heading p{margin:0;color:var(--lp-muted)}
+.lspd-primary-btn{border:0;border-radius:8px;padding:10px 15px;background:var(--lp-navy);color:#fff;font:600 12px Inter,"Segoe UI",Arial,sans-serif;cursor:pointer}.lspd-primary-btn:hover{background:var(--lp-blue)}
+.lspd-log-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:14px}.lspd-log-stats article{padding:15px 17px;background:#fff;border:1px solid var(--lp-line);border-radius:10px}.lspd-log-stats span{display:block;color:var(--lp-muted);font-size:11px}.lspd-log-stats strong{display:block;margin-top:5px;color:var(--lp-navy);font-size:22px}
+.lspd-log-toolbar{display:grid;grid-template-columns:minmax(220px,1fr) 210px 190px;gap:10px;padding:12px;background:#fff;border:1px solid var(--lp-line);border-radius:10px}
+.lspd-log-toolbar input,.lspd-log-toolbar select{width:100%;min-width:0;padding:10px 11px;border:1px solid #cbd6e2;border-radius:7px;background:#fff;color:var(--lp-ink);font:inherit;outline:none}.lspd-log-toolbar input:focus,.lspd-log-toolbar select:focus{border-color:var(--lp-blue);box-shadow:0 0 0 3px rgba(36,91,143,.12)}
+.lspd-log-status{padding:12px 3px;color:var(--lp-muted);font-size:12px}.lspd-log-list{display:grid;gap:9px}.lspd-log-entry{display:grid;grid-template-columns:38px minmax(0,1fr) auto;gap:12px;align-items:start;padding:14px 16px;background:#fff;border:1px solid var(--lp-line);border-radius:10px}.lspd-log-mark{width:34px;height:34px;display:grid;place-items:center;border-radius:9px;background:#edf3f9;color:var(--lp-navy);font-weight:800}.lspd-log-entry h3{margin:0;color:var(--lp-navy);font-size:13px;font-weight:750}.lspd-log-entry p{margin:4px 0 0;color:#536477;overflow-wrap:anywhere}.lspd-log-meta{display:flex;flex-wrap:wrap;gap:6px 12px;margin-top:7px;color:var(--lp-muted);font-size:11px}.lspd-log-meta b{color:#334b65}.lspd-log-tag{padding:4px 8px;border-radius:99px;background:#edf3f9;color:var(--lp-navy);font-size:10px;font-weight:750;white-space:nowrap}.lspd-log-empty{padding:35px;text-align:center;color:var(--lp-muted);background:#fff;border:1px dashed #cbd6e2;border-radius:10px}
+@media(max-width:760px){.lspd-logs-page{padding:14px}.lspd-page-heading{align-items:flex-start;flex-direction:column}.lspd-log-stats{grid-template-columns:1fr}.lspd-log-toolbar{grid-template-columns:1fr}.lspd-log-entry{grid-template-columns:32px minmax(0,1fr)}.lspd-log-tag{grid-column:2;justify-self:start}}
+</style>
+<script>
+(()=> {
+ const root=document.getElementById("lspdLogsPage");
+ if(!root||root.dataset.ready==="1")return;
+ root.dataset.ready="1";
+ const $=id=>document.getElementById(id);
+ const state={rows:[]};
+ const labels={create:"Erstellt",update:"Bearbeitet",delete:"Gelöscht",approve:"Genehmigt",reject:"Abgelehnt",archive:"Archiviert",revoke:"Widerrufen",join:"Beigetreten",leave:"Verlassen",refresh:"Aktualisiert",execute:"Ausgeführt",login:"Angemeldet",logout:"Abgemeldet",password_change:"Passwort geändert",profile_image_update:"Profilbild geändert",profile_image_remove:"Profilbild entfernt",submit:"Antrag eingereicht"};
+ const moduleLabels={patrols:"Leitstelle",personnel:"Personalverwaltung",records:"Akten & Berichte",wanted:"Fahndung",warrants:"Haftbefehle",classification:"Klassifizierungen",ifines:"Interner Bußgeldkatalog",vehicle_catalog:"Fahrzeugkatalog",fines:"Bußgeldkatalog",lawyers:"Anwaltskammer",system:"Systemverwaltung",sheets:"Externe Daten",announcements:"Bekanntmachungen",vacations:"Urlaub",calendar:"Kalender",gangs:"Gangübersicht",bonuses:"Bonussystem",mdt:"MDT",authentication:"Anmeldung",profile:"Profil"};
+ const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+ const date=v=>{if(!v)return "Zeitpunkt unbekannt";const d=new Date(v);return Number.isNaN(d.getTime())?String(v):d.toLocaleString("de-DE",{dateStyle:"medium",timeStyle:"short"});};
+ function render(){
+  const q=$("logsSearch").value.trim().toLowerCase(),mod=$("logsModule").value,act=$("logsAction").value;
+  const rows=state.rows.filter(r=>(!mod||r.module_name===mod)&&(!act||r.action===act)&&(!q||[r.actor_name,r.actor_id,r.action,r.module_name,r.item_id,r.detail].join(" ").toLowerCase().includes(q)));
+  $("logsStatus").textContent=`${rows.length} von ${state.rows.length} protokollierten Aktionen`;
+  $("logsList").innerHTML=rows.length?rows.map(r=>`<article class="lspd-log-entry"><div class="lspd-log-mark">${esc((r.actor_name||"?").slice(0,1).toUpperCase())}</div><div><h3>${esc(labels[r.action]||r.action||"Aktion")} · ${esc(moduleLabels[r.module_name]||r.module_name||"Unbekannter Bereich")}</h3><p>${esc(r.detail||"Keine zusätzlichen Details hinterlegt.")}</p><div class="lspd-log-meta"><span>Ausgeführt von: <b>${esc(r.actor_name||"Unbekannt")}</b></span><span>Benutzer-ID: ${esc(r.actor_id||"–")}</span><span>${esc(date(r.created_at))}</span><span>Eintrags-ID: ${esc(r.item_id||"–")}</span></div></div><span class="lspd-log-tag">${esc(labels[r.action]||r.action||"Aktion")}</span></article>`).join(""):'<div class="lspd-log-empty">Für diese Filterkombination liegen keine Protokolleinträge vor.</div>';
+ }
+ async function load(){
+  $("logsReload").disabled=true;$("logsStatus").textContent="Protokolle werden geladen…";
+  try{
+   const token=sessionStorage.getItem("fib_mdt_session")||sessionStorage.getItem("lspd_mdt_session")||"";
+   const rows=await new Promise((resolve,reject)=>CloudApi.run.withSuccessHandler(resolve).withFailureHandler(reject).getModuleItems(token,"logs"));
+   state.rows=Array.isArray(rows)?rows:[];
+   const mods=[...new Set(state.rows.map(r=>r.module_name).filter(Boolean))].sort();
+   $("logsModule").innerHTML='<option value="">Alle Bereiche</option>'+mods.map(m=>`<option value="${esc(m)}">${esc(moduleLabels[m]||m)}</option>`).join("");
+   const actors=new Set(state.rows.map(r=>r.actor_id||r.actor_name).filter(Boolean));
+   $("logsCount").textContent=state.rows.length.toLocaleString("de-DE");
+   $("logsActors").textContent=actors.size.toLocaleString("de-DE");
+   $("logsLatest").textContent=state.rows.length?date(state.rows[0].created_at):"–";
+   render();
+  }catch(e){$("logsStatus").textContent=e?.message||"Protokolle konnten nicht geladen werden.";$("logsList").innerHTML='<div class="lspd-log-empty">Der Zugriff wurde verweigert oder die Protokolle sind nicht erreichbar. Prüfe die Berechtigung „logs.view“ und die Datenbankmigration.</div>';}
+  finally{$("logsReload").disabled=false;}
+ }
+ ["logsSearch","logsModule","logsAction"].forEach(id=>$(id).addEventListener("input",render));
+ $("logsReload").addEventListener("click",load);
+ window.addEventListener("fib-mdt:refresh-request",()=>{if(root.isConnected)load();});
+ load();
+})();
+</script>
