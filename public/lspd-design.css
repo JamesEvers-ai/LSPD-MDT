@@ -922,3 +922,208 @@ button.secondary,.secondary-button,.btn-secondary{background:#f0f4f8!important;c
   .sidebar{background:#10284b!important}
   .main{padding-left:68px!important}
 }
+
+
+/* ============================================================
+   LSPD MDT 3.69 — page-level visual normalization
+   These rules intentionally target the three inconsistent views
+   instead of relying on generic legacy component overrides.
+   ============================================================ */
+:root{
+  color-scheme:light;
+  --lspd-ink:#172b43;
+  --lspd-navy:#10284b;
+  --lspd-blue:#1f4e7c;
+  --lspd-gold:#e3c52b;
+  --lspd-bg:#edf2f8;
+  --lspd-panel:#ffffff;
+  --lspd-line:#d4deea;
+  --lspd-muted:#60758d;
+}
+.content{background:#edf2f8!important}
+.content :is(.fines-page,.ifines-page,.dashboard){
+  color:#1b2d43!important;
+  background:#edf2f8!important;
+  font-family:Inter,Arial,sans-serif!important;
+}
+/* External Bußgeldkatalog */
+.content .fines-page{
+  padding:22px 24px 90px!important;
+  color:#1b2d43!important;
+  background:#edf2f8!important;
+  scrollbar-color:#c4d0de transparent!important;
+}
+.content .fines-sticky-top{
+  position:relative!important; top:auto!important;
+  margin:-22px -24px 18px!important;
+  padding:22px 24px 16px!important;
+  background:#10284b!important;
+  border-bottom:3px solid #e3c52b!important;
+  box-shadow:0 5px 18px rgba(16,40,75,.12)!important;
+  backdrop-filter:none!important;
+}
+.content .fines-eyebrow{color:#e3c52b!important;font-weight:800!important}
+.content .fines-title{color:#fff!important;font-weight:800!important}
+.content .fines-subtitle{color:#d6e0eb!important}
+.content .fines-clock{background:#173b68!important;border:1px solid rgba(255,255,255,.16)!important;color:#dbe6f1!important}
+.content .fines-clock strong{color:#fff!important}
+.content .fines-disclaimer{
+  background:rgba(255,255,255,.07)!important;border:1px solid rgba(255,255,255,.15)!important;
+  color:#d0dbe7!important;border-radius:8px!important;
+}
+.content .fines-disclaimer strong{color:#fff!important}
+.content .fines-disclaimer-icon{color:#e3c52b!important}
+.content .fines-search-panel{
+  display:flex!important;align-items:flex-end!important;gap:10px!important;
+  padding:13px!important;background:#fff!important;border:1px solid #d4deea!important;
+  border-radius:10px!important;box-shadow:0 4px 14px rgba(16,40,75,.06)!important;
+}
+.content .fines-search-label{color:#294663!important;font-weight:800!important}
+.content .fines-search-count{color:#60758d!important}
+.content .fines-search-input{
+  background:#fff!important;color:#1b2d43!important;border:1px solid #c5d2df!important;
+  border-radius:7px!important;min-height:40px!important;
+}
+.content .fines-search-input::placeholder{color:#8293a7!important}
+.content .fines-search-icon{color:#60758d!important}
+.content .fines-search-clear,.content .fines-refresh-button{
+  background:#173b68!important;color:#fff!important;border:1px solid #173b68!important;
+  border-radius:7px!important;
+}
+.content .fines-lawbook{
+  background:#fff!important;border:1px solid #d4deea!important;border-radius:10px!important;
+  overflow:hidden!important;box-shadow:0 4px 14px rgba(16,40,75,.05)!important;
+}
+.content .fines-lawbook-header{background:#10284b!important;color:#fff!important;border-bottom:3px solid #e3c52b!important}
+.content .fines-lawbook-header *{color:#fff!important}
+.content .fines-lawbook-name{color:#fff!important}
+.content .fines-lawbook-count{color:#d4dfeb!important}
+.content .fines-table-wrapper{background:#fff!important;overflow:auto!important}
+.content .fines-table{background:#fff!important;border-collapse:collapse!important}
+.content .fines-table th{
+  background:#eaf0f6!important;color:#294663!important;border-bottom:1px solid #d4deea!important;
+  font-weight:800!important;
+}
+.content .fines-table td{
+  background:#fff!important;color:#344b63!important;border-bottom:1px solid #dfe6ee!important;
+}
+.content .fines-table tr:hover td{background:#f5f8fb!important}
+.content .fines-data-row .fines-col-paragraph,
+.content .fines-data-row .fines-col-offense{color:#1b2d43!important}
+.content .fines-money{color:#173b68!important;font-weight:800!important}
+.content .fines-info,.content .fines-state{color:#526981!important}
+.content .fines-copy-button{background:#fff!important;color:#294663!important;border:1px solid #cbd7e4!important}
+.content .fines-copy-button:hover{background:#edf3f8!important}
+.content .fines-wanted{background:#edf3fa!important;color:#294663!important;border:1px solid #cbd7e4!important}
+.content .fines-handover.yes{background:#eaf6ef!important;color:#25804d!important}
+.content .fines-handover.no{color:#60758d!important}
+/* Internal disciplinary sanctions catalog */
+.content .ifines-page{
+  padding:22px 24px 80px!important;color:#1b2d43!important;background:#edf2f8!important;
+}
+.content .ifines-top{
+  position:relative!important;top:auto!important;z-index:2!important;
+  margin:-22px -24px 18px!important;padding:22px 24px 15px!important;
+  background:#10284b!important;border-bottom:3px solid #e3c52b!important;
+  box-shadow:0 5px 18px rgba(16,40,75,.12)!important;backdrop-filter:none!important;
+}
+.content .ifines-eyebrow{color:#e3c52b!important}
+.content .ifines-title{color:#fff!important}
+.content .ifines-subtitle{color:#d6e0eb!important}
+.content .ifines-tabs{border-bottom:1px solid rgba(255,255,255,.22)!important}
+.content .ifines-tab{
+  background:transparent!important;color:#d6e0eb!important;border:1px solid transparent!important;
+  border-radius:7px 7px 0 0!important;
+}
+.content .ifines-tab.active{
+  background:#fff!important;color:#173b68!important;border:1px solid #d4deea!important;
+  border-bottom:3px solid #e3c52b!important;
+}
+.content .ifines-panel{color:#1b2d43!important}
+.content .ifines-toolbar{margin:14px 0!important}
+.content .ifines-search{max-width:100%!important}
+.content .ifines-card,.content .ifines-lawbook-table{
+  background:#fff!important;color:#1b2d43!important;border:1px solid #d4deea!important;
+  border-radius:9px!important;box-shadow:0 3px 12px rgba(16,40,75,.05)!important;
+}
+.content .ifines-card h3,.content .ifines-row-title{color:#173b68!important}
+.content .ifines-muted,.content .ifines-row-meta,.content .ifines-note,
+.content .ifines-status,.content .ifines-row-desc{color:#60758d!important}
+.content .ifines-field label{color:#294663!important}
+.content .ifines-page input,.content .ifines-page select,.content .ifines-page textarea{
+  background:#fff!important;color:#1b2d43!important;border:1px solid #c5d2df!important;
+  border-radius:7px!important;
+}
+.content .ifines-page input::placeholder,.content .ifines-page textarea::placeholder{color:#8293a7!important}
+.content .ifines-page button{
+  background:#173b68!important;color:#fff!important;border:1px solid #173b68!important;
+  border-radius:7px!important;
+}
+.content .ifines-page button.secondary{
+  background:#edf2f8!important;color:#294663!important;border:1px solid #cbd7e4!important;
+}
+.content .ifines-page button.danger{
+  background:#fff1f1!important;color:#a33333!important;border:1px solid #e7c4c4!important;
+}
+.content .ifines-row,.content .ifines-inline-form{
+  background:#f7f9fc!important;color:#1b2d43!important;border:1px solid #d4deea!important;
+}
+.content .ifines-row-title{font-weight:800!important}
+.content .ifines-value{color:#173b68!important}
+.content .ifines-chip{background:#eaf1f8!important;color:#245889!important}
+.content .ifines-chip.termination{background:#fff0f0!important;color:#a33333!important}
+.content .ifines-empty{background:#f7f9fc!important;color:#60758d!important;border-color:#cbd7e4!important}
+.content .ifines-warning,.content .ifines-confirm{background:#fff7ed!important;color:#8a4b18!important;border-color:#edd3b6!important}
+.content .if-component{background:#f2f6fa!important;border:1px solid #d4deea!important}
+.content .ifines-table-wrapper{background:#fff!important;border:1px solid #d4deea!important;border-radius:9px!important;overflow:auto!important}
+.content .ifines-table{background:#fff!important;border-collapse:collapse!important}
+.content .ifines-table th{background:#eaf0f6!important;color:#294663!important;border-bottom:1px solid #d4deea!important}
+.content .ifines-table td{background:#fff!important;color:#344b63!important;border-bottom:1px solid #dfe6ee!important}
+.content .ifines-category-row td{background:#edf3f8!important;color:#173b68!important;font-weight:800!important}
+.content .ifines-paragraph{color:#173b68!important;font-weight:750!important}
+.content .ifines-table-muted{color:#60758d!important}
+/* Dashboard: restore contrast and consistent white working panels */
+.content .dashboard{padding:22px 26px 90px!important;gap:16px!important;background:#edf2f8!important}
+.content .dashboard-welcome,.content .dashboard-stat,.content .dashboard-card{
+  background:#fff!important;color:#1b2d43!important;border:1px solid #d4deea!important;
+  border-radius:9px!important;box-shadow:0 4px 14px rgba(16,40,75,.05)!important;
+}
+.content .dashboard-welcome::before,.content .dashboard-stat::before{background:#e3c52b!important;height:3px!important}
+.content .dashboard-eyebrow{color:#9a7710!important}
+.content .dashboard-title{color:#173b68!important}
+.content .dashboard-subtitle{color:#60758d!important}
+.content .dashboard-clock{color:#173b68!important}
+.content .dashboard-stat-label{color:#526981!important}
+.content .dashboard-stat-icon,.content .dashboard-quick-action-icon{
+  background:#eaf1f8!important;border:1px solid #cbd9e8!important;color:#245889!important;
+}
+.content .dashboard-stat-value{color:#173b68!important}
+.content .dashboard-stat-subtitle{color:#60758d!important}
+.content .dashboard-card-header{background:#f5f8fb!important;border-bottom:1px solid #d4deea!important}
+.content .dashboard-card-title{color:#173b68!important}
+.content .dashboard-card-header-icon{color:#9a7710!important}
+.content .dashboard-card-body{background:#fff!important;color:#1b2d43!important}
+.content .dashboard-quick-action{
+  background:#f5f8fb!important;color:#1b2d43!important;border:1px solid #d4deea!important;
+  border-radius:7px!important;
+}
+.content .dashboard-quick-action:hover{background:#edf3f8!important;border-color:#b9cadd!important}
+.content .dashboard-quick-action-title{color:#173b68!important}
+.content .dashboard-quick-action-description{color:#60758d!important}
+.content .dashboard-empty{background:#f7f9fc!important;color:#60758d!important;border:1px solid #d4deea!important}
+.content .dashboard-empty-title{color:#294663!important}
+.content .dashboard-empty-text{color:#60758d!important}
+.content .dashboard-profile{background:#fff!important;color:#1b2d43!important}
+.content .dashboard-profile-name{color:#173b68!important}
+.content .dashboard-profile-rank{color:#60758d!important}
+.content .dashboard-profile-badge{background:#eaf6ef!important;color:#25804d!important;border:1px solid #c9e5d4!important}
+.content .dashboard-permission-info{background:#10284b!important;border:1px solid #173b68!important}
+.content .dashboard-permission-label{color:#b9c9d9!important}
+.content .dashboard-permission-value{color:#fff!important}
+.content .dashboard-permission-value.granted{color:#8ed2a8!important}
+@media(max-width:900px){
+ .content .dashboard{padding:16px 14px 70px!important}
+ .content .dashboard-stats{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+ .content .dashboard-main-grid{grid-template-columns:1fr!important}
+ .content .ifines-grid{grid-template-columns:1fr!important}
+}
