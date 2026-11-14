@@ -1,0 +1,4857 @@
+
+
+(function() {
+
+    "use strict";
+
+
+    /* =====================================================
+       STATE
+    ====================================================== */
+
+    const state =
+        window.__FIB_MDT_AGENTS_PAGE__ ||
+        {
+
+            agents: [],
+
+            filteredAgents: [],
+
+            selectedAgent: null,
+
+            rankOptions: [],
+
+            trainings: [],
+
+            notes: [],
+
+            sanctions: [],
+
+            sanctionsVisible: false,
+
+            sanctionsLoaded: false,
+
+            trainingsLoaded: false,
+
+            notesLoaded: false,
+
+            bundleLoaded: false,
+
+            bundleLoading: false,
+
+            modalTab: "personal",
+
+            globalEventsBound: false
+
+        };
+
+
+    window.__FIB_MDT_AGENTS_PAGE__ =
+        state;
+
+
+    /* =====================================================
+       TOKEN
+    ====================================================== */
+
+    function getAgentsSessionToken() {
+
+        if (
+            typeof sessionToken !==
+            "undefined" &&
+            sessionToken
+        ) {
+
+            return sessionToken;
+
+        }
+
+
+        try {
+
+            return (
+                sessionStorage.getItem(
+                    "fib_mdt_session"
+                ) ||
+                sessionStorage.getItem(
+                    "lspd_mdt_session"
+                ) ||
+                ""
+            );
+
+        } catch (error) {
+
+            console.error(
+                "LSPD MDT – Session konnte nicht gelesen werden:",
+                error
+            );
+
+            return "";
+
+        }
+
+    }
+
+
+    /* =====================================================
+       HELPERS
+    ====================================================== */
+
+    function $(
+        id
+    ) {
+
+        return document.getElementById(
+            id
+        );
+
+    }
+
+
+    function escapeHtml(
+        value
+    ) {
+
+        return String(
+            value ??
+            ""
+        )
+        .replace(
+            /&/g,
+            "&amp;"
+        )
+        .replace(
+            /</g,
+            "&lt;"
+        )
+        .replace(
+            />/g,
+            "&gt;"
+        )
+        .replace(
+            /"/g,
+            "&quot;"
+        )
+        .replace(
+            /'/g,
+            "&#039;"
+        );
+
+    }
+
+
+    function getValue(
+        object,
+        keys,
+        fallback = ""
+    ) {
+
+        if (!object) {
+            return fallback;
+        }
+
+
+        for (
+            const key of keys
+        ) {
+
+            if (
+                Object.prototype.hasOwnProperty.call(
+                    object,
+                    key
+                ) &&
+                object[key] !==
+                    null &&
+                object[key] !==
+                    undefined
+            ) {
+
+                return object[key];
+
+            }
+
+        }
+
+
+        return fallback;
+
+    }
+
+
+    /* =====================================================
+       PERMISSIONS
+    ====================================================== */
+
+    function hasAgentPermission(permission) {
+
+        if (
+            typeof isMaster !== "undefined" &&
+            isMaster === true
+        ) {
+            return true;
+        }
+
+        let permissions = [];
+
+        try {
+
+            if (
+                typeof myPermissions !== "undefined" &&
+                Array.isArray(myPermissions)
+            ) {
+                permissions = myPermissions;
+            }
+            else if (
+                Array.isArray(window.myPermissions)
+            ) {
+                permissions = window.myPermissions;
+            }
+
+        } catch (error) {
+
+            permissions = [];
+
+        }
+
+        return permissions.some(
+            value =>
+                String(value) ===
+                String(permission)
+        );
+
+    }
+
+
+    function canViewOfficers() {
+
+        return hasAgentPermission(
+            "officers.view"
+        );
+
+    }
+
+
+    function canEditOfficers() {
+
+        return hasAgentPermission(
+            "officers.edit"
+        );
+
+    }
+
+
+    /* =====================================================
+       RANK SORTING
+    ====================================================== */
+
+    function getAgentRankId(agent) {
+
+        return String(
+            getValue(
+                agent,
+                [
+                    "rankId",
+                    "RankId",
+                    "RankID"
+                ],
+                ""
+            )
+        );
+
+    }
+
+
+    function getAgentRankName(agent) {
+
+        return String(
+            getValue(
+                agent,
+                [
+                    "rankName",
+                    "rank",
+                    "Rank"
+                ],
+                "Kein Rang"
+            )
+        );
+
+    }
+
+
+    function getRankLevel(rank) {
+
+        if (!rank) {
+            return Number.NEGATIVE_INFINITY;
+        }
+
+        const raw =
+            getValue(
+                rank,
+                [
+                    "level",
+                    "Level",
+                    "priority",
+                    "Priority",
+                    "order",
+                    "Order"
+                ],
+                ""
+            );
+
+        const level = Number(raw);
+
+        return Number.isFinite(level)
+            ? level
+            : Number.NEGATIVE_INFINITY;
+
+    }
+
+
+    function findAgentRankOption(agent) {
+
+        const rankId =
+            getAgentRankId(agent);
+
+        if (rankId) {
+
+            const byId =
+                state.rankOptions.find(
+                    rank =>
+                        String(
+                            getValue(
+                                rank,
+                                [
+                                    "id",
+                                    "ID",
+                                    "rankId",
+                                    "RankId"
+                                ],
+                                ""
+                            )
+                        ) ===
+                        rankId
+                );
+
+            if (byId) {
+                return byId;
+            }
+
+        }
+
+        const rankName =
+            getAgentRankName(agent)
+                .trim()
+                .toLowerCase();
+
+        if (!rankName) {
+            return null;
+        }
+
+        return (
+            state.rankOptions.find(
+                rank =>
+                    String(
+                        getValue(
+                            rank,
+                            [
+                                "name",
+                                "Name",
+                                "rank",
+                                "Rank"
+                            ],
+                            ""
+                        )
+                    )
+                    .trim()
+                    .toLowerCase() ===
+                    rankName
+            ) ||
+            null
+        );
+
+    }
+
+
+    function sortAgentsByRank() {
+
+        state.agents.sort(
+            (a, b) => {
+
+                const aRank =
+                    findAgentRankOption(a);
+
+                const bRank =
+                    findAgentRankOption(b);
+
+                const aLevel =
+                    getRankLevel(aRank);
+
+                const bLevel =
+                    getRankLevel(bRank);
+
+                if (aLevel !== bLevel) {
+                    return bLevel - aLevel;
+                }
+
+                const rankCompare =
+                    getAgentRankName(a)
+                        .localeCompare(
+                            getAgentRankName(b),
+                            "de-DE",
+                            {
+                                sensitivity: "base"
+                            }
+                        );
+
+                if (rankCompare !== 0) {
+                    return rankCompare;
+                }
+
+                return String(
+                    getValue(
+                        a,
+                        [
+                            "name",
+                            "Name"
+                        ],
+                        ""
+                    )
+                ).localeCompare(
+                    String(
+                        getValue(
+                            b,
+                            [
+                                "name",
+                                "Name"
+                            ],
+                            ""
+                        )
+                    ),
+                    "de-DE",
+                    {
+                        sensitivity: "base"
+                    }
+                );
+
+            }
+        );
+
+    }
+
+
+    function loadAgentRankOrdering(
+        token,
+        callback
+    ) {
+
+        if (!Array.isArray(state.agents) || !state.agents.length) {
+
+            state.rankOptions = [];
+            sortAgentsByRank();
+            callback();
+            return;
+
+        }
+
+        const firstAgentId =
+            String(
+                getValue(
+                    state.agents[0],
+                    [
+                        "id",
+                        "ID"
+                    ],
+                    ""
+                )
+            );
+
+        if (!firstAgentId) {
+
+            state.rankOptions = [];
+            sortAgentsByRank();
+            callback();
+            return;
+
+        }
+
+        CloudApi.run
+
+            .withSuccessHandler(
+                bundle => {
+
+                    state.rankOptions =
+                        Array.isArray(bundle)
+                            ? bundle
+                            : (bundle && Array.isArray(bundle.rankOptions) ? bundle.rankOptions : []);
+
+                    sortAgentsByRank();
+                    callback();
+
+                }
+            )
+
+            .withFailureHandler(
+                error => {
+
+                    console.warn(
+                        "LSPD MDT – Beamte: Rangsortierung konnte nicht geladen werden. Die Liste wird mit Fallback-Reihenfolge sortiert.",
+                        error
+                    );
+
+                    state.rankOptions = [];
+                    sortAgentsByRank();
+                    callback();
+
+                }
+            )
+
+            .getPersonnelRankOptions(
+                token
+            );
+
+    }
+
+
+    function formatDate(
+        value
+    ) {
+
+        if (
+            !value
+        ) {
+
+            return "—";
+
+        }
+
+
+        const date =
+            new Date(
+                value
+            );
+
+
+        if (
+            Number.isNaN(
+                date.getTime()
+            )
+        ) {
+
+            return String(
+                value
+            );
+
+        }
+
+
+        return date.toLocaleDateString(
+            "de-DE"
+        );
+
+    }
+
+
+    function toDateInputValue(
+        value
+    ) {
+
+        if (!value) {
+            return "";
+        }
+
+
+        const date =
+            new Date(
+                value
+            );
+
+
+        if (
+            Number.isNaN(
+                date.getTime()
+            )
+        ) {
+
+            return "";
+
+        }
+
+
+        return (
+            date.getFullYear() +
+            "-" +
+            String(
+                date.getMonth() + 1
+            ).padStart(
+                2,
+                "0"
+            ) +
+            "-" +
+            String(
+                date.getDate()
+            ).padStart(
+                2,
+                "0"
+            )
+        );
+
+    }
+
+
+    /* =====================================================
+       INITIALIZATION
+    ====================================================== */
+
+    function initializeAgentsPage() {
+
+        const list =
+            $("agentsList");
+
+
+        if (!list) {
+            return;
+        }
+
+
+        if (!canViewOfficers()) {
+
+            renderAgentsError(
+                "Du besitzt keine Berechtigung zum Einsehen der Personalakten."
+            );
+
+            updateAgentsCount();
+            return;
+
+        }
+
+
+        bindAgentsSearch();
+
+        bindGlobalEvents();
+
+        loadAgents();
+
+    }
+
+
+    /*
+     * Die Page wird dynamisch in den DOM geladen.
+     *
+     * Deshalb einmalig leicht verzögert initialisieren.
+     *
+     * WICHTIG:
+     * Dieser Aufruf darf in dieser Datei nur EINMAL
+     * vorhanden sein.
+     */
+
+    setTimeout(
+        function() {
+
+            initializeAgentsPage();
+
+        },
+        50
+    );
+
+
+    /* =====================================================
+       SEARCH
+    ====================================================== */
+
+    function bindAgentsSearch() {
+
+        const input =
+            $("agentsSearchInput");
+
+
+        if (!input) {
+            return;
+        }
+
+
+        input.oninput =
+            function() {
+
+                filterAgents(
+                    this.value
+                );
+
+            };
+
+    }
+
+
+    function filterAgents(
+        query
+    ) {
+
+        const value =
+            String(
+                query ||
+                ""
+            )
+            .trim()
+            .toLowerCase();
+
+
+        if (!value) {
+
+            state.filteredAgents =
+                [
+                    ...state.agents
+                ];
+
+        } else {
+
+            state.filteredAgents =
+                state.agents.filter(
+                    agent => {
+
+                        const haystack = [
+
+                            agent.name,
+
+                            agent.username,
+
+                            agent.rank,
+
+                            agent.serviceNumber,
+
+                            agent.phone,
+
+                            agent.callSign,
+
+                            agent.department,
+
+                            agent.unit
+
+                        ]
+                        .map(
+                            value =>
+                                String(
+                                    value ??
+                                    ""
+                                ).toLowerCase()
+                        )
+                        .join(" ");
+
+
+                        return haystack.includes(
+                            value
+                        );
+
+                    }
+                );
+
+        }
+
+
+        renderAgentsList();
+
+    }
+
+
+    /* =====================================================
+       LOAD AGENTS
+    ====================================================== */
+
+    function loadAgents() {
+
+        const list =
+            $("agentsList");
+
+
+        if (!list) {
+            return;
+        }
+
+
+        if (!canViewOfficers()) {
+
+            renderAgentsError(
+                "Du besitzt keine Berechtigung zum Einsehen der Personalakten."
+            );
+
+            updateAgentsCount();
+            return;
+
+        }
+
+
+        list.innerHTML = `
+
+            <div class="agents-state">
+
+                <div class="agents-loading">
+
+                    <div class="agents-loading-spinner"></div>
+
+                    Beamte werden geladen...
+
+                </div>
+
+            </div>
+
+        `;
+
+
+        const token =
+            getAgentsSessionToken();
+
+
+        console.log(
+            "LSPD MDT – Beamte: Starte Laden",
+            {
+                hasToken:
+                    !!token,
+
+                tokenLength:
+                    token
+                        ? String(token).length
+                        : 0
+            }
+        );
+
+
+        if (!token) {
+
+            console.error(
+                "LSPD MDT – Beamte: Kein Session-Token vorhanden."
+            );
+
+
+            renderAgentsError(
+                "Keine aktive Sitzung."
+            );
+
+            return;
+
+        }
+
+
+        CloudApi.run
+
+            .withSuccessHandler(
+                response => {
+
+                    console.log(
+                        "LSPD MDT – Beamte: Serverantwort",
+                        response
+                    );
+
+
+                    /*
+                     * Erwartet normalerweise:
+                     *
+                     * [
+                     *   {...},
+                     *   {...}
+                     * ]
+                     *
+                     * Akzeptiert zusätzlich:
+                     *
+                     * {
+                     *   agents: [...]
+                     * }
+                     *
+                     * Eine ungültige Antwort wird NICHT
+                     * mehr still zu [] umgewandelt.
+                     */
+
+                    let agents =
+                        null;
+
+
+                    if (
+                        Array.isArray(
+                            response
+                        )
+                    ) {
+
+                        agents =
+                            response;
+
+                    }
+                    else if (
+                        response &&
+                        Array.isArray(
+                            response.agents
+                        )
+                    ) {
+
+                        agents =
+                            response.agents;
+
+                    }
+
+
+                    if (
+                        !Array.isArray(
+                            agents
+                        )
+                    ) {
+
+                        console.error(
+                            "LSPD MDT – Beamte: Ungültige Serverantwort.",
+                            response
+                        );
+
+
+                        renderAgentsError(
+                            "Der Server hat keine gültige Beamtenliste zurückgegeben."
+                        );
+
+                        return;
+
+                    }
+
+
+                    state.agents =
+                        [
+                            ...agents
+                        ];
+
+
+                    loadAgentRankOrdering(
+                        token,
+                        function() {
+
+                            state.filteredAgents =
+                                [
+                                    ...state.agents
+                                ];
+
+
+                            console.log(
+                                "LSPD MDT – Beamte: Beamte geladen und nach Rang sortiert",
+                                state.agents.length
+                            );
+
+
+                            updateAgentsCount();
+
+                            renderAgentsList();
+
+                        }
+                    );
+
+                }
+            )
+
+            .withFailureHandler(
+                error => {
+
+                    console.error(
+                        "LSPD MDT – Beamte RPC-Fehler:",
+                        error
+                    );
+
+
+                    renderAgentsError(
+                        error?.message ||
+                        String(
+                            error ||
+                            ""
+                        ) ||
+                        "Die Beamten konnten nicht geladen werden."
+                    );
+
+                }
+            )
+
+            .getPersonnelList(
+                token
+            );
+
+    }
+
+
+    function updateAgentsCount() {
+
+        const element =
+            $("agentsPageCount");
+
+
+        if (!element) {
+            return;
+        }
+
+
+        const count =
+            state.agents.length;
+
+
+        element.textContent =
+            count === 1
+                ? "1 Beamter"
+                : `${count} Beamte`;
+
+    }
+
+
+    /* =====================================================
+       LIST RENDER
+    ====================================================== */
+
+    function renderAgentsList() {
+
+        const list =
+            $("agentsList");
+
+
+        if (!list) {
+            return;
+        }
+
+
+        if (
+            !state.filteredAgents.length
+        ) {
+
+            list.innerHTML = `
+
+                <div class="agents-state">
+
+                    Keine Beamten gefunden.
+
+                </div>
+
+            `;
+
+            return;
+
+        }
+
+
+        list.innerHTML =
+            state.filteredAgents
+                .map(
+                    createAgentRow
+                )
+                .join("");
+
+
+        list
+            .querySelectorAll(
+                "[data-agent-id]"
+            )
+            .forEach(
+                row => {
+
+                    row.addEventListener(
+                        "click",
+                        function(event) {
+
+                            if (
+                                event.target.closest(
+                                    ".agents-file-button"
+                                )
+                            ) {
+
+                                return;
+
+                            }
+
+
+                            openPersonnelFile(
+                                row.dataset.agentId
+                            );
+
+                        }
+                    );
+
+                }
+            );
+
+
+        list
+            .querySelectorAll(
+                ".agents-file-button"
+            )
+            .forEach(
+                button => {
+
+                    button.addEventListener(
+                        "click",
+                        function(event) {
+
+                            event.stopPropagation();
+
+
+                            openPersonnelFile(
+                                button.dataset.agentId
+                            );
+
+                        }
+                    );
+
+                }
+            );
+
+    }
+
+
+    function createAgentRow(
+        agent
+    ) {
+
+        const id =
+            String(
+                getValue(
+                    agent,
+                    [
+                        "id",
+                        "ID"
+                    ],
+                    ""
+                )
+            );
+
+
+        const name =
+            String(
+                getValue(
+                    agent,
+                    [
+                        "name",
+                        "Name"
+                    ],
+                    "Unbekannter Beamter"
+                )
+            );
+
+
+        const username =
+            String(
+                getValue(
+                    agent,
+                    [
+                        "username",
+                        "Username"
+                    ],
+                    ""
+                )
+            );
+
+
+        const rank =
+            String(
+                getValue(
+                    agent,
+                    [
+                        "rankName",
+                        "rank",
+                        "Rank"
+                    ],
+                    "Kein Rang"
+                )
+            );
+
+
+        const serviceNumber =
+            String(
+                getValue(
+                    agent,
+                    [
+                        "serviceNumber",
+                        "ServiceNumber"
+                    ],
+                    "—"
+                )
+            );
+
+
+        const department =
+            String(
+                getValue(
+                    agent,
+                    [
+                        "department",
+                        "Department"
+                    ],
+                    "—"
+                )
+            );
+
+
+        const unit =
+            String(
+                getValue(
+                    agent,
+                    [
+                        "unit",
+                        "Unit"
+                    ],
+                    ""
+                )
+            );
+
+
+        const callSign =
+            String(
+                getValue(
+                    agent,
+                    [
+                        "callSign",
+                        "CallSign"
+                    ],
+                    ""
+                )
+            );
+
+
+        const profileImage =
+            String(
+                getValue(
+                    agent,
+                    [
+                        "profileImage",
+                        "ProfileImage"
+                    ],
+                    ""
+                )
+            );
+
+
+        const initial =
+            escapeHtml(
+                name
+                    .trim()
+                    .charAt(0)
+                    .toUpperCase() ||
+                "?"
+            );
+
+
+        const avatar =
+            profileImage
+
+                ? `
+
+                    <img
+                        class="agents-avatar"
+                        src="${escapeHtml(profileImage)}"
+                        alt=""
+                    >
+
+                  `
+
+                : `
+
+                    <div
+                        class="
+                            agents-avatar
+                            agents-avatar-placeholder
+                        "
+                    >
+                        ${initial}
+                    </div>
+
+                  `;
+
+
+        const meta =
+            [];
+
+
+        if (unit) {
+
+            meta.push(
+                escapeHtml(
+                    unit
+                )
+            );
+
+        }
+
+
+        if (callSign) {
+
+            meta.push(
+                escapeHtml(
+                    callSign
+                )
+            );
+
+        }
+
+
+        return `
+
+            <div
+                class="agents-list-row"
+                data-agent-id="${escapeHtml(id)}"
+            >
+
+                <div class="agents-agent-cell">
+
+                    ${avatar}
+
+                    <div class="agents-agent-main">
+
+                        <div class="agents-agent-name">
+                            ${escapeHtml(name)}
+                        </div>
+
+                        <div class="agents-agent-meta">
+
+                            <span class="agents-agent-rank">
+                                ${escapeHtml(rank)}
+                            </span>
+
+                            ${
+                                username
+                                    ? `
+                                        <span class="agents-agent-username">
+                                            @${escapeHtml(username)}
+                                        </span>
+                                      `
+                                    : ""
+                            }
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <div class="agents-service-number">
+                    ${escapeHtml(serviceNumber)}
+                </div>
+
+
+                <div class="agents-organization">
+
+                    <div class="agents-organization-main">
+                        ${escapeHtml(
+                            department ||
+                            "—"
+                        )}
+                    </div>
+
+                    ${
+                        meta.length
+                            ? `
+                                <div class="agents-organization-meta">
+
+                                    ${meta
+                                        .map(
+                                            item =>
+                                                `<span>${item}</span>`
+                                        )
+                                        .join("")}
+
+                                </div>
+                              `
+                            : ""
+                    }
+
+                </div>
+
+
+                <div class="agents-file-button-wrap">
+
+                    <button
+                        type="button"
+                        class="agents-file-button"
+                        data-agent-id="${escapeHtml(id)}"
+                    >
+                        Öffnen
+                    </button>
+
+                </div>
+
+            </div>
+
+        `;
+
+    }
+
+
+    function renderAgentsError(
+        message
+    ) {
+
+        const list =
+            $("agentsList");
+
+
+        if (!list) {
+            return;
+        }
+
+
+        list.innerHTML = `
+
+            <div class="agents-state">
+
+                ${escapeHtml(
+                    message
+                )}
+
+            </div>
+
+        `;
+
+    }
+
+
+    /* =====================================================
+       OPEN PERSONNEL FILE
+    ====================================================== */
+
+    function openPersonnelFile(
+        userId
+    ) {
+
+        if (!canViewOfficers()) {
+
+            showAgentError(
+                "Du besitzt keine Berechtigung zum Einsehen der Personalakten."
+            );
+
+            return;
+
+        }
+
+        const agent =
+            state.agents.find(
+                item =>
+                    String(
+                        getValue(
+                            item,
+                            [
+                                "id",
+                                "ID"
+                            ],
+                            ""
+                        )
+                    ) ===
+                    String(
+                        userId
+                    )
+            );
+
+
+        if (!agent) {
+
+            showAgentError(
+                "Der ausgewählte Beamte konnte nicht gefunden werden."
+            );
+
+            return;
+
+        }
+
+
+        state.selectedAgent =
+            {
+                ...agent
+            };
+
+
+        state.modalTab =
+            "personal";
+
+
+        state.bundleLoaded =
+            false;
+
+
+        state.bundleLoading =
+            true;
+
+
+        state.trainings =
+            [];
+
+
+        state.notes =
+            [];
+
+        state.sanctions = [];
+        state.sanctionsVisible = false;
+        state.sanctionsLoaded = false;
+
+
+        state.trainingsLoaded =
+            false;
+
+
+        state.notesLoaded =
+            false;
+
+
+        renderPersonnelModal(
+            false
+        );
+
+
+        openAgentsModal();
+
+
+        const token =
+            getAgentsSessionToken();
+
+
+        if (!token) {
+
+            state.bundleLoading =
+                false;
+
+            showAgentError(
+                "Keine aktive Sitzung."
+            );
+
+            return;
+
+        }
+
+
+        /*
+         * Genau EIN Request.
+         */
+
+        CloudApi.run
+
+            .withSuccessHandler(
+                bundle => {
+
+                    if (
+                        !state.selectedAgent ||
+                        String(
+                            state.selectedAgent.id
+                        ) !==
+                        String(
+                            userId
+                        )
+                    ) {
+
+                        return;
+
+                    }
+
+
+                    bundle =
+                        bundle &&
+                        typeof bundle ===
+                            "object"
+                            ? bundle
+                            : {};
+
+
+                    state.selectedAgent = {
+
+                        ...state.selectedAgent,
+
+                        ...(
+                            bundle.agent &&
+                            typeof bundle.agent ===
+                                "object"
+                                ? bundle.agent
+                                : {}
+                        )
+
+                    };
+
+
+                    /*
+                     * Vorhandenes Profilbild aus
+                     * der Beamtenliste behalten.
+                     */
+
+                    if (
+                        !state.selectedAgent.profileImage &&
+                        agent.profileImage
+                    ) {
+
+                        state.selectedAgent.profileImage =
+                            agent.profileImage;
+
+                    }
+
+
+                    state.rankOptions =
+                        Array.isArray(
+                            bundle.rankOptions
+                        )
+                            ? bundle.rankOptions
+                            : [];
+
+
+                    state.trainings =
+                        Array.isArray(
+                            bundle.trainings
+                        )
+                            ? bundle.trainings
+                            : [];
+
+
+                    state.notes =
+                        Array.isArray(
+                            bundle.notes
+                        )
+                            ? bundle.notes
+                            : [];
+
+                    state.sanctions = Array.isArray(bundle.sanctions) ? bundle.sanctions : [];
+                    state.sanctionsVisible = bundle.sanctionsVisible === true;
+                    state.sanctionsLoaded = true;
+
+
+                    state.trainingsLoaded =
+                        true;
+
+
+                    state.notesLoaded =
+                        true;
+
+
+                    state.bundleLoaded =
+                        true;
+
+
+                    state.bundleLoading =
+                        false;
+
+
+                    renderPersonnelModal(
+                        true
+                    );
+
+                }
+            )
+
+            .withFailureHandler(
+                error => {
+
+                    state.bundleLoading =
+                        false;
+
+
+                    console.error(
+                        "LSPD MDT – Personalakten-Bundle:",
+                        error
+                    );
+
+
+                    showAgentError(
+                        error?.message ||
+                        String(
+                            error ||
+                            ""
+                        ) ||
+                        "Die Personalakte konnte nicht geladen werden."
+                    );
+
+
+                    renderPersonnelModal(
+                        true
+                    );
+
+                }
+            )
+
+            .getPersonnelFileBundle(
+                token,
+                userId
+            );
+
+    }
+
+
+    /* =====================================================
+       MODAL
+    ====================================================== */
+
+    function openAgentsModal() {
+        const modalElement = $("agentsSystemModal");
+        const manager = window.FIB_MDT_MODAL;
+        if (!modalElement || !manager || typeof manager.open !== "function") return;
+        manager.open({
+            title: "Personalakte",
+            subtitle: "Personalverwaltung",
+            body: modalElement,
+            modalClass: "agents",
+            cancelVisible: false,
+            saveVisible: false,
+            focus: false,
+            onClose: function () {
+                const host = $("agentsSystemModalOverlay");
+                if (host && modalElement && modalElement.parentElement !== host) host.appendChild(modalElement);
+                document.body.style.overflow = "";
+                closeRankDropdown();
+                state.selectedAgent = null;
+                state.bundleLoading = false;
+            }
+        });
+        document.body.style.overflow = "hidden";
+    }
+
+    function closePersonnelFile() {
+        const overlay = $("agentsSystemModalOverlay");
+        const modalElement = $("agentsSystemModal");
+        const manager = window.FIB_MDT_MODAL;
+        // Return the live node to its page-owned host so all existing IDs,
+        // event listeners and personnel-file state survive opening/closing.
+        if (overlay && modalElement && modalElement.parentElement !== overlay) {
+            overlay.appendChild(modalElement);
+        }
+        if (manager && typeof manager.close === "function") manager.close();
+        if (overlay) overlay.classList.remove("active");
+        document.body.style.overflow = "";
+        closeRankDropdown();
+        state.selectedAgent = null;
+        state.bundleLoading = false;
+    }
+
+
+
+    /* =====================================================
+       MODAL RENDER
+    ====================================================== */
+
+    function renderPersonnelModal(
+        loaded
+    ) {
+
+        const agent =
+            state.selectedAgent;
+
+
+        if (!agent) {
+            return;
+        }
+
+
+        const name =
+            String(
+                getValue(
+                    agent,
+                    [
+                        "name",
+                        "Name"
+                    ],
+                    "Personalakte"
+                )
+            );
+
+
+        const rank =
+            String(
+                getValue(
+                    agent,
+                    [
+                        "rankName",
+                        "rank",
+                        "Rank"
+                    ],
+                    "Kein Rang"
+                )
+            );
+
+
+        const title =
+            $("agentsSystemModalTitle");
+
+
+        const description =
+            $("agentsSystemModalDescription");
+
+
+        const body =
+            $("agentsSystemModalBody");
+
+
+        if (
+            !title ||
+            !description ||
+            !body
+        ) {
+            return;
+        }
+
+
+        title.textContent =
+            name;
+
+
+        description.textContent =
+            `Personalakte · ${rank}`;
+
+
+        if (
+            state.modalTab ===
+            "trainings"
+        ) {
+
+            body.innerHTML =
+                renderTrainingsTab();
+
+        }
+        else if (
+            state.modalTab ===
+            "notes"
+        ) {
+
+            body.innerHTML =
+                renderNotesTab();
+
+        }
+        else if (state.modalTab === "sanctions" && state.sanctionsVisible) {
+            body.innerHTML = renderSanctionsTab();
+        }
+        else {
+
+            body.innerHTML =
+                renderPersonalTab(
+                    loaded
+                );
+
+        }
+
+
+        bindPersonnelTabEvents();
+
+        bindRankDropdown();
+
+        bindPersonalForm();
+
+        bindTrainingForm();
+
+        bindNoteForm();
+
+    }
+
+
+    function renderTabs(
+        activeTab
+    ) {
+
+        return `
+
+            <div class="agents-personnel-tabs">
+
+                <button
+                    type="button"
+                    class="
+                        agents-personnel-tab
+                        ${
+                            activeTab ===
+                            "personal"
+                                ? "active"
+                                : ""
+                        }
+                    "
+                    data-personnel-tab="personal"
+                >
+                    Personalien
+                </button>
+
+
+                <button
+                    type="button"
+                    class="
+                        agents-personnel-tab
+                        ${
+                            activeTab ===
+                            "trainings"
+                                ? "active"
+                                : ""
+                        }
+                    "
+                    data-personnel-tab="trainings"
+                >
+                    Schulungen
+                </button>
+
+
+                <button
+                    type="button"
+                    class="
+                        agents-personnel-tab
+                        ${
+                            activeTab ===
+                            "notes"
+                                ? "active"
+                                : ""
+                        }
+                    "
+                    data-personnel-tab="notes"
+                >
+                    Vermerke
+                </button>
+
+                ${state.sanctionsVisible ? `<button type="button" class="agents-personnel-tab ${activeTab === "sanctions" ? "active" : ""}" data-personnel-tab="sanctions">Verhängte Sanktionen</button>` : ""}
+
+            </div>
+
+        `;
+
+    }
+
+
+    function bindPersonnelTabEvents() {
+
+        document
+            .querySelectorAll(
+                "[data-personnel-tab]"
+            )
+            .forEach(
+                button => {
+
+                    button.onclick =
+                        function() {
+
+                            state.modalTab =
+                                button.dataset
+                                    .personnelTab ||
+                                "personal";
+
+
+                            renderPersonnelModal(
+                                true
+                            );
+
+                        };
+
+                }
+            );
+
+    }
+
+
+    /* =====================================================
+       PERSONAL TAB
+    ====================================================== */
+
+    function renderPersonalTab(
+        loaded
+    ) {
+
+        const agent =
+            state.selectedAgent;
+
+
+        const serviceNumber =
+            String(
+                getValue(
+                    agent,
+                    [
+                        "serviceNumber",
+                        "ServiceNumber"
+                    ],
+                    ""
+                )
+            );
+
+
+        const phone =
+            String(
+                getValue(
+                    agent,
+                    [
+                        "phone",
+                        "Phone"
+                    ],
+                    ""
+                )
+            );
+
+
+        const callSign =
+            String(
+                getValue(
+                    agent,
+                    [
+                        "callSign",
+                        "CallSign"
+                    ],
+                    ""
+                )
+            );
+
+
+        const department =
+            String(
+                getValue(
+                    agent,
+                    [
+                        "department",
+                        "Department"
+                    ],
+                    ""
+                )
+            );
+
+
+        const unit =
+            String(
+                getValue(
+                    agent,
+                    [
+                        "unit",
+                        "Unit"
+                    ],
+                    ""
+                )
+            );
+
+
+        const email =
+            String(
+                getValue(
+                    agent,
+                    [
+                        "email",
+                        "Email"
+                    ],
+                    ""
+                )
+            );
+
+
+        const address =
+            String(
+                getValue(
+                    agent,
+                    [
+                        "address",
+                        "Address"
+                    ],
+                    ""
+                )
+            );
+
+
+        const entryDate =
+            getValue(
+                agent,
+                [
+                    "entryDate",
+                    "EntryDate"
+                ],
+                ""
+            );
+
+
+        const personnelStatus =
+            String(
+                getValue(
+                    agent,
+                    [
+                        "personnelStatus",
+                        "PersonnelStatus"
+                    ],
+                    ""
+                )
+            );
+
+
+        const note =
+            String(
+                getValue(
+                    agent,
+                    [
+                        "personnelNote",
+                        "note",
+                        "Note"
+                    ],
+                    ""
+                )
+            );
+
+
+        const username =
+            String(
+                getValue(
+                    agent,
+                    [
+                        "username",
+                        "Username"
+                    ],
+                    ""
+                )
+            );
+
+
+        const rankId =
+            String(
+                getValue(
+                    agent,
+                    [
+                        "rankId",
+                        "RankId"
+                    ],
+                    ""
+                )
+            );
+
+
+        const rankName =
+            String(
+                getValue(
+                    agent,
+                    [
+                        "rankName",
+                        "rank",
+                        "Rank"
+                    ],
+                    "Kein Rang"
+                )
+            );
+
+
+        const dateValue =
+            entryDate
+                ? toDateInputValue(
+                    entryDate
+                  )
+                : "";
+
+
+        const rankLabel =
+            getCurrentRankLabel(
+                rankId,
+                rankName
+            );
+
+        const editDisabled =
+            canEditOfficers()
+                ? ""
+                : " disabled";
+
+
+        return `
+
+            ${renderTabs("personal")}
+
+
+            ${
+                state.bundleLoading &&
+                !state.bundleLoaded
+                    ? `
+                        <div class="agents-personnel-loading-strip">
+
+                            <div class="agents-loading-spinner"></div>
+
+                            Personalakte wird geladen...
+
+                        </div>
+                      `
+                    : ""
+            }
+
+
+            <div class="agents-form">
+
+                <div class="agents-section">
+
+                    <div class="agents-section-title">
+                        Stammdaten
+                    </div>
+
+
+                    <div class="agents-form-grid">
+
+                        <div class="agents-form-group">
+
+                            <label class="agents-form-label">
+                                Name
+                            </label>
+
+                            <input
+                                id="agentPersonalName"
+                                class="agents-form-input"
+                                type="text"
+                                value="${escapeHtml(
+                                    getValue(
+                                        agent,
+                                        [
+                                            "name",
+                                            "Name"
+                                        ],
+                                        ""
+                                    )
+                                )}"
+                                disabled
+                            >
+
+                        </div>
+
+
+                        <div class="agents-form-group">
+
+                            <label class="agents-form-label">
+                                Benutzername
+                            </label>
+
+                            <input
+                                id="agentPersonalUsername"
+                                class="agents-form-input"
+                                type="text"
+                                value="${escapeHtml(username)}"
+                                disabled
+                            >
+
+                        </div>
+
+
+                        <div class="agents-form-group">
+
+                            <label class="agents-form-label">
+                                Dienstnummer
+                            </label>
+
+                            <input
+                                id="agentServiceNumber"
+                                class="agents-form-input"${editDisabled}
+                                type="text"
+                                value="${escapeHtml(serviceNumber)}"
+                            >
+
+                        </div>
+
+
+                        <div class="agents-form-group">
+
+                            <label class="agents-form-label">
+                                Telefonnummer
+                            </label>
+
+                            <input
+                                id="agentPhone"
+                                class="agents-form-input"${editDisabled}
+                                type="text"
+                                value="${escapeHtml(phone)}"
+                            >
+
+                        </div>
+
+
+                        <div class="agents-form-group">
+
+                            <label class="agents-form-label">
+                                Funkrufname
+                            </label>
+
+                            <input
+                                id="agentCallSign"
+                                class="agents-form-input"${editDisabled}
+                                type="text"
+                                value="${escapeHtml(callSign)}"
+                            >
+
+                        </div>
+
+
+                        <div class="agents-form-group">
+
+                            <label class="agents-form-label">
+                                Rang
+                            </label>
+
+
+                            <div
+                                id="agentRankSelect"
+                                class="agents-rank-select"
+                            >
+
+                                <button
+                                    type="button"
+                                    id="agentRankSelectButton"
+                                    class="agents-rank-select-button"${editDisabled}
+                                >
+
+                                    <span
+                                        id="agentRankSelectLabel"
+                                        class="agents-rank-select-label"
+                                    >
+                                        ${escapeHtml(
+                                            rankLabel
+                                        )}
+                                    </span>
+
+
+                                    <span
+                                        class="agents-rank-select-chevron"
+                                    >
+                                        ⌄
+                                    </span>
+
+                                </button>
+
+
+                                <div
+                                    id="agentRankSelectMenu"
+                                    class="agents-rank-select-menu"
+                                ></div>
+
+                            </div>
+
+
+                            <select
+                                id="agentRankNativeSelect"
+                                class="agents-hidden-select"
+                            ></select>
+
+                        </div>
+
+
+                        <div class="agents-form-group">
+
+                            <label class="agents-form-label">
+                                Abteilung
+                            </label>
+
+                            <input
+                                id="agentDepartment"
+                                class="agents-form-input"${editDisabled}
+                                type="text"
+                                value="${escapeHtml(department)}"
+                            >
+
+                        </div>
+
+
+                        <div class="agents-form-group">
+
+                            <label class="agents-form-label">
+                                Einheit
+                            </label>
+
+                            <input
+                                id="agentUnit"
+                                class="agents-form-input"${editDisabled}
+                                type="text"
+                                value="${escapeHtml(unit)}"
+                            >
+
+                        </div>
+
+
+                        <div class="agents-form-group">
+
+                            <label class="agents-form-label">
+                                Eintrittsdatum
+                            </label>
+
+                            <input
+                                id="agentEntryDate"
+                                class="agents-form-input"${editDisabled}
+                                type="date"
+                                value="${escapeHtml(dateValue)}"
+                            >
+
+                        </div>
+
+
+                        <div class="agents-form-group">
+
+                            <label class="agents-form-label">
+                                Dienststatus
+                            </label>
+
+                            <input
+                                id="agentPersonnelStatus"
+                                class="agents-form-input"${editDisabled}
+                                type="text"
+                                value="${escapeHtml(personnelStatus)}"
+                            >
+
+                        </div>
+
+
+                        <div class="agents-form-group">
+
+                            <label class="agents-form-label">
+                                E-Mail
+                            </label>
+
+                            <input
+                                id="agentEmail"
+                                class="agents-form-input"${editDisabled}
+                                type="email"
+                                value="${escapeHtml(email)}"
+                            >
+
+                        </div>
+
+
+                        <div class="agents-form-group">
+
+                            <label class="agents-form-label">
+                                User-ID
+                            </label>
+
+                            <input
+                                id="agentUserId"
+                                class="agents-form-input"
+                                type="text"
+                                value="${escapeHtml(
+                                    getValue(
+                                        agent,
+                                        [
+                                            "id",
+                                            "ID"
+                                        ],
+                                        ""
+                                    )
+                                )}"
+                                disabled
+                            >
+
+                        </div>
+
+
+                        <div class="agents-form-group full">
+
+                            <label class="agents-form-label">
+                                Anschrift
+                            </label>
+
+                            <input
+                                id="agentAddress"
+                                class="agents-form-input"${editDisabled}
+                                type="text"
+                                value="${escapeHtml(address)}"
+                            >
+
+                        </div>
+
+
+                        <div class="agents-form-group full">
+
+                            <label class="agents-form-label">
+                                Personalvermerk
+                            </label>
+
+                            <textarea
+                                id="agentPersonnelNote"
+                                class="agents-form-textarea"${editDisabled}
+                                placeholder="Optionaler Personalvermerk..."
+                            >${escapeHtml(note)}</textarea>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <div class="agents-inline-actions">
+
+                    ${
+                        canEditOfficers()
+                            ? `
+                                <button
+                                    type="button"
+                                    id="agentSavePersonalButton"
+                                    class="agents-small-button primary"
+                                >
+                                    Personalakte speichern
+                                </button>
+                              `
+                            : `
+                                <span class="agents-status">
+                                    Nur-Lesezugriff
+                                </span>
+                              `
+                    }
+
+                </div>
+
+            </div>
+
+        `;
+
+    }
+
+
+    /* =====================================================
+       RANK
+    ====================================================== */
+
+    function getCurrentRankLabel(
+        rankId,
+        fallback
+    ) {
+
+        const found =
+            state.rankOptions.find(
+                rank =>
+                    String(
+                        getValue(
+                            rank,
+                            [
+                                "id",
+                                "ID"
+                            ],
+                            ""
+                        )
+                    ) ===
+                    String(
+                        rankId
+                    )
+            );
+
+
+        return found
+            ? String(
+                getValue(
+                    found,
+                    [
+                        "name",
+                        "Name"
+                    ],
+                    fallback
+                )
+              )
+            : (
+                fallback ||
+                "Kein Rang"
+              );
+
+    }
+
+
+    function bindRankDropdown() {
+
+        if (!canEditOfficers()) {
+            return;
+        }
+
+        const wrapper =
+            $("agentRankSelect");
+
+
+        const button =
+            $("agentRankSelectButton");
+
+
+        if (!wrapper || !button) {
+            return;
+        }
+
+
+        button.onclick =
+            function(event) {
+
+                event.stopPropagation();
+
+
+                const isOpen =
+                    wrapper.classList.contains(
+                        "open"
+                    );
+
+
+                closeRankDropdown();
+
+
+                if (!isOpen) {
+
+                    wrapper.classList.add(
+                        "open"
+                    );
+
+
+                    renderRankOptions();
+
+                }
+
+            };
+
+
+        renderRankOptions();
+
+    }
+
+
+    function renderRankOptions() {
+
+        const menu =
+            $("agentRankSelectMenu");
+
+
+        const native =
+            $("agentRankNativeSelect");
+
+
+        const label =
+            $("agentRankSelectLabel");
+
+
+        if (
+            !menu ||
+            !native ||
+            !label
+        ) {
+            return;
+        }
+
+
+        menu.innerHTML =
+            "";
+
+
+        native.innerHTML =
+            "";
+
+
+        if (
+            !state.rankOptions.length
+        ) {
+
+            menu.innerHTML = `
+
+                <div class="agents-rank-empty">
+
+                    Keine Ränge verfügbar
+
+                </div>
+
+            `;
+
+            return;
+
+        }
+
+
+        const currentRankId =
+            String(
+                getValue(
+                    state.selectedAgent,
+                    [
+                        "rankId",
+                        "RankId"
+                    ],
+                    ""
+                )
+            );
+
+
+        const sortedRankOptions =
+            [
+                ...state.rankOptions
+            ].sort(
+                (a, b) => {
+
+                    const levelCompare =
+                        getRankLevel(b) -
+                        getRankLevel(a);
+
+                    if (levelCompare !== 0) {
+                        return levelCompare;
+                    }
+
+                    return String(
+                        getValue(
+                            a,
+                            [
+                                "name",
+                                "Name"
+                            ],
+                            ""
+                        )
+                    ).localeCompare(
+                        String(
+                            getValue(
+                                b,
+                                [
+                                    "name",
+                                    "Name"
+                                ],
+                                ""
+                            )
+                        ),
+                        "de-DE",
+                        { sensitivity: "base" }
+                    );
+
+                }
+            );
+
+
+        sortedRankOptions.forEach(
+            rank => {
+
+                const id =
+                    String(
+                        getValue(
+                            rank,
+                            [
+                                "id",
+                                "ID"
+                            ],
+                            ""
+                        )
+                    );
+
+
+                const name =
+                    String(
+                        getValue(
+                            rank,
+                            [
+                                "name",
+                                "Name"
+                            ],
+                            id
+                        )
+                    );
+
+
+                const nativeOption =
+                    document.createElement(
+                        "option"
+                    );
+
+
+                nativeOption.value =
+                    id;
+
+
+                nativeOption.textContent =
+                    name;
+
+
+                if (
+                    id ===
+                    currentRankId
+                ) {
+
+                    nativeOption.selected =
+                        true;
+
+
+                    label.textContent =
+                        name;
+
+                }
+
+
+                native.appendChild(
+                    nativeOption
+                );
+
+
+                const item =
+                    document.createElement(
+                        "button"
+                    );
+
+
+                item.type =
+                    "button";
+
+
+                item.className =
+                    "agents-rank-option";
+
+
+                item.dataset.rankId =
+                    id;
+
+
+                item.textContent =
+                    name;
+
+
+                if (
+                    id ===
+                    currentRankId
+                ) {
+
+                    item.classList.add(
+                        "selected"
+                    );
+
+                }
+
+
+                item.onclick =
+                    function(event) {
+
+                        event.stopPropagation();
+
+
+                        selectPersonnelRank(
+                            id,
+                            name
+                        );
+
+                    };
+
+
+                menu.appendChild(
+                    item
+                );
+
+            }
+        );
+
+
+        if (
+            !currentRankId
+        ) {
+
+            label.textContent =
+                "Rang auswählen...";
+
+        }
+
+    }
+
+
+    function selectPersonnelRank(
+        rankId,
+        rankName
+    ) {
+
+        if (!canEditOfficers()) {
+            return;
+        }
+
+        const native =
+            $("agentRankNativeSelect");
+
+
+        const label =
+            $("agentRankSelectLabel");
+
+
+        const wrapper =
+            $("agentRankSelect");
+
+
+        if (
+            !native ||
+            !label
+        ) {
+            return;
+        }
+
+
+        native.value =
+            String(
+                rankId
+            );
+
+
+        label.textContent =
+            rankName;
+
+
+        document
+            .querySelectorAll(
+                ".agents-rank-option"
+            )
+            .forEach(
+                option => {
+
+                    option.classList.toggle(
+                        "selected",
+                        String(
+                            option.dataset.rankId
+                        ) ===
+                        String(
+                            rankId
+                        )
+                    );
+
+                }
+            );
+
+
+        state.selectedAgent.rankId =
+            String(
+                rankId
+            );
+
+
+        state.selectedAgent.rankName =
+            rankName;
+
+
+        state.selectedAgent.rank =
+            rankName;
+
+
+        if (wrapper) {
+
+            wrapper.classList.remove(
+                "open"
+            );
+
+        }
+
+    }
+
+
+    function closeRankDropdown() {
+
+        const wrapper =
+            $("agentRankSelect");
+
+
+        if (wrapper) {
+
+            wrapper.classList.remove(
+                "open"
+            );
+
+        }
+
+    }
+
+
+    /* =====================================================
+       PERSONAL SAVE
+    ====================================================== */
+
+    function bindPersonalForm() {
+
+        const button =
+            $("agentSavePersonalButton");
+
+
+        if (!button) {
+            return;
+        }
+
+
+        button.onclick =
+            function() {
+
+                savePersonnelProfile();
+
+            };
+
+    }
+
+
+    function savePersonnelProfile() {
+
+        if (!canEditOfficers()) {
+
+            showAgentError(
+                "Du besitzt keine Berechtigung zum Bearbeiten von Beamten."
+            );
+
+            return;
+
+        }
+
+        const agent =
+            state.selectedAgent;
+
+
+        if (!agent) {
+            return;
+        }
+
+
+        const token =
+            getAgentsSessionToken();
+
+
+        const userId =
+            String(
+                getValue(
+                    agent,
+                    [
+                        "id",
+                        "ID"
+                    ],
+                    ""
+                )
+            );
+
+
+        if (!token) {
+
+            showAgentError(
+                "Keine aktive Sitzung."
+            );
+
+            return;
+
+        }
+
+
+        const data = {
+
+            serviceNumber:
+                $("agentServiceNumber")
+                    ?.value
+                    ?.trim() ||
+                "",
+
+            phone:
+                $("agentPhone")
+                    ?.value
+                    ?.trim() ||
+                "",
+
+            callSign:
+                $("agentCallSign")
+                    ?.value
+                    ?.trim() ||
+                "",
+
+            department:
+                $("agentDepartment")
+                    ?.value
+                    ?.trim() ||
+                "",
+
+            unit:
+                $("agentUnit")
+                    ?.value
+                    ?.trim() ||
+                "",
+
+            email:
+                $("agentEmail")
+                    ?.value
+                    ?.trim() ||
+                "",
+
+            address:
+                $("agentAddress")
+                    ?.value
+                    ?.trim() ||
+                "",
+
+            entryDate:
+                $("agentEntryDate")
+                    ?.value ||
+                "",
+
+            personnelStatus:
+                $("agentPersonnelStatus")
+                    ?.value
+                    ?.trim() ||
+                "",
+
+            note:
+                $("agentPersonnelNote")
+                    ?.value
+                    ?.trim() ||
+                "",
+
+            rankId:
+                $("agentRankNativeSelect")
+                    ?.value ||
+                getValue(
+                    agent,
+                    [
+                        "rankId",
+                        "RankId"
+                    ],
+                    ""
+                )
+
+        };
+
+
+        const button =
+            $("agentSavePersonalButton");
+
+
+        if (button) {
+
+            button.disabled =
+                true;
+
+
+            button.textContent =
+                "Wird gespeichert...";
+
+        }
+
+
+        CloudApi.run
+
+            .withSuccessHandler(
+                () => {
+
+                    state.selectedAgent = {
+
+                        ...state.selectedAgent,
+
+                        ...data
+
+                    };
+
+
+                    const selectedRank =
+                        state.rankOptions.find(
+                            rank =>
+                                String(
+                                    getValue(
+                                        rank,
+                                        [
+                                            "id",
+                                            "ID"
+                                        ],
+                                        ""
+                                    )
+                                ) ===
+                                String(
+                                    data.rankId
+                                )
+                        );
+
+
+                    if (
+                        selectedRank
+                    ) {
+
+                        state.selectedAgent.rankId =
+                            data.rankId;
+
+
+                        state.selectedAgent.rankName =
+                            getValue(
+                                selectedRank,
+                                [
+                                    "name",
+                                    "Name"
+                                ],
+                                "Kein Rang"
+                            );
+
+
+                        state.selectedAgent.rank =
+                            state.selectedAgent.rankName;
+
+                    }
+
+
+                    const index =
+                        state.agents.findIndex(
+                            item =>
+                                String(
+                                    getValue(
+                                        item,
+                                        [
+                                            "id",
+                                            "ID"
+                                        ],
+                                        ""
+                                    )
+                                ) ===
+                                userId
+                        );
+
+
+                    if (
+                        index !==
+                        -1
+                    ) {
+
+                        state.agents[index] = {
+
+                            ...state.agents[index],
+
+                            ...state.selectedAgent
+
+                        };
+
+                    }
+
+
+                    filterAgents(
+                        $("agentsSearchInput")
+                            ?.value ||
+                        ""
+                    );
+
+
+                    if (button) {
+
+                        button.disabled =
+                            false;
+
+
+                        button.textContent =
+                            "Personalakte speichern";
+
+                    }
+
+
+                    showAgentSuccess(
+                        "Die Personalakte wurde erfolgreich gespeichert."
+                    );
+
+                }
+            )
+
+            .withFailureHandler(
+                error => {
+
+                    if (button) {
+
+                        button.disabled =
+                            false;
+
+
+                        button.textContent =
+                            "Personalakte speichern";
+
+                    }
+
+
+                    showAgentError(
+                        error?.message ||
+                        String(
+                            error ||
+                            ""
+                        ) ||
+                        "Die Personalakte konnte nicht gespeichert werden."
+                    );
+
+                }
+            )
+
+            .savePersonnelProfile(
+                token,
+                userId,
+                data
+            );
+
+    }
+
+
+    /* =====================================================
+       TRAININGS
+    ====================================================== */
+
+    function renderTrainingsTab() {
+
+        return `
+
+            ${renderTabs("trainings")}
+
+
+            ${
+                state.bundleLoading &&
+                !state.trainingsLoaded
+                    ? `
+                        <div class="agents-personnel-loading-strip">
+
+                            <div class="agents-loading-spinner"></div>
+
+                            Personalakte wird geladen...
+
+                        </div>
+                      `
+                    : ""
+            }
+
+
+            <div class="agents-form">
+
+                ${
+                    canEditOfficers()
+                        ? `
+                            <div class="agents-section">
+
+                                <div class="agents-section-title">
+                                    Schulung eintragen
+                                </div>
+
+
+                                <div class="agents-section-card">
+
+                        <div class="agents-training-form">
+
+                            <div class="agents-form-grid">
+
+                                <div class="agents-form-group">
+
+                                    <label class="agents-form-label">
+                                        Schulung
+                                    </label>
+
+                                    <input
+                                        id="trainingName"
+                                        class="agents-form-input"
+                                        type="text"
+                                        placeholder="z. B. FTO-Ausbildung"
+                                    >
+
+                                </div>
+
+
+                                <div class="agents-form-group">
+
+                                    <label class="agents-form-label">
+                                        Kategorie
+                                    </label>
+
+                                    <input
+                                        id="trainingCategory"
+                                        class="agents-form-input"
+                                        type="text"
+                                        placeholder="z. B. Ausbildung"
+                                    >
+
+                                </div>
+
+
+                                <div class="agents-form-group">
+
+                                    <label class="agents-form-label">
+                                        Datum
+                                    </label>
+
+                                    <input
+                                        id="trainingDate"
+                                        class="agents-form-input"
+                                        type="date"
+                                    >
+
+                                </div>
+
+
+                                <div class="agents-form-group">
+
+                                    <label class="agents-form-label">
+                                        Status
+                                    </label>
+
+                                    <select
+                                        id="trainingStatus"
+                                        class="agents-form-select"
+                                    >
+
+                                        <option value="Bestanden">
+                                            Bestanden
+                                        </option>
+
+                                        <option value="Offen">
+                                            Offen
+                                        </option>
+
+                                        <option value="Abgelaufen">
+                                            Abgelaufen
+                                        </option>
+
+                                        <option value="Nicht bestanden">
+                                            Nicht bestanden
+                                        </option>
+
+                                    </select>
+
+                                </div>
+
+
+                                <div class="agents-form-group">
+
+                                    <label class="agents-form-label">
+                                        Ausbilder
+                                    </label>
+
+                                    <input
+                                        id="trainingInstructor"
+                                        class="agents-form-input"
+                                        type="text"
+                                        placeholder="Name des Ausbilders"
+                                    >
+
+                                </div>
+
+
+                                <div class="agents-form-group">
+
+                                    <label class="agents-form-label">
+                                        Ablaufdatum
+                                    </label>
+
+                                    <input
+                                        id="trainingExpiryDate"
+                                        class="agents-form-input"
+                                        type="date"
+                                    >
+
+                                </div>
+
+
+                                <div class="agents-form-group full">
+
+                                    <label class="agents-form-label">
+                                        Bemerkungen
+                                    </label>
+
+                                    <textarea
+                                        id="trainingNotes"
+                                        class="agents-form-textarea"
+                                        placeholder="Optionale Bemerkungen..."
+                                    ></textarea>
+
+                                </div>
+
+                            </div>
+
+
+                            <div class="agents-inline-actions">
+
+                                <button
+                                    type="button"
+                                    id="createTrainingButton"
+                                    class="agents-small-button primary"
+                                >
+                                    Schulung eintragen
+                                </button>
+
+                            </div>
+
+                        </div>
+
+                                </div>
+
+                            </div>
+                          `
+                        : ""
+                }
+
+
+                <div class="agents-section">
+
+                    <div class="agents-section-title">
+                        Vorhandene Schulungen
+                    </div>
+
+
+                    <div class="agents-training-list">
+
+                        ${
+                            renderTrainingEntries()
+                        }
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        `;
+
+    }
+
+
+    function renderTrainingEntries() {
+
+        if (
+            !state.trainings.length
+        ) {
+
+            return `
+
+                <div class="agents-empty-list">
+
+                    Noch keine Schulungen eingetragen.
+
+                </div>
+
+            `;
+
+        }
+
+
+        return state.trainings
+            .map(
+                training => {
+
+                    const id =
+                        getValue(
+                            training,
+                            [
+                                "id",
+                                "ID"
+                            ],
+                            ""
+                        );
+
+
+                    const name =
+                        getValue(
+                            training,
+                            [
+                                "name",
+                                "Name"
+                            ],
+                            "Unbenannte Schulung"
+                        );
+
+
+                    const category =
+                        getValue(
+                            training,
+                            [
+                                "category",
+                                "Category"
+                            ],
+                            ""
+                        );
+
+
+                    const date =
+                        getValue(
+                            training,
+                            [
+                                "date",
+                                "Date"
+                            ],
+                            ""
+                        );
+
+
+                    const instructor =
+                        getValue(
+                            training,
+                            [
+                                "instructor",
+                                "Instructor"
+                            ],
+                            ""
+                        );
+
+
+                    const status =
+                        getValue(
+                            training,
+                            [
+                                "status",
+                                "Status"
+                            ],
+                            ""
+                        );
+
+
+                    const expiryDate =
+                        getValue(
+                            training,
+                            [
+                                "expiryDate",
+                                "ExpiryDate"
+                            ],
+                            ""
+                        );
+
+
+                    const notes =
+                        getValue(
+                            training,
+                            [
+                                "notes",
+                                "Notes"
+                            ],
+                            ""
+                        );
+
+
+                    let statusClass =
+                        "";
+
+
+                    if (
+                        String(
+                            status
+                        ).toLowerCase() ===
+                        "bestanden"
+                    ) {
+
+                        statusClass =
+                            "success";
+
+                    }
+
+
+                    if (
+                        String(
+                            status
+                        ).toLowerCase() ===
+                        "offen"
+                    ) {
+
+                        statusClass =
+                            "warning";
+
+                    }
+
+
+                    if (
+                        String(
+                            status
+                        ).toLowerCase() ===
+                            "abgelaufen" ||
+                        String(
+                            status
+                        ).toLowerCase()
+                            .includes(
+                                "nicht bestanden"
+                            )
+                    ) {
+
+                        statusClass =
+                            "danger";
+
+                    }
+
+
+                    return `
+
+                        <div class="agents-entry-item">
+
+                            <div class="agents-entry-main">
+
+                                <div class="agents-entry-title">
+                                    ${escapeHtml(name)}
+                                </div>
+
+
+                                <div class="agents-entry-meta">
+
+                                    ${
+                                        category
+                                            ? `
+                                                <span>
+                                                    ${escapeHtml(category)}
+                                                </span>
+                                              `
+                                            : ""
+                                    }
+
+
+                                    ${
+                                        date
+                                            ? `
+                                                <span>
+                                                    ${formatDate(date)}
+                                                </span>
+                                              `
+                                            : ""
+                                    }
+
+
+                                    ${
+                                        instructor
+                                            ? `
+                                                <span>
+                                                    Ausbilder:
+                                                    ${escapeHtml(instructor)}
+                                                </span>
+                                              `
+                                            : ""
+                                    }
+
+
+                                    ${
+                                        status
+                                            ? `
+                                                <span
+                                                    class="
+                                                        agents-status
+                                                        ${statusClass}
+                                                    "
+                                                >
+                                                    ${escapeHtml(status)}
+                                                </span>
+                                              `
+                                            : ""
+                                    }
+
+
+                                    ${
+                                        expiryDate
+                                            ? `
+                                                <span>
+                                                    Ablauf:
+                                                    ${formatDate(expiryDate)}
+                                                </span>
+                                              `
+                                            : ""
+                                    }
+
+                                </div>
+
+
+                                ${
+                                    notes
+                                        ? `
+                                            <div class="agents-entry-content">
+                                                ${escapeHtml(notes)}
+                                            </div>
+                                          `
+                                        : ""
+                                }
+
+                            </div>
+
+
+                            ${
+                                canEditOfficers()
+                                    ? `
+                                        <button
+                                            type="button"
+                                            class="agents-entry-delete"
+                                            data-training-id="${escapeHtml(id)}"
+                                            title="Schulung löschen"
+                                        >
+                                            ×
+                                        </button>
+                                      `
+                                    : ""
+                            }
+
+                        </div>
+
+                    `;
+
+                }
+            )
+            .join("");
+
+    }
+
+
+    function bindTrainingForm() {
+
+        if (!canEditOfficers()) {
+            return;
+        }
+
+        const createButton =
+            $("createTrainingButton");
+
+
+        if (
+            createButton
+        ) {
+
+            createButton.onclick =
+                function() {
+
+                    createTraining();
+
+                };
+
+        }
+
+
+        document
+            .querySelectorAll(
+                "[data-training-id]"
+            )
+            .forEach(
+                button => {
+
+                    button.onclick =
+                        function() {
+
+                            deleteTraining(
+                                button.dataset.trainingId
+                            );
+
+                        };
+
+                }
+            );
+
+    }
+
+
+    function createTraining() {
+
+        if (!canEditOfficers()) {
+
+            showAgentError(
+                "Du besitzt keine Berechtigung zum Bearbeiten von Beamten."
+            );
+
+            return;
+
+        }
+
+        const agent =
+            state.selectedAgent;
+
+
+        if (!agent) {
+            return;
+        }
+
+
+        const token =
+            getAgentsSessionToken();
+
+
+        const userId =
+            String(
+                agent.id
+            );
+
+
+        const name =
+            $("trainingName")
+                ?.value
+                ?.trim() ||
+            "";
+
+
+        if (!name) {
+
+            showAgentError(
+                "Bitte einen Namen für die Schulung eingeben."
+            );
+
+            return;
+
+        }
+
+
+        const button =
+            $("createTrainingButton");
+
+
+        if (button) {
+
+            button.disabled =
+                true;
+
+
+            button.textContent =
+                "Wird eingetragen...";
+
+        }
+
+
+        const data = {
+
+            name:
+                name,
+
+            category:
+                $("trainingCategory")
+                    ?.value
+                    ?.trim() ||
+                "",
+
+            date:
+                $("trainingDate")
+                    ?.value ||
+                "",
+
+            instructor:
+                $("trainingInstructor")
+                    ?.value
+                    ?.trim() ||
+                "",
+
+            status:
+                $("trainingStatus")
+                    ?.value ||
+                "Bestanden",
+
+            expiryDate:
+                $("trainingExpiryDate")
+                    ?.value ||
+                "",
+
+            notes:
+                $("trainingNotes")
+                    ?.value
+                    ?.trim() ||
+                ""
+
+        };
+
+
+        CloudApi.run
+
+            .withSuccessHandler(
+                created => {
+
+                    state.trainings =
+                        [
+                            created,
+                            ...state.trainings
+                        ];
+
+
+                    state.trainingsLoaded =
+                        true;
+
+
+                    renderPersonnelModal(
+                        true
+                    );
+
+
+                    showAgentSuccess(
+                        "Die Schulung wurde eingetragen."
+                    );
+
+                }
+            )
+
+            .withFailureHandler(
+                error => {
+
+                    if (button) {
+
+                        button.disabled =
+                            false;
+
+
+                        button.textContent =
+                            "Schulung eintragen";
+
+                    }
+
+
+                    showAgentError(
+                        error?.message ||
+                        String(
+                            error ||
+                            ""
+                        ) ||
+                        "Die Schulung konnte nicht eingetragen werden."
+                    );
+
+                }
+            )
+
+            .createPersonnelTraining(
+                token,
+                userId,
+                data
+            );
+
+    }
+
+
+    function deleteTraining(
+        trainingId
+    ) {
+
+        if (!canEditOfficers()) {
+
+            showAgentError(
+                "Du besitzt keine Berechtigung zum Bearbeiten von Beamten."
+            );
+
+            return;
+
+        }
+
+        const agent =
+            state.selectedAgent;
+
+
+        if (!agent) {
+            return;
+        }
+
+
+        const token =
+            getAgentsSessionToken();
+
+
+        CloudApi.run
+
+            .withSuccessHandler(
+                () => {
+
+                    state.trainings =
+                        state.trainings.filter(
+                            item =>
+                                String(
+                                    getValue(
+                                        item,
+                                        [
+                                            "id",
+                                            "ID"
+                                        ],
+                                        ""
+                                    )
+                                ) !==
+                                String(
+                                    trainingId
+                                )
+                        );
+
+
+                    renderPersonnelModal(
+                        true
+                    );
+
+
+                    showAgentSuccess(
+                        "Die Schulung wurde gelöscht."
+                    );
+
+                }
+            )
+
+            .withFailureHandler(
+                error => {
+
+                    showAgentError(
+                        error?.message ||
+                        String(
+                            error ||
+                            ""
+                        ) ||
+                        "Die Schulung konnte nicht gelöscht werden."
+                    );
+
+                }
+            )
+
+            .deletePersonnelTraining(
+                token,
+                String(agent.id),
+                trainingId
+            );
+
+    }
+
+
+    /* =====================================================
+       NOTES
+    ====================================================== */
+
+    function renderSanctionsTab() {
+        const entries = Array.isArray(state.sanctions) ? state.sanctions : [];
+        const labels = { fine: "Geldstrafe", hq_rounds: "HQ-Runden", fort_rounds: "Fort-Runden", human_labs: "Human Labs", suspension: "Suspendierung", termination: "Kündigung" };
+        const componentsOf = m => Array.isArray(m.sanction_components) && m.sanction_components.length ? m.sanction_components : [{ type: m.sanction_type || (m.amount != null ? "fine" : ""), amount: m.amount, value: m.sanction_value, unit: m.sanction_unit }];
+        const componentValue = c => c.type === "fine" ? `${Number(c.amount || 0).toLocaleString("de-DE")} $` : c.type === "termination" ? "Beendigung des Dienstverhältnisses" : `${Number(c.value ?? c.sanction_value ?? 0).toLocaleString("de-DE")} ${c.unit || c.sanction_unit || ""}`.trim();
+        return `${renderTabs("sanctions")}<div class="agents-form"><div class="agents-section"><div class="agents-section-title">Verhängte interne Sanktionen</div><div class="agents-note-list">${!state.sanctionsLoaded ? `<div class="agents-personnel-loading-strip">Sanktionshistorie wird geladen …</div>` : !entries.length ? `<div class="agents-empty-list">Für diesen Agenten sind keine internen Sanktionen dokumentiert.</div>` : entries.map(row => { const m = row.metadata || {}; const date = row.eventDate || row.created_at; const components = componentsOf(m); return `<div class="agents-section-card" style="margin-bottom:10px"><div><div class="agents-section-title" style="margin:0">${escapeHtml(m.fine_title || row.title || "Interne Sanktion")}</div><div style="margin-top:5px;color:rgba(255,255,255,.42);font-size:10px">${date ? escapeHtml(new Date(date).toLocaleString("de-DE")) : "Datum unbekannt"}</div></div><div style="display:grid;gap:5px;margin-top:10px">${components.map(c => `<div style="display:flex;justify-content:space-between;gap:12px"><span style="color:rgba(255,255,255,.55);font-size:11px">${escapeHtml(labels[c.type] || "Sanktion")}</span><strong>${escapeHtml(componentValue(c))}</strong></div>`).join("")}</div>${m.reason || row.description ? `<div style="margin-top:9px;white-space:pre-wrap">${escapeHtml(m.reason || row.description)}</div>` : ""}<div style="margin-top:8px;color:rgba(255,255,255,.42);font-size:10px">Festgesetzt durch: ${escapeHtml(m.issued_by_name || row.created_by_name || "Unbekannt")}</div></div>`; }).join("")}</div></div></div>`;
+    }
+
+
+    function renderNotesTab() {
+
+        return `
+
+            ${renderTabs("notes")}
+
+
+            ${
+                state.bundleLoading &&
+                !state.notesLoaded
+                    ? `
+                        <div class="agents-personnel-loading-strip">
+
+                            <div class="agents-loading-spinner"></div>
+
+                            Personalakte wird geladen...
+
+                        </div>
+                      `
+                    : ""
+            }
+
+
+            <div class="agents-form">
+
+                ${
+                    canEditOfficers()
+                        ? `
+                            <div class="agents-section">
+
+                                <div class="agents-section-title">
+                                    Vermerk hinzufügen
+                                </div>
+
+
+                                <div class="agents-section-card">
+
+                        <div class="agents-note-form">
+
+                            <div class="agents-form-grid">
+
+                                <div class="agents-form-group">
+
+                                    <label class="agents-form-label">
+                                        Art
+                                    </label>
+
+                                    <select
+                                        id="noteType"
+                                        class="agents-form-select"
+                                    >
+
+                                        <option value="Vermerk">
+                                            Vermerk
+                                        </option>
+
+                                        <option value="Auszeichnung">
+                                            Auszeichnung
+                                        </option>
+
+                                        <option value="Disziplinarvermerk">
+                                            Disziplinarvermerk
+                                        </option>
+
+                                        <option value="Sonstiges">
+                                            Sonstiges
+                                        </option>
+
+                                    </select>
+
+                                </div>
+
+
+                                <div class="agents-form-group">
+
+                                    <label class="agents-form-label">
+                                        Titel
+                                    </label>
+
+                                    <input
+                                        id="noteTitle"
+                                        class="agents-form-input"
+                                        type="text"
+                                        placeholder="Titel des Vermerks"
+                                    >
+
+                                </div>
+
+
+                                <div class="agents-form-group full">
+
+                                    <label class="agents-form-label">
+                                        Inhalt
+                                    </label>
+
+                                    <textarea
+                                        id="noteContent"
+                                        class="agents-form-textarea"
+                                        placeholder="Inhalt des Vermerks..."
+                                    ></textarea>
+
+                                </div>
+
+                            </div>
+
+
+                            <div class="agents-inline-actions">
+
+                                <button
+                                    type="button"
+                                    id="createNoteButton"
+                                    class="agents-small-button primary"
+                                >
+                                    Vermerk hinzufügen
+                                </button>
+
+                            </div>
+
+                        </div>
+
+                                </div>
+
+                            </div>
+                          `
+                        : ""
+                }
+
+
+                <div class="agents-section">
+
+                    <div class="agents-section-title">
+                        Vorhandene Vermerke
+                    </div>
+
+
+                    <div class="agents-note-list">
+
+                        ${
+                            renderNoteEntries()
+                        }
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        `;
+
+    }
+
+
+    function renderNoteEntries() {
+
+        if (
+            !state.notes.length
+        ) {
+
+            return `
+
+                <div class="agents-empty-list">
+
+                    Noch keine Vermerke eingetragen.
+
+                </div>
+
+            `;
+
+        }
+
+
+        return state.notes
+            .map(
+                note => {
+
+                    const id =
+                        getValue(
+                            note,
+                            [
+                                "id",
+                                "ID"
+                            ],
+                            ""
+                        );
+
+
+                    const type =
+                        getValue(
+                            note,
+                            [
+                                "type",
+                                "Type"
+                            ],
+                            "Vermerk"
+                        );
+
+
+                    const title =
+                        getValue(
+                            note,
+                            [
+                                "title",
+                                "Title"
+                            ],
+                            "Vermerk"
+                        );
+
+
+                    const content =
+                        getValue(
+                            note,
+                            [
+                                "content",
+                                "Content"
+                            ],
+                            ""
+                        );
+
+
+                    const date =
+                        getValue(
+                            note,
+                            [
+                                "date",
+                                "Date"
+                            ],
+                            ""
+                        );
+
+
+                    const author =
+                        getValue(
+                            note,
+                            [
+                                "author",
+                                "Author"
+                            ],
+                            ""
+                        );
+
+
+                    let statusClass =
+                        "";
+
+
+                    if (
+                        String(
+                            type
+                        ).toLowerCase()
+                            .includes(
+                                "auszeichnung"
+                            )
+                    ) {
+
+                        statusClass =
+                            "success";
+
+                    }
+
+
+                    if (
+                        String(
+                            type
+                        ).toLowerCase()
+                            .includes(
+                                "disziplin"
+                            )
+                    ) {
+
+                        statusClass =
+                            "danger";
+
+                    }
+
+
+                    return `
+
+                        <div class="agents-entry-item">
+
+                            <div class="agents-entry-main">
+
+                                <div class="agents-entry-title">
+                                    ${escapeHtml(title)}
+                                </div>
+
+
+                                <div class="agents-entry-meta">
+
+                                    <span
+                                        class="
+                                            agents-status
+                                            ${statusClass}
+                                        "
+                                    >
+                                        ${escapeHtml(type)}
+                                    </span>
+
+
+                                    ${
+                                        date
+                                            ? `
+                                                <span>
+                                                    ${formatDate(date)}
+                                                </span>
+                                              `
+                                            : ""
+                                    }
+
+
+                                    ${
+                                        author
+                                            ? `
+                                                <span>
+                                                    Autor:
+                                                    ${escapeHtml(author)}
+                                                </span>
+                                              `
+                                            : ""
+                                    }
+
+                                </div>
+
+
+                                ${
+                                    content
+                                        ? `
+                                            <div class="agents-entry-content">
+                                                ${escapeHtml(content)}
+                                            </div>
+                                          `
+                                        : ""
+                                }
+
+                            </div>
+
+
+                            ${
+                                canEditOfficers()
+                                    ? `
+                                        <button
+                                            type="button"
+                                            class="agents-entry-delete"
+                                            data-note-id="${escapeHtml(id)}"
+                                            title="Vermerk löschen"
+                                        >
+                                            ×
+                                        </button>
+                                      `
+                                    : ""
+                            }
+
+                        </div>
+
+                    `;
+
+                }
+            )
+            .join("");
+
+    }
+
+
+    function bindNoteForm() {
+
+        if (!canEditOfficers()) {
+            return;
+        }
+
+        const createButton =
+            $("createNoteButton");
+
+
+        if (
+            createButton
+        ) {
+
+            createButton.onclick =
+                function() {
+
+                    createNote();
+
+                };
+
+        }
+
+
+        document
+            .querySelectorAll(
+                "[data-note-id]"
+            )
+            .forEach(
+                button => {
+
+                    button.onclick =
+                        function() {
+
+                            deleteNote(
+                                button.dataset.noteId
+                            );
+
+                        };
+
+                }
+            );
+
+    }
+
+
+    function createNote() {
+
+        if (!canEditOfficers()) {
+
+            showAgentError(
+                "Du besitzt keine Berechtigung zum Bearbeiten von Beamten."
+            );
+
+            return;
+
+        }
+
+        const agent =
+            state.selectedAgent;
+
+
+        if (!agent) {
+            return;
+        }
+
+
+        const token =
+            getAgentsSessionToken();
+
+
+        const title =
+            $("noteTitle")
+                ?.value
+                ?.trim() ||
+            "";
+
+
+        const content =
+            $("noteContent")
+                ?.value
+                ?.trim() ||
+            "";
+
+
+        if (!title) {
+
+            showAgentError(
+                "Bitte einen Titel für den Vermerk eingeben."
+            );
+
+            return;
+
+        }
+
+
+        if (!content) {
+
+            showAgentError(
+                "Bitte einen Inhalt für den Vermerk eingeben."
+            );
+
+            return;
+
+        }
+
+
+        const button =
+            $("createNoteButton");
+
+
+        if (button) {
+
+            button.disabled =
+                true;
+
+
+            button.textContent =
+                "Wird eingetragen...";
+
+        }
+
+
+        const data = {
+
+            type:
+                $("noteType")
+                    ?.value ||
+                "Vermerk",
+
+            title:
+                title,
+
+            content:
+                content
+
+        };
+
+
+        CloudApi.run
+
+            .withSuccessHandler(
+                created => {
+
+                    state.notes =
+                        [
+                            created,
+                            ...state.notes
+                        ];
+
+
+                    renderPersonnelModal(
+                        true
+                    );
+
+
+                    showAgentSuccess(
+                        "Der Vermerk wurde hinzugefügt."
+                    );
+
+                }
+            )
+
+            .withFailureHandler(
+                error => {
+
+                    if (button) {
+
+                        button.disabled =
+                            false;
+
+
+                        button.textContent =
+                            "Vermerk hinzufügen";
+
+                    }
+
+
+                    showAgentError(
+                        error?.message ||
+                        String(
+                            error ||
+                            ""
+                        ) ||
+                        "Der Vermerk konnte nicht hinzugefügt werden."
+                    );
+
+                }
+            )
+
+            .createPersonnelNote(
+                token,
+                String(agent.id),
+                data
+            );
+
+    }
+
+
+    function deleteNote(
+        noteId
+    ) {
+
+        if (!canEditOfficers()) {
+
+            showAgentError(
+                "Du besitzt keine Berechtigung zum Bearbeiten von Beamten."
+            );
+
+            return;
+
+        }
+
+        const agent =
+            state.selectedAgent;
+
+
+        if (!agent) {
+            return;
+        }
+
+
+        const token =
+            getAgentsSessionToken();
+
+
+        CloudApi.run
+
+            .withSuccessHandler(
+                () => {
+
+                    state.notes =
+                        state.notes.filter(
+                            item =>
+                                String(
+                                    getValue(
+                                        item,
+                                        [
+                                            "id",
+                                            "ID"
+                                        ],
+                                        ""
+                                    )
+                                ) !==
+                                String(
+                                    noteId
+                                )
+                        );
+
+
+                    renderPersonnelModal(
+                        true
+                    );
+
+
+                    showAgentSuccess(
+                        "Der Vermerk wurde gelöscht."
+                    );
+
+                }
+            )
+
+            .withFailureHandler(
+                error => {
+
+                    showAgentError(
+                        error?.message ||
+                        String(
+                            error ||
+                            ""
+                        ) ||
+                        "Der Vermerk konnte nicht gelöscht werden."
+                    );
+
+                }
+            )
+
+            .deletePersonnelNote(
+                token,
+                String(agent.id),
+                noteId
+            );
+
+    }
+
+
+    /* =====================================================
+       GLOBAL EVENTS
+    ====================================================== */
+
+    function bindGlobalEvents() {
+
+        if (
+            state.globalEventsBound
+        ) {
+            return;
+        }
+
+
+        state.globalEventsBound =
+            true;
+
+
+        document.addEventListener(
+            "click",
+            function(event) {
+
+                const rankSelect =
+                    $("agentRankSelect");
+
+
+                if (
+                    rankSelect &&
+                    !rankSelect.contains(
+                        event.target
+                    )
+                ) {
+
+                    closeRankDropdown();
+
+                }
+
+            }
+        );
+
+
+        document.addEventListener(
+            "keydown",
+            function(event) {
+
+                if (
+                    event.key !==
+                    "Escape"
+                ) {
+
+                    return;
+
+                }
+
+
+                const overlay =
+                    $("agentsSystemModalOverlay");
+
+
+                if (
+                    overlay &&
+                    overlay.classList.contains(
+                        "active"
+                    )
+                ) {
+
+                    closePersonnelFile();
+
+                }
+
+            }
+        );
+
+
+        document.addEventListener(
+            "click",
+            function(event) {
+
+                const overlay =
+                    $("agentsSystemModalOverlay");
+
+
+                if (
+                    overlay &&
+                    event.target ===
+                    overlay
+                ) {
+
+                    closePersonnelFile();
+
+                }
+
+            }
+        );
+
+    }
+
+
+    /* =====================================================
+       NOTIFICATIONS
+    ====================================================== */
+
+    function showAgentError(
+        message
+    ) {
+
+        if (
+            typeof window.showSystemError ===
+            "function"
+        ) {
+
+            window.showSystemError(
+                message
+            );
+
+            return;
+
+        }
+
+
+        console.error(
+            "LSPD MDT – Fehler:",
+            message
+        );
+
+    }
+
+
+    function showAgentSuccess(
+        message
+    ) {
+
+        if (
+            typeof window.showSystemSuccess ===
+            "function"
+        ) {
+
+            window.showSystemSuccess(
+                message
+            );
+
+            return;
+
+        }
+
+
+        console.log(
+            "LSPD MDT – Erfolg:",
+            message
+        );
+
+    }
+
+
+    /* =====================================================
+       GLOBAL FUNCTIONS
+    ====================================================== */
+
+    window.addEventListener("fib-mdt:refresh-request", function (event) { if (document.getElementById("agentsPage") && !(event.detail && event.detail.source === "mutation")) loadAgents(); });
+
+    window.addEventListener("fib-mdt:data-changed", function (event) { const modal=document.getElementById("fibGlobalModalOverlay"); if (document.getElementById("agentsPage") && !(modal && modal.classList.contains("open")) && /Personnel|Agent|Training|Note|Rank|User/i.test(String(event.detail && event.detail.method || ""))) loadAgents(); });
+
+    window.openPersonnelFile =
+        openPersonnelFile;
+
+
+    window.closePersonnelFile =
+        closePersonnelFile;
+
+
+})();
+

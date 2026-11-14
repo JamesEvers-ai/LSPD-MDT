@@ -1,0 +1,3508 @@
+
+(function () {
+
+    "use strict";
+
+
+    /* ============================================================
+       KONFIGURATION
+       ============================================================ */
+
+    const PERMISSIONS = Object.freeze({
+
+        view:
+            "classification.view",
+
+        approve:
+            "classification.approve",
+
+        create:
+            "classification.create",
+
+        delete:
+            "classification.delete"
+
+    });
+
+
+    const FALLBACK_ORGANIZATIONS =
+        Object.freeze([
+
+            "SAHP",
+            "SANG",
+            "FIB",
+            "LI",
+            "GOV",
+            "EMS",
+            "LSPD"
+
+        ]);
+
+
+    const STATUS_FILTERS =
+        Object.freeze([
+
+            {
+                id: "pending",
+                label: "Offen"
+            },
+
+            {
+                id: "all",
+                label: "Alle"
+            },
+
+            {
+                id: "approved",
+                label: "Genehmigt"
+            },
+
+            {
+                id: "rejected",
+                label: "Abgelehnt"
+            }
+
+        ]);
+
+
+    /* ============================================================
+       PERSISTENTER DATA-STATE
+       ============================================================ */
+
+    const state =
+        window.__FIB_MDT_CLASSIFICATIONS__ ||
+        {
+
+            initialized:
+                false,
+
+            activeTab:
+                "requests",
+
+            requestStatus:
+                "pending",
+
+            search:
+                "",
+
+            organizationFilter:
+                "all",
+
+            requests:
+                [],
+
+            persons:
+                [],
+
+            organizations:
+                [
+                    ...FALLBACK_ORGANIZATIONS
+                ],
+
+            permissions:
+                {
+
+                    master:
+                        false,
+
+                    view:
+                        false,
+
+                    approve:
+                        false,
+
+                    create:
+                        false,
+
+                    delete:
+                        false
+
+                },
+
+            loading:
+                false
+
+        };
+
+
+    window.__FIB_MDT_CLASSIFICATIONS__ =
+        state;
+
+
+    /* ============================================================
+       DOM HELPER
+       ============================================================ */
+
+    const $ =
+        function (id) {
+
+            return document.getElementById(id);
+
+        };
+
+
+    /* ============================================================
+       SESSION
+       ============================================================ */
+
+    function getToken() {
+
+        try {
+
+            return (
+                sessionStorage.getItem(
+                    "fib_mdt_session"
+                ) ||
+
+                sessionStorage.getItem(
+                    "lspd_mdt_session"
+                ) ||
+
+                ""
+            );
+
+        } catch (error) {
+
+            console.warn(
+                "[LSPD MDT][Klassifizierungen] SessionStorage konnte nicht gelesen werden.",
+                error
+            );
+
+            return "";
+
+        }
+
+    }
+
+
+    /* ============================================================
+       HTML ESCAPE
+       ============================================================ */
+
+    function escapeHtml(value) {
+
+        return String(
+            value ?? ""
+        )
+
+            .replace(
+                /&/g,
+                "&amp;"
+            )
+
+            .replace(
+                /</g,
+                "&lt;"
+            )
+
+            .replace(
+                />/g,
+                "&gt;"
+            )
+
+            .replace(
+                /"/g,
+                "&quot;"
+            )
+
+            .replace(
+                /'/g,
+                "&#039;"
+            );
+
+    }
+
+
+    /* ============================================================
+       DATE
+       ============================================================ */
+
+    function formatDate(value) {
+
+        if (!value) {
+
+            return "—";
+
+        }
+
+
+        const date =
+            new Date(value);
+
+
+        if (
+            Number.isNaN(
+                date.getTime()
+            )
+        ) {
+
+            return String(
+                value
+            );
+
+        }
+
+
+        return new Intl.DateTimeFormat(
+            "de-DE",
+            {
+
+                dateStyle:
+                    "medium",
+
+                timeStyle:
+                    "short"
+
+            }
+        ).format(date);
+
+    }
+
+
+    /* ============================================================
+       ORGANISATION
+       ============================================================ */
+
+    function normalizeOrganization(value) {
+
+        return String(
+            value || ""
+        )
+            .trim()
+            .toUpperCase();
+
+    }
+
+
+    /* ============================================================
+       GLOBALE NOTIFICATIONS
+       ============================================================ */
+
+    function classificationNotify(
+        type,
+        title,
+        message,
+        options = {}
+    ) {
+
+        try {
+
+            if (
+                window.MDT &&
+                MDT.notify &&
+                typeof MDT.notify[type] ===
+                    "function"
+            ) {
+
+                return MDT.notify[type](
+                    title,
+                    message,
+                    options
+                );
+
+            }
+
+        } catch (error) {
+
+            console.error(
+                "[LSPD MDT][Klassifizierungen] Notification-Fehler:",
+                error
+            );
+
+        }
+
+
+        console.error(
+            "[LSPD MDT][Klassifizierungen]",
+            message
+        );
+
+
+        return null;
+
+    }
+
+
+    function showClassificationError(
+        message
+    ) {
+
+        return classificationNotify(
+
+            "error",
+
+            "Fehler",
+
+            String(
+                message ||
+                "Die Aktion konnte nicht ausgeführt werden."
+            )
+
+        );
+
+    }
+
+
+    function showClassificationSuccess(
+        message
+    ) {
+
+        return classificationNotify(
+
+            "success",
+
+            "Erfolgreich",
+
+            String(
+                message ||
+                "Die Aktion wurde erfolgreich ausgeführt."
+            )
+
+        );
+
+    }
+
+
+    /* ============================================================
+       PERMISSIONS
+       ============================================================ */
+
+    function hasPermission(
+        permission
+    ) {
+
+        if (
+            state.permissions.master
+        ) {
+
+            return true;
+
+        }
+
+
+        if (
+            typeof myPermissions !==
+                "undefined" &&
+            Array.isArray(
+                myPermissions
+            )
+        ) {
+
+            return myPermissions.includes(
+                permission
+            );
+
+        }
+
+
+        if (
+            Array.isArray(
+                window.myPermissions
+            )
+        ) {
+
+            return window.myPermissions.includes(
+                permission
+            );
+
+        }
+
+
+        return false;
+
+    }
+
+
+    function syncLocalPermissions() {
+
+        const master =
+            typeof isMaster !==
+                "undefined" &&
+            isMaster === true;
+
+
+        state.permissions.master =
+            master;
+
+
+        state.permissions.view =
+            master ||
+            hasPermission(
+                PERMISSIONS.view
+            );
+
+
+        state.permissions.approve =
+            master ||
+            hasPermission(
+                PERMISSIONS.approve
+            );
+
+
+        state.permissions.create =
+            master ||
+            hasPermission(
+                PERMISSIONS.create
+            );
+
+
+        state.permissions.delete =
+            master ||
+            hasPermission(
+                PERMISSIONS.delete
+            );
+
+    }
+
+
+    /* ============================================================
+       STATUS LABEL
+       ============================================================ */
+
+    function getRequestStatusLabel(
+        status
+    ) {
+
+        switch (
+            String(
+                status || ""
+            ).toLowerCase()
+        ) {
+
+            case "pending":
+                return "Offen";
+
+            case "approved":
+                return "Genehmigt";
+
+            case "rejected":
+                return "Abgelehnt";
+
+            default:
+                return "Unbekannt";
+
+        }
+
+    }
+
+
+    /* ============================================================
+       FILTER RENDER
+       ============================================================ */
+
+    function renderOrganizationFilter() {
+
+        const select =
+            $("classificationsOrganizationFilter");
+
+
+        if (!select) {
+
+            return;
+
+        }
+
+
+        select.innerHTML =
+            `<option value="all">Alle Organisationen</option>` +
+
+            state.organizations
+                .map(
+                    function (
+                        organization
+                    ) {
+
+                        return `
+                            <option value="${escapeHtml(organization)}">
+                                ${escapeHtml(organization)}
+                            </option>
+                        `;
+
+                    }
+                )
+                .join("");
+
+
+        select.value =
+            state.organizationFilter ||
+            "all";
+
+    }
+
+
+    function renderStatusFilters() {
+
+        const host =
+            $("classificationsStatusFilters");
+
+
+        if (!host) {
+
+            return;
+
+        }
+
+
+        if (
+            state.activeTab !==
+            "requests"
+        ) {
+
+            host.innerHTML =
+                "";
+
+            return;
+
+        }
+
+
+        host.innerHTML =
+            STATUS_FILTERS
+
+                .map(
+                    function (
+                        filter
+                    ) {
+
+                        return `
+                            <button
+                                type="button"
+                                class="classifications-filter${
+                                    state.requestStatus ===
+                                    filter.id
+                                        ? " active"
+                                        : ""
+                                }"
+                                data-classification-status="${escapeHtml(filter.id)}"
+                            >
+                                ${escapeHtml(filter.label)}
+                            </button>
+                        `;
+
+                    }
+                )
+
+                .join("");
+
+    }
+
+
+    /* ============================================================
+       FILTER DATA
+       ============================================================ */
+
+    function filteredRequests() {
+
+        const query =
+            state.search
+                .trim()
+                .toLocaleLowerCase(
+                    "de-DE"
+                );
+
+
+        return state.requests.filter(
+            function (
+                request
+            ) {
+
+                const status =
+                    String(
+                        request?.status ||
+                        ""
+                    ).toLowerCase();
+
+
+                if (
+                    state.requestStatus !==
+                        "all" &&
+                    status !==
+                        state.requestStatus
+                ) {
+
+                    return false;
+
+                }
+
+
+                if (!query) {
+
+                    return true;
+
+                }
+
+
+                return [
+
+                    request?.person_name,
+                    request?.passport_number,
+                    request?.organization,
+                    request?.rank_function,
+                    request?.reason,
+                    request?.requested_by_name,
+                    request?.reviewed_by_name,
+                    request?.review_reason
+
+                ].some(
+                    function (
+                        value
+                    ) {
+
+                        return String(
+                            value ?? ""
+                        )
+                            .toLocaleLowerCase(
+                                "de-DE"
+                            )
+                            .includes(
+                                query
+                            );
+
+                    }
+                );
+
+            }
+        );
+
+    }
+
+
+    function filteredPersons() {
+
+        const query =
+            state.search
+                .trim()
+                .toLocaleLowerCase(
+                    "de-DE"
+                );
+
+
+        const organization =
+            state.organizationFilter ||
+            "all";
+
+
+        return state.persons.filter(
+            function (
+                person
+            ) {
+
+                const personOrganization =
+                    normalizeOrganization(
+                        person?.organization
+                    );
+
+
+                if (
+                    organization !==
+                        "all" &&
+                    personOrganization !==
+                        normalizeOrganization(
+                            organization
+                        )
+                ) {
+
+                    return false;
+
+                }
+
+
+                if (!query) {
+
+                    return true;
+
+                }
+
+
+                return [
+
+                    person?.person_name,
+                    person?.passport_number,
+                    person?.organization,
+                    person?.rank_function,
+                    person?.reason,
+                    person?.added_by_name
+
+                ].some(
+                    function (
+                        value
+                    ) {
+
+                        return String(
+                            value ?? ""
+                        )
+                            .toLocaleLowerCase(
+                                "de-DE"
+                            )
+                            .includes(
+                                query
+                            );
+
+                    }
+                );
+
+            }
+        );
+
+    }
+
+
+    /* ============================================================
+       EMPTY STATE
+       ============================================================ */
+
+    function emptyState(
+        title,
+        text
+    ) {
+
+        return `
+            <div class="classification-empty">
+
+                <div class="classification-empty-inner">
+
+                    <div class="classification-empty-icon">
+                        <i class="fa-solid fa-shield-halved"></i>
+                    </div>
+
+                    <div class="classification-empty-title">
+                        ${escapeHtml(title)}
+                    </div>
+
+                    <div class="classification-empty-text">
+                        ${escapeHtml(text)}
+                    </div>
+
+                </div>
+
+            </div>
+        `;
+
+    }
+
+
+    /* ============================================================
+       REQUEST CARD
+       ============================================================ */
+
+    function renderRequestCard(
+        request
+    ) {
+
+        const status =
+            String(
+                request?.status || ""
+            ).toLowerCase();
+
+
+        const actionMarkup =
+
+            status === "pending" &&
+            state.permissions.approve
+
+                ? `
+                    <button
+                        type="button"
+                        class="classification-action primary"
+                        data-classification-action="approve"
+                        data-request-id="${escapeHtml(request.id)}"
+                    >
+                        Genehmigen
+                    </button>
+
+                    <button
+                        type="button"
+                        class="classification-action danger"
+                        data-classification-action="reject"
+                        data-request-id="${escapeHtml(request.id)}"
+                    >
+                        Ablehnen
+                    </button>
+                `
+
+                : "";
+
+
+        const reviewMarkup =
+
+            status !== "pending"
+
+                ? `
+                    <div class="classification-review">
+
+                        ${
+                            status === "approved"
+                                ? "Genehmigt"
+                                : "Abgelehnt"
+                        }
+
+                        von
+
+                        <strong>
+                            ${escapeHtml(
+                                request?.reviewed_by_name ||
+                                "Unbekannt"
+                            )}
+                        </strong>
+
+                        am
+
+                        ${escapeHtml(
+                            formatDate(
+                                request?.reviewed_at
+                            )
+                        )}
+
+                        ${
+                            status === "rejected" &&
+                            request?.review_reason
+                                ? `
+                                    <br>
+                                    ${escapeHtml(
+                                        request.review_reason
+                                    )}
+                                `
+                                : ""
+                        }
+
+                    </div>
+                `
+
+                : "";
+
+
+        return `
+            <article
+                class="classification-card ${escapeHtml(status)}"
+            >
+
+                <div class="classification-card-header">
+
+                    <div class="classification-card-heading">
+
+                        <div class="classification-card-eyebrow">
+                            Klassifizierungsantrag
+                        </div>
+
+                        <div class="classification-card-title">
+                            ${escapeHtml(
+                                request?.person_name ||
+                                "Unbekannte Person"
+                            )}
+                        </div>
+
+                    </div>
+
+
+                    <div class="classification-card-badges">
+
+                        <span
+                            class="classification-badge ${escapeHtml(status)}"
+                        >
+                            ${escapeHtml(
+                                getRequestStatusLabel(
+                                    status
+                                )
+                            )}
+                        </span>
+
+                        <span
+                            class="classification-badge organization"
+                        >
+                            ${escapeHtml(
+                                request?.organization ||
+                                "Keine Organisation"
+                            )}
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+                <div class="classification-card-body">
+
+                    <div class="classification-detail-grid">
+
+                        <div class="classification-detail">
+
+                            <div class="classification-detail-label">
+                                Reisepassnummer
+                            </div>
+
+                            <div class="classification-detail-value">
+                                ${escapeHtml(
+                                    request?.passport_number ||
+                                    "—"
+                                )}
+                            </div>
+
+                        </div>
+
+
+                        <div class="classification-detail">
+
+                            <div class="classification-detail-label">
+                                Antrag gestellt
+                            </div>
+
+                            <div class="classification-detail-value">
+                                ${escapeHtml(
+                                    formatDate(
+                                        request?.requested_at
+                                    )
+                                )}
+                            </div>
+
+                        </div>
+
+
+                        <div class="classification-detail full">
+
+                            <div class="classification-detail-label">
+                                Beantragt von
+                            </div>
+
+                            <div class="classification-detail-value">
+                                ${escapeHtml(
+                                    request?.requested_by_name ||
+                                    "Unbekannt"
+                                )}
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="classification-detail full" style="margin-top:10px">
+                        <div class="classification-detail-label">Rang / Funktion</div>
+                        <div class="classification-detail-value">
+                            ${escapeHtml(request?.rank_function || "Keine Angabe")}
+                        </div>
+                    </div>
+
+                    <div class="classification-reason">
+                        <strong>Individuelle Begründung</strong><br>
+                        ${escapeHtml(
+                            request?.reason ||
+                            "Keine Begründung angegeben."
+                        )}
+                    </div>
+
+
+                    ${reviewMarkup}
+
+                </div>
+
+
+                <div class="classification-card-footer">
+
+                    <div class="classification-meta">
+
+                        ${
+                            status === "pending"
+
+                                ? "Prüfung ausstehend"
+
+                                : "Antrag abschließend bearbeitet"
+
+                        }
+
+                    </div>
+
+
+                    <div class="classification-actions">
+
+                        ${actionMarkup}
+
+                    </div>
+
+                </div>
+
+            </article>
+        `;
+
+    }
+
+
+    /* ============================================================
+       PERSON CARD
+       ============================================================ */
+
+    function renderPersonCard(
+        person
+    ) {
+
+        return `
+            <article class="classification-card">
+
+                <div class="classification-card-header">
+
+                    <div class="classification-card-heading">
+
+                        <div class="classification-card-eyebrow">
+                            Aktive Klassifizierung
+                        </div>
+
+                        <div class="classification-card-title">
+                            ${escapeHtml(
+                                person?.person_name ||
+                                "Unbekannte Person"
+                            )}
+                        </div>
+
+                    </div>
+
+
+                    <div class="classification-card-badges">
+
+                        <span
+                            class="classification-badge organization"
+                        >
+                            ${escapeHtml(
+                                person?.organization ||
+                                "—"
+                            )}
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+                <div class="classification-card-body">
+
+                    <div class="classification-detail-grid">
+
+                        <div class="classification-detail">
+
+                            <div class="classification-detail-label">
+                                Reisepassnummer
+                            </div>
+
+                            <div class="classification-detail-value">
+                                ${escapeHtml(
+                                    person?.passport_number ||
+                                    "—"
+                                )}
+                            </div>
+
+                        </div>
+
+
+                        <div class="classification-detail">
+
+                            <div class="classification-detail-label">
+                                Rang / Funktion
+                            </div>
+
+                            <div class="classification-detail-value">
+                                ${escapeHtml(
+                                    person?.rank_function ||
+                                    "Keine Angabe"
+                                )}
+                            </div>
+
+                        </div>
+
+
+                        <div class="classification-detail">
+
+                            <div class="classification-detail-label">
+                                Klassifiziert am
+                            </div>
+
+                            <div class="classification-detail-value">
+                                ${escapeHtml(
+                                    formatDate(
+                                        person?.added_at
+                                    )
+                                )}
+                            </div>
+
+                        </div>
+
+
+                        <div class="classification-detail full">
+
+                            <div class="classification-detail-label">
+                                Eingetragen durch
+                            </div>
+
+                            <div class="classification-detail-value">
+                                ${escapeHtml(
+                                    person?.added_by_name ||
+                                    "Unbekannt"
+                                )}
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="classification-reason">
+                        <strong>Individuelle Begründung</strong><br>
+                        ${escapeHtml(
+                            person?.reason ||
+                            "Keine Begründung angegeben."
+                        )}
+                    </div>
+
+                </div>
+
+
+                <div class="classification-card-footer">
+
+                    <div class="classification-meta">
+
+                        Organisation:
+                        ${escapeHtml(
+                            person?.organization ||
+                            "—"
+                        )}
+
+                    </div>
+
+
+                    <div class="classification-actions">
+
+                        ${
+                            state.permissions.delete
+
+                                ? `
+                                    <button
+                                        type="button"
+                                        class="classification-action danger"
+                                        data-classification-action="delete"
+                                        data-person-id="${escapeHtml(
+                                            person.id
+                                        )}"
+                                    >
+                                        Entfernen
+                                    </button>
+                                `
+
+                                : ""
+                        }
+
+                    </div>
+
+                </div>
+
+            </article>
+        `;
+
+    }
+
+
+    /* ============================================================
+       OVERVIEW
+       ============================================================ */
+
+    function renderOverview() {
+
+        const pending =
+            state.requests.filter(
+                function (
+                    request
+                ) {
+
+                    return (
+                        String(
+                            request?.status ||
+                            ""
+                        ).toLowerCase() ===
+                        "pending"
+                    );
+
+                }
+            ).length;
+
+
+        const approved =
+            state.requests.filter(
+                function (
+                    request
+                ) {
+
+                    return (
+                        String(
+                            request?.status ||
+                            ""
+                        ).toLowerCase() ===
+                        "approved"
+                    );
+
+                }
+            ).length;
+
+
+        const rejected =
+            state.requests.filter(
+                function (
+                    request
+                ) {
+
+                    return (
+                        String(
+                            request?.status ||
+                            ""
+                        ).toLowerCase() ===
+                        "rejected"
+                    );
+
+                }
+            ).length;
+
+
+        const setText =
+            function (
+                id,
+                value
+            ) {
+
+                const element =
+                    $(id);
+
+
+                if (element) {
+
+                    element.textContent =
+                        String(
+                            value
+                        );
+
+                }
+
+            };
+
+
+        setText(
+            "classificationsStatPending",
+            pending
+        );
+
+        setText(
+            "classificationsStatPersons",
+            state.persons.length
+        );
+
+        setText(
+            "classificationsStatApproved",
+            approved
+        );
+
+        setText(
+            "classificationsStatRejected",
+            rejected
+        );
+
+        setText(
+            "classificationsRequestCount",
+            state.requests.length
+        );
+
+        setText(
+            "classificationsPersonCount",
+            state.persons.length
+        );
+
+    }
+
+
+    /* ============================================================
+       MAIN RENDER
+       ============================================================ */
+
+    function render() {
+
+        syncLocalPermissions();
+
+        renderOverview();
+
+        renderStatusFilters();
+
+        renderOrganizationFilter();
+
+
+        const addButton =
+            $("classificationsAddButton");
+
+
+        if (addButton) {
+
+            addButton.style.display =
+                state.permissions.create
+
+                    ? "inline-flex"
+
+                    : "none";
+
+        }
+
+
+        const organizationFilter =
+            $("classificationsOrganizationFilter");
+
+
+        if (
+            organizationFilter
+        ) {
+
+            organizationFilter.style.display =
+
+                state.activeTab ===
+                "persons"
+
+                    ? "block"
+
+                    : "none";
+
+        }
+
+
+        document
+            .querySelectorAll(
+                "[data-classification-tab]"
+            )
+            .forEach(
+                function (
+                    button
+                ) {
+
+                    const active =
+                        button.dataset
+                            .classificationTab ===
+                        state.activeTab;
+
+
+                    button.classList.toggle(
+                        "active",
+                        active
+                    );
+
+
+                    button.setAttribute(
+                        "aria-selected",
+                        active
+                            ? "true"
+                            : "false"
+                    );
+
+                }
+            );
+
+
+        const title =
+            $("classificationsPanelTitle");
+
+        const subtitle =
+            $("classificationsPanelSubtitle");
+
+        const meta =
+            $("classificationsPanelMeta");
+
+        const list =
+            $("classificationsList");
+
+
+        if (!list) {
+
+            return;
+
+        }
+
+
+        if (
+            !state.permissions.view
+        ) {
+
+            if (title) {
+
+                title.textContent =
+                    "Kein Zugriff";
+
+            }
+
+
+            if (subtitle) {
+
+                subtitle.textContent =
+                    "Für diesen Bereich fehlt die erforderliche Berechtigung.";
+
+            }
+
+
+            if (meta) {
+
+                meta.textContent =
+                    "Nicht autorisiert";
+
+            }
+
+
+            list.innerHTML =
+                emptyState(
+
+                    "Zugriff verweigert",
+
+                    "Du besitzt keine Berechtigung zum Einsehen von Klassifizierungen."
+
+                );
+
+
+            return;
+
+        }
+
+
+        if (
+            state.activeTab ===
+            "requests"
+        ) {
+
+            const items =
+                filteredRequests();
+
+
+            if (title) {
+
+                title.textContent =
+                    "Klassifizierungsanträge";
+
+            }
+
+
+            if (subtitle) {
+
+                subtitle.textContent =
+                    "Offene und bereits bearbeitete Klassifizierungsanträge";
+
+            }
+
+
+            if (meta) {
+
+                meta.textContent =
+                    `${items.length} ${
+                        items.length === 1
+                            ? "Eintrag"
+                            : "Einträge"
+                    }`;
+
+            }
+
+
+            list.innerHTML =
+
+                items.length
+
+                    ? items
+                        .map(
+                            renderRequestCard
+                        )
+                        .join("")
+
+                    : emptyState(
+
+                        "Keine Anträge gefunden",
+
+                        "Für den aktuellen Status- oder Suchfilter sind keine Klassifizierungsanträge vorhanden."
+
+                    );
+
+
+            return;
+
+        }
+
+
+        const items =
+            filteredPersons();
+
+
+        if (title) {
+
+            title.textContent =
+                "Klassifizierte Personen";
+
+        }
+
+
+        if (subtitle) {
+
+            subtitle.textContent =
+                "Aktiver Bestand aller derzeit klassifizierten Personen";
+
+        }
+
+
+        if (meta) {
+
+            meta.textContent =
+                `${items.length} ${
+                    items.length === 1
+                        ? "Person"
+                        : "Personen"
+                }`;
+
+        }
+
+
+        list.innerHTML =
+
+            items.length
+
+                ? items
+                    .map(
+                        renderPersonCard
+                    )
+                    .join("")
+
+                : emptyState(
+
+                    "Keine klassifizierten Personen gefunden",
+
+                    "Für die aktuelle Organisation bzw. Suche sind keine aktiven Klassifizierungen vorhanden."
+
+                );
+
+    }
+
+
+    /* ============================================================
+       LOADING
+       ============================================================ */
+
+    function setLoading() {
+
+        const list =
+            $("classificationsList");
+
+        const meta =
+            $("classificationsPanelMeta");
+
+
+        if (list) {
+
+            list.innerHTML = `
+
+                <div class="classifications-loading">
+
+                    <span class="classifications-spinner"></span>
+
+                    Klassifizierungsdaten werden geladen ...
+
+                </div>
+
+            `;
+
+        }
+
+
+        if (meta) {
+
+            meta.textContent =
+                "Wird geladen ...";
+
+        }
+
+    }
+
+
+    /* ============================================================
+       LOAD DATA
+       ============================================================ */
+
+    function loadData() {
+
+        syncLocalPermissions();
+
+
+        if (
+            !state.permissions.view
+        ) {
+
+            render();
+
+            return;
+
+        }
+
+
+        const sessionToken =
+            getToken();
+
+
+        if (!sessionToken) {
+
+            showClassificationError(
+                "Keine aktive Sitzung."
+            );
+
+            return;
+
+        }
+
+
+        if (
+            state.loading
+        ) {
+
+            return;
+
+        }
+
+
+        state.loading =
+            true;
+
+
+        setLoading();
+
+
+        CloudApi.run
+
+            .withSuccessHandler(
+                function (
+                    result
+                ) {
+
+                    state.loading =
+                        false;
+
+
+                    state.requests =
+
+                        Array.isArray(
+                            result?.requests
+                        )
+
+                            ? result.requests
+
+                            : [];
+
+
+                    state.persons =
+
+                        Array.isArray(
+                            result?.persons
+                        )
+
+                            ? result.persons
+
+                            : [];
+
+
+                    render();
+
+                }
+            )
+
+            .withFailureHandler(
+                function (
+                    error
+                ) {
+
+                    state.loading =
+                        false;
+
+
+                    /*
+                     * Kein PageError-Overlay mehr.
+                     * Nur globale Notification.
+                     */
+                    showClassificationError(
+
+                        error?.message ||
+
+                        "Die Klassifizierungsdaten konnten nicht geladen werden."
+
+                    );
+
+
+                    /*
+                     * Vorhandene Daten nicht
+                     * durch einen Fehlerzustand ersetzen.
+                     */
+                    render();
+
+                }
+            )
+
+            .getClassifications(
+                sessionToken,
+                "",
+                200
+            );
+
+    }
+
+
+    /* ============================================================
+       GLOBAL MODAL
+       ============================================================ */
+
+    function openModal(
+        options
+    ) {
+
+        if (
+            !window.FIB_MDT_MODAL ||
+            typeof window.FIB_MDT_MODAL.open !==
+                "function"
+        ) {
+
+            showClassificationError(
+                "Das globale MDT-Modal ist nicht verfügbar."
+            );
+
+            return false;
+
+        }
+
+
+        return window.FIB_MDT_MODAL.open(
+            options
+        );
+
+    }
+
+
+    /* ============================================================
+       MANUELLE KLASSIFIZIERUNG
+       ============================================================ */
+
+    function addPerson() {
+
+        if (
+            !state.permissions.create
+        ) {
+
+            showClassificationError(
+                "Du besitzt keine Berechtigung, Personen manuell zu klassifizieren."
+            );
+
+            return;
+
+        }
+
+
+        const organizationOptions =
+            state.organizations
+
+                .map(
+                    function (
+                        organization
+                    ) {
+
+                        return `
+                            <option value="${escapeHtml(
+                                organization
+                            )}">
+                                ${escapeHtml(
+                                    organization
+                                )}
+                            </option>
+                        `;
+
+                    }
+                )
+
+                .join("");
+
+
+        const opened =
+            openModal({
+
+                title:
+                    "Person klassifizieren",
+
+                subtitle:
+                    "Manuelle Klassifizierung anlegen",
+
+                body: `
+
+                    <div class="classifications-form-grid">
+
+                        <div class="classifications-form-group">
+
+                            <label
+                                class="classifications-form-label"
+                                for="classificationPersonName"
+                            >
+                                Person
+                                <span class="classifications-required">*</span>
+                            </label>
+
+                            <input
+                                id="classificationPersonName"
+                                class="classifications-form-input"
+                                type="text"
+                                maxlength="200"
+                                autocomplete="off"
+                                placeholder="Vor- und Nachname"
+                                required
+                            >
+
+                        </div>
+
+
+                        <div class="classifications-form-group">
+
+                            <label
+                                class="classifications-form-label"
+                                for="classificationPassportNumber"
+                            >
+                                Reisepassnummer
+                                <span class="classifications-required">*</span>
+                            </label>
+
+                            <input
+                                id="classificationPassportNumber"
+                                class="classifications-form-input"
+                                type="text"
+                                maxlength="80"
+                                autocomplete="off"
+                                placeholder="Reisepassnummer"
+                                required
+                            >
+
+                        </div>
+
+
+                        <div class="classifications-form-group full">
+
+                            <label
+                                class="classifications-form-label"
+                                for="classificationOrganization"
+                            >
+                                Organisation
+                                <span class="classifications-required">*</span>
+                            </label>
+
+                            <select
+                                id="classificationOrganization"
+                                class="classifications-form-select"
+                                required
+                            >
+
+                                <option value="">
+                                    Organisation auswählen ...
+                                </option>
+
+                                ${organizationOptions}
+
+                            </select>
+
+
+                            <div class="classifications-form-help">
+
+                                Zulässige Organisationen:
+                                ${escapeHtml(
+                                    state.organizations.join(
+                                        ", "
+                                    )
+                                )}
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="classifications-form-group full">
+
+                            <label
+                                class="classifications-form-label"
+                                for="classificationReason"
+                            >
+                                Begründung
+                                <span class="classifications-required">*</span>
+                            </label>
+
+                            <textarea
+                                id="classificationReason"
+                                class="classifications-form-textarea"
+                                maxlength="2000"
+                                placeholder="Fundierte Begründung für die Klassifizierung ..."
+                                required
+                            ></textarea>
+
+
+                            <div class="classifications-form-help">
+
+                                Die Begründung wird dauerhaft mit der Klassifizierung gespeichert.
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                `,
+
+                saveVisible:
+                    true,
+
+                saveText:
+                    "Klassifizieren",
+
+                cancelText:
+                    "Abbrechen",
+
+                onSave:
+                    submitManualClassification
+
+            });
+
+
+        /*
+         * Globales Modal konnte ggf.
+         * nicht geöffnet werden.
+         */
+        if (!opened) {
+
+            return;
+
+        }
+
+    }
+
+
+    /* ============================================================
+       MANUELLE KLASSIFIZIERUNG ABSENDEN
+       ============================================================ */
+
+    function submitManualClassification() {
+
+        if (
+            !state.permissions.create
+        ) {
+
+            showClassificationError(
+                "Du besitzt keine Berechtigung, Personen manuell zu klassifizieren."
+            );
+
+            return false;
+
+        }
+
+
+        const personName =
+
+            $("classificationPersonName")
+                ?.value
+                .trim() ||
+
+            "";
+
+
+        const passportNumber =
+
+            $("classificationPassportNumber")
+                ?.value
+                .trim() ||
+
+            "";
+
+
+        const organization =
+
+            normalizeOrganization(
+
+                $("classificationOrganization")
+                    ?.value ||
+
+                ""
+
+            );
+
+
+        const reason =
+
+            $("classificationReason")
+                ?.value
+                .trim() ||
+
+            "";
+
+
+        /*
+         * --------------------------------------------------------
+         * VALIDIERUNG
+         * --------------------------------------------------------
+         *
+         * Wichtig:
+         *
+         * KEIN showPageError().
+         *
+         * Das globale MDT Notification-System wird verwendet.
+         *
+         * Das Modal bleibt offen.
+         */
+
+        if (!personName) {
+
+            showClassificationError(
+                "Bitte den Namen der Person angeben."
+            );
+
+            return false;
+
+        }
+
+
+        if (!passportNumber) {
+
+            showClassificationError(
+                "Bitte die Reisepassnummer angeben."
+            );
+
+            return false;
+
+        }
+
+
+        if (
+            !state.organizations.includes(
+                organization
+            )
+        ) {
+
+            showClassificationError(
+                "Bitte eine gültige Organisation auswählen."
+            );
+
+            return false;
+
+        }
+
+
+        if (!reason) {
+
+            showClassificationError(
+                "Bitte eine Begründung angeben."
+            );
+
+            return false;
+
+        }
+
+
+        const saveButton =
+
+            window.FIB_MDT_MODAL
+                ?.getSaveButton?.();
+
+
+        if (saveButton) {
+
+            saveButton.disabled =
+                true;
+
+            saveButton.textContent =
+                "Wird gespeichert ...";
+
+        }
+
+
+        CloudApi.run
+
+            .withSuccessHandler(
+                function (
+                    person
+                ) {
+
+                    state.persons =
+                        state.persons.filter(
+                            function (
+                                item
+                            ) {
+
+                                return (
+                                    item.id !==
+                                    person.id
+                                );
+
+                            }
+                        );
+
+
+                    state.persons.unshift(
+                        person
+                    );
+
+
+                    state.activeTab =
+                        "persons";
+
+
+                    state.search =
+                        "";
+
+
+                    state.organizationFilter =
+                        organization;
+
+
+                    const search =
+                        $("classificationsSearch");
+
+
+                    if (search) {
+
+                        search.value =
+                            "";
+
+                    }
+
+
+                    window.FIB_MDT_MODAL.close();
+
+
+                    render();
+
+
+                    showClassificationSuccess(
+                        "Die Person wurde erfolgreich klassifiziert."
+                    );
+
+                }
+            )
+
+            .withFailureHandler(
+                function (
+                    error
+                ) {
+
+                    /*
+                     * Modal bleibt offen.
+                     */
+                    if (saveButton) {
+
+                        saveButton.disabled =
+                            false;
+
+                        saveButton.textContent =
+                            "Klassifizieren";
+
+                    }
+
+
+                    showClassificationError(
+
+                        error?.message ||
+
+                        "Die Klassifizierung konnte nicht erstellt werden."
+
+                    );
+
+                }
+            )
+
+            .addClassifiedPerson(
+                getToken(),
+
+                {
+
+                    personName:
+                        personName,
+
+                    passportNumber:
+                        passportNumber,
+
+                    organization:
+                        organization,
+
+                    reason:
+                        reason
+
+                }
+            );
+
+
+        /*
+         * true signalisiert dem Modal-Manager,
+         * dass der Servervorgang gestartet wurde.
+         */
+        return true;
+
+    }
+
+
+    /* ============================================================
+       ABLEHNUNGSMODAL
+       ============================================================ */
+
+    function openRejectModal(
+        request
+    ) {
+
+        if (
+            !state.permissions.approve
+        ) {
+
+            showClassificationError(
+                "Du besitzt keine Berechtigung, Klassifizierungsanträge abzulehnen."
+            );
+
+            return;
+
+        }
+
+
+        openModal({
+
+            title:
+                "Antrag ablehnen",
+
+            subtitle:
+                request?.person_name ||
+                "Unbekannte Person",
+
+            body: `
+
+                <div
+                    class="classification-confirm-box"
+                    style="margin-bottom:14px;"
+                >
+
+                    <strong>
+                        Person:
+                    </strong>
+
+                    ${escapeHtml(
+                        request?.person_name ||
+                        "—"
+                    )}
+
+                    <br>
+
+                    <strong>
+                        Reisepass:
+                    </strong>
+
+                    ${escapeHtml(
+                        request?.passport_number ||
+                        "—"
+                    )}
+
+                    <br>
+
+                    <strong>
+                        Organisation:
+                    </strong>
+
+                    ${escapeHtml(
+                        request?.organization ||
+                        "—"
+                    )}
+
+                </div>
+
+
+                <div class="classifications-form-group">
+
+                    <label
+                        class="classifications-form-label"
+                        for="classificationRejectReason"
+                    >
+
+                        Ablehnungsbegründung
+
+                        <span class="classifications-required">
+                            *
+                        </span>
+
+                    </label>
+
+
+                    <textarea
+                        id="classificationRejectReason"
+                        class="classifications-form-textarea"
+                        maxlength="2000"
+                        placeholder="Begründung der Ablehnung ..."
+                        required
+                    ></textarea>
+
+                </div>
+
+            `,
+
+            saveVisible:
+                true,
+
+            saveText:
+                "Antrag ablehnen",
+
+            cancelText:
+                "Abbrechen",
+
+            onSave:
+                function () {
+
+                    return rejectRequest(
+                        request.id
+                    );
+
+                }
+
+        });
+
+    }
+
+
+    /* ============================================================
+       GENEHMIGUNG
+       ============================================================ */
+
+    function approveRequest(
+        requestId
+    ) {
+
+        if (
+            !state.permissions.approve
+        ) {
+
+            showClassificationError(
+                "Du besitzt keine Berechtigung, Klassifizierungsanträge zu genehmigen."
+            );
+
+            return;
+
+        }
+
+
+        /*
+         * KEIN Modal-Footer mehr manipulieren.
+         *
+         * Die Genehmigung wird direkt über
+         * die Karte gestartet.
+         */
+
+
+        const request =
+            state.requests.find(
+                function (
+                    item
+                ) {
+
+                    return (
+                        item.id ===
+                        requestId
+                    );
+
+                }
+            );
+
+
+        if (!request) {
+
+            showClassificationError(
+                "Der Klassifizierungsantrag wurde nicht gefunden."
+            );
+
+            return;
+
+        }
+
+
+        CloudApi.run
+
+            .withSuccessHandler(
+                function (
+                    result
+                ) {
+
+                    const updatedRequest =
+                        result?.request;
+
+
+                    const requestIndex =
+                        state.requests.findIndex(
+                            function (
+                                item
+                            ) {
+
+                                return (
+                                    item.id ===
+                                    requestId
+                                );
+
+                            }
+                        );
+
+
+                    if (
+                        requestIndex !== -1 &&
+                        updatedRequest
+                    ) {
+
+                        state.requests[
+                            requestIndex
+                        ] =
+                            updatedRequest;
+
+                    }
+
+
+                    const classification =
+                        result?.classification;
+
+
+                    if (
+                        classification?.id
+                    ) {
+
+                        state.persons =
+                            state.persons.filter(
+                                function (
+                                    person
+                                ) {
+
+                                    return (
+                                        person.id !==
+                                        classification.id
+                                    );
+
+                                }
+                            );
+
+
+                        state.persons.unshift(
+                            classification
+                        );
+
+                    }
+
+
+                    render();
+
+
+                    showClassificationSuccess(
+                        "Der Klassifizierungsantrag wurde genehmigt."
+                    );
+
+                }
+            )
+
+            .withFailureHandler(
+                function (
+                    error
+                ) {
+
+                    showClassificationError(
+
+                        error?.message ||
+
+                        "Der Antrag konnte nicht genehmigt werden."
+
+                    );
+
+                }
+            )
+
+            .approveClassificationRequest(
+                getToken(),
+                requestId
+            );
+
+    }
+
+
+    /* ============================================================
+       ABLEHNUNG ABSENDEN
+       ============================================================ */
+
+    function rejectRequest(
+        requestId
+    ) {
+
+        if (
+            !state.permissions.approve
+        ) {
+
+            showClassificationError(
+                "Du besitzt keine Berechtigung, Klassifizierungsanträge abzulehnen."
+            );
+
+            return false;
+
+        }
+
+
+        const reason =
+
+            $("classificationRejectReason")
+                ?.value
+                .trim() ||
+
+            "";
+
+
+        if (!reason) {
+
+            showClassificationError(
+                "Bitte eine Ablehnungsbegründung angeben."
+            );
+
+            return false;
+
+        }
+
+
+        const saveButton =
+
+            window.FIB_MDT_MODAL
+                ?.getSaveButton?.();
+
+
+        if (saveButton) {
+
+            saveButton.disabled =
+                true;
+
+            saveButton.textContent =
+                "Wird abgelehnt ...";
+
+        }
+
+
+        CloudApi.run
+
+            .withSuccessHandler(
+                function (
+                    updatedRequest
+                ) {
+
+                    const requestIndex =
+                        state.requests.findIndex(
+                            function (
+                                request
+                            ) {
+
+                                return (
+                                    request.id ===
+                                    requestId
+                                );
+
+                            }
+                        );
+
+
+                    if (
+                        requestIndex !== -1
+                    ) {
+
+                        state.requests[
+                            requestIndex
+                        ] =
+                            updatedRequest;
+
+                    }
+
+
+                    window.FIB_MDT_MODAL.close();
+
+
+                    render();
+
+
+                    showClassificationSuccess(
+                        "Der Klassifizierungsantrag wurde abgelehnt."
+                    );
+
+                }
+            )
+
+            .withFailureHandler(
+                function (
+                    error
+                ) {
+
+                    /*
+                     * Modal bleibt offen,
+                     * damit erneut versucht werden kann.
+                     */
+                    if (saveButton) {
+
+                        saveButton.disabled =
+                            false;
+
+                        saveButton.textContent =
+                            "Antrag ablehnen";
+
+                    }
+
+
+                    showClassificationError(
+
+                        error?.message ||
+
+                        "Der Antrag konnte nicht abgelehnt werden."
+
+                    );
+
+                }
+            )
+
+            .rejectClassificationRequest(
+                getToken(),
+                requestId,
+                reason
+            );
+
+
+        return true;
+
+    }
+
+
+    /* ============================================================
+       DELETE-MODAL BUTTONS
+       ============================================================ */
+
+    function configureDeleteFooter(
+        personId
+    ) {
+
+        if (
+            !window.FIB_MDT_MODAL
+        ) {
+
+            return;
+
+        }
+
+
+        window.FIB_MDT_MODAL.setFooterButtons(
+
+            [
+
+                {
+
+                    label:
+                        "Abbrechen",
+
+                    onClick:
+                        function () {
+
+                            window.FIB_MDT_MODAL.close();
+
+                        }
+
+                },
+
+                {
+
+                    label:
+                        "Klassifizierung entfernen",
+
+                    className:
+                        "danger",
+
+                    onClick:
+                        function () {
+
+                            return performDelete(
+                                personId
+                            );
+
+                        }
+
+                }
+
+            ],
+
+            {
+                keepSave:
+                    true
+            }
+
+        );
+
+    }
+
+
+    /* ============================================================
+       DELETE PERSON
+       ============================================================ */
+
+    function deletePerson(
+        personId
+    ) {
+
+        if (
+            !state.permissions.delete
+        ) {
+
+            showClassificationError(
+                "Du besitzt keine Berechtigung, Klassifizierungen zu entfernen."
+            );
+
+            return;
+
+        }
+
+
+        const person =
+            state.persons.find(
+                function (
+                    item
+                ) {
+
+                    return (
+                        item.id ===
+                        personId
+                    );
+
+                }
+            );
+
+
+        if (!person) {
+
+            showClassificationError(
+                "Die Klassifizierung wurde nicht gefunden."
+            );
+
+            return;
+
+        }
+
+
+        const opened =
+            openModal({
+
+                title:
+                    "Klassifizierung entfernen",
+
+                subtitle:
+                    person?.person_name ||
+                    "Unbekannte Person",
+
+                body: `
+
+                    <div
+                        class="classification-confirm-box"
+                    >
+
+                        <strong>
+                            Person:
+                        </strong>
+
+                        ${escapeHtml(
+                            person?.person_name ||
+                            "—"
+                        )}
+
+                        <br>
+
+                        <strong>
+                            Reisepass:
+                        </strong>
+
+                        ${escapeHtml(
+                            person?.passport_number ||
+                            "—"
+                        )}
+
+                        <br>
+
+                        <strong>
+                            Organisation:
+                        </strong>
+
+                        ${escapeHtml(
+                            person?.organization ||
+                            "—"
+                        )}
+
+                        <br><br>
+
+                        Die aktive Klassifizierung wird aus dem aktuellen Bestand entfernt.
+
+                    </div>
+
+                `,
+
+                saveVisible:
+                    false,
+
+                cancelText:
+                    "Abbrechen"
+
+            });
+
+
+        if (!opened) {
+
+            return;
+
+        }
+
+
+        configureDeleteFooter(
+            personId
+        );
+
+    }
+
+
+    /* ============================================================
+       DELETE AUSFÜHREN
+       ============================================================ */
+
+    function performDelete(
+        personId
+    ) {
+
+        if (
+            !state.permissions.delete
+        ) {
+
+            showClassificationError(
+                "Du besitzt keine Berechtigung, Klassifizierungen zu entfernen."
+            );
+
+            return false;
+
+        }
+
+
+        if (
+            !window.FIB_MDT_MODAL
+        ) {
+
+            return false;
+
+        }
+
+
+        window.FIB_MDT_MODAL.setFooterButtons(
+
+            [
+
+                {
+
+                    label:
+                        "Wird entfernt ...",
+
+                    className:
+                        "danger"
+
+                }
+
+            ]
+
+        );
+
+
+        CloudApi.run
+
+            .withSuccessHandler(
+                function () {
+
+                    state.persons =
+                        state.persons.filter(
+                            function (
+                                person
+                            ) {
+
+                                return (
+                                    person.id !==
+                                    personId
+                                );
+
+                            }
+                        );
+
+
+                    window.FIB_MDT_MODAL.close();
+
+
+                    render();
+
+
+                    showClassificationSuccess(
+                        "Die Klassifizierung wurde entfernt."
+                    );
+
+                }
+            )
+
+            .withFailureHandler(
+                function (
+                    error
+                ) {
+
+                    /*
+                     * Modal bleibt offen.
+                     */
+                    configureDeleteFooter(
+                        personId
+                    );
+
+
+                    showClassificationError(
+
+                        error?.message ||
+
+                        "Die Klassifizierung konnte nicht entfernt werden."
+
+                    );
+
+                }
+            )
+
+            .deleteClassifiedPerson(
+                getToken(),
+                personId
+            );
+
+
+        return true;
+
+    }
+
+
+    /* ============================================================
+       EVENT BINDING
+       ============================================================ */
+
+    function bindEvents() {
+
+        const root =
+            $("classificationsPage");
+
+
+        if (!root) {
+
+            return false;
+
+        }
+
+
+        /*
+         * WICHTIG:
+         *
+         * Wir speichern NICHT mehr
+         *
+         *     state.eventsBound = true
+         *
+         * im persistenten Page-State.
+         *
+         * Denn #pageContainer zerstört beim
+         * Seitenwechsel die alte DOM-Instanz.
+         *
+         * Stattdessen wird der Bind-Zustand
+         * direkt am aktuellen Root gespeichert.
+         *
+         * Neue Page-Instanz = neues Attribut = neue Events.
+         */
+
+        if (
+            root.dataset.classificationsEventsBound ===
+            "true"
+        ) {
+
+            return false;
+
+        }
+
+
+        root.dataset.classificationsEventsBound =
+            "true";
+
+
+        root.addEventListener(
+            "click",
+            function (
+                event
+            ) {
+
+                /* ------------------------------------------------
+                   TABS
+                   ------------------------------------------------ */
+
+                const tab =
+                    event.target.closest(
+                        "[data-classification-tab]"
+                    );
+
+
+                if (tab) {
+
+                    state.activeTab =
+
+                        tab.dataset.classificationTab ===
+                        "persons"
+
+                            ? "persons"
+
+                            : "requests";
+
+
+                    state.search =
+                        "";
+
+
+                    state.organizationFilter =
+                        "all";
+
+
+                    const search =
+                        $("classificationsSearch");
+
+
+                    if (search) {
+
+                        search.value =
+                            "";
+
+                    }
+
+
+                    render();
+
+                    return;
+
+                }
+
+
+                /* ------------------------------------------------
+                   STATUS FILTER
+                   ------------------------------------------------ */
+
+                const filter =
+                    event.target.closest(
+                        "[data-classification-status]"
+                    );
+
+
+                if (filter) {
+
+                    state.requestStatus =
+                        filter.dataset.classificationStatus ||
+                        "pending";
+
+
+                    render();
+
+                    return;
+
+                }
+
+
+                /* ------------------------------------------------
+                   CARD ACTION
+                   ------------------------------------------------ */
+
+                const action =
+                    event.target.closest(
+                        "[data-classification-action]"
+                    );
+
+
+                if (!action) {
+
+                    return;
+
+                }
+
+
+                const type =
+                    action.dataset.classificationAction;
+
+
+                if (
+                    type === "approve" ||
+                    type === "reject"
+                ) {
+
+                    const request =
+                        state.requests.find(
+                            function (
+                                item
+                            ) {
+
+                                return (
+                                    item.id ===
+                                    action.dataset.requestId
+                                );
+
+                            }
+                        );
+
+
+                    if (!request) {
+
+                        showClassificationError(
+                            "Der Klassifizierungsantrag wurde nicht gefunden."
+                        );
+
+                        return;
+
+                    }
+
+
+                    if (
+                        type ===
+                        "approve"
+                    ) {
+
+                        approveRequest(
+                            request.id
+                        );
+
+                    } else {
+
+                        openRejectModal(
+                            request
+                        );
+
+                    }
+
+
+                    return;
+
+                }
+
+
+                if (
+                    type ===
+                    "delete"
+                ) {
+
+                    deletePerson(
+                        action.dataset.personId
+                    );
+
+                }
+
+            }
+        );
+
+
+        /* --------------------------------------------------------
+           REFRESH
+           -------------------------------------------------------- */
+
+        const refreshButton =
+            $("classificationsRefreshButton");
+
+
+        if (refreshButton) {
+
+            refreshButton.addEventListener(
+                "click",
+                loadData
+            );
+
+        }
+
+
+        /* --------------------------------------------------------
+           ADD
+           -------------------------------------------------------- */
+
+        const addButton =
+            $("classificationsAddButton");
+
+
+        if (addButton) {
+
+            addButton.addEventListener(
+                "click",
+                addPerson
+            );
+
+        }
+
+
+        /* --------------------------------------------------------
+           SEARCH
+           -------------------------------------------------------- */
+
+        const search =
+            $("classificationsSearch");
+
+
+        if (search) {
+
+            search.addEventListener(
+                "input",
+                function (
+                    event
+                ) {
+
+                    state.search =
+                        event.target.value ||
+                        "";
+
+
+                    render();
+
+                }
+            );
+
+        }
+
+
+        /* --------------------------------------------------------
+           ORGANISATION FILTER
+           -------------------------------------------------------- */
+
+        const organizationFilter =
+            $("classificationsOrganizationFilter");
+
+
+        if (
+            organizationFilter
+        ) {
+
+            organizationFilter.addEventListener(
+                "change",
+                function (
+                    event
+                ) {
+
+                    state.organizationFilter =
+                        event.target.value ||
+                        "all";
+
+
+                    render();
+
+                }
+            );
+
+        }
+
+
+        return true;
+
+    }
+
+
+    /* ============================================================
+       INITIALISIERUNG
+       ============================================================ */
+
+    window.addEventListener("fib-mdt:refresh-request", function (event) { if (document.getElementById("classificationsPage") && !(event.detail && event.detail.source === "mutation")) loadData(); });
+    window.addEventListener("fib-mdt:data-changed", function (event) { const modal=document.getElementById("fibGlobalModalOverlay"); if (document.getElementById("classificationsPage") && !(modal && modal.classList.contains("open")) && /Classification|Classified|Request|Person/i.test(String(event.detail && event.detail.method || ""))) loadData(); });
+
+    function initializeClassifications() {
+
+        const root =
+            $("classificationsPage");
+
+
+        if (!root) {
+
+            return;
+
+        }
+
+
+        /*
+         * Eine neue DOM-Instanz bedeutet:
+         *
+         * neue Page,
+         * neue Listener,
+         * neuer Initialisierungslauf.
+         */
+
+        const isNewMount =
+            root.dataset.classificationsInitialized !==
+            "true";
+
+
+        bindEvents();
+
+
+        if (
+            !isNewMount
+        ) {
+
+            /*
+             * Globaler Hook kann mehrfach
+             * aufgerufen werden.
+             *
+             * Derselbe DOM-Mount wird nicht
+             * noch einmal komplett geladen.
+             */
+            render();
+
+            return;
+
+        }
+
+
+        root.dataset.classificationsInitialized =
+            "true";
+
+
+        state.initialized =
+            true;
+
+
+        state.loading =
+            false;
+
+
+        syncLocalPermissions();
+
+
+        render();
+
+
+        const sessionToken =
+            getToken();
+
+
+        if (!sessionToken) {
+
+            showClassificationError(
+                "Keine aktive Sitzung."
+            );
+
+            return;
+
+        }
+
+
+        CloudApi.run
+
+            .withSuccessHandler(
+                function (
+                    result
+                ) {
+
+                    state.permissions = {
+
+                        master:
+                            result?.master ===
+                            true,
+
+                        view:
+                            result?.view ===
+                            true,
+
+                        approve:
+                            result?.approve ===
+                            true,
+
+                        create:
+                            result?.create ===
+                            true,
+
+                        delete:
+                            result?.delete ===
+                            true
+
+                    };
+
+
+                    if (
+                        Array.isArray(
+                            result?.organizations
+                        ) &&
+                        result.organizations.length
+                    ) {
+
+                        state.organizations =
+
+                            result.organizations
+
+                                .map(
+                                    normalizeOrganization
+                                )
+
+                                .filter(
+                                    Boolean
+                                );
+
+                    }
+
+
+                    /*
+                     * Nach dem Permission-Load
+                     * einmal neu rendern.
+                     */
+                    render();
+
+
+                    loadData();
+
+                }
+            )
+
+            .withFailureHandler(
+                function (
+                    error
+                ) {
+
+                    showClassificationError(
+
+                        error?.message ||
+
+                        "Die Klassifizierungsberechtigungen konnten nicht geladen werden."
+
+                    );
+
+                }
+            )
+
+            .getClassificationPermissions(
+                sessionToken
+            );
+
+    }
+
+
+    /* ============================================================
+       GLOBALER INITIALISIERUNGS-HOOK
+       ============================================================ */
+
+    window.initializeClassifications =
+        initializeClassifications;
+
+
+    /*
+     * Eigenständige Initialisierung.
+     *
+     * Zusätzlich funktioniert die Page weiterhin
+     * über initializeLoadedPage() des globalen Index.
+     */
+
+    if (
+        document.readyState ===
+        "loading"
+    ) {
+
+        document.addEventListener(
+
+            "DOMContentLoaded",
+
+            initializeClassifications,
+
+            {
+                once:
+                    true
+            }
+
+        );
+
+    } else {
+
+        setTimeout(
+            initializeClassifications,
+            0
+        );
+
+    }
+
+})();

@@ -1,0 +1,18 @@
+/favicon.ico
+  Cache-Control: public, max-age=0, must-revalidate
+/favicon.svg
+  Cache-Control: public, max-age=0, must-revalidate
+/favicon.png
+  Cache-Control: public, max-age=0, must-revalidate
+/favicon-32.png
+  Cache-Control: public, max-age=0, must-revalidate
+/apple-touch-icon.png
+  Cache-Control: public, max-age=0, must-revalidate
+/lspd-design.css
+  Cache-Control: public, max-age=0, must-revalidate
+/index.html
+  Cache-Control: public, max-age=0, must-revalidate
+/pages/*
+  Cache-Control: public, max-age=0, must-revalidate
+/js/*
+  Cache-Control: public, max-age=0, must-revalidate

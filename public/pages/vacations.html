@@ -1,4 +1,4 @@
-<main class="mdt-workspace mdt-workspace--vacations" data-mdt-page="vacations">
+<main class="mdt-workspace mdt-workspace--vacations" data-mdt-page="vacations" data-lspd-module="vacations">
 <section class="mdt-module" id="mdt-module-vacations">
  <h2>Urlaubsverwaltung</h2><div class="sub">Urlaubsanträge und deren Bearbeitungsstatus verwalten.</div>
  <div class="toolbar"><input id="vacations-search" placeholder="Einträge durchsuchen…" aria-label="Einträge durchsuchen"><button class="secondary" id="vacations-reload">Aktualisieren</button><button id="vacations-new">+ Neuer Eintrag</button></div>
@@ -12,18 +12,5 @@
  </div>
  <div class="items" id="vacations-items"></div>
 </section>
-<script>
-(()=>{const key="vacations",readonly=false,root=document.getElementById('mdt-module-vacations');if(!root||root.dataset.ready)return;root.dataset.ready='1';let rows=[],editing=null;
- const el=id=>document.getElementById(key+'-'+id),msg=t=>el('message').textContent=t;
- const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
- const call=(method,...args)=>new Promise((resolve,reject)=>{const r=CloudApi.run;r.withSuccessHandler(resolve).withFailureHandler(reject)[method](sessionStorage.getItem('fib_mdt_session')||'',...args)});
- function date(v){if(!v)return '';try{return new Date(v).toLocaleString()}catch{return String(v)}}
- function render(){const q=el('search').value.trim().toLowerCase();const filtered=rows.filter(r=>[r.title,r.description,r.status,r.created_by_name,r.detail,r.action].join(' ').toLowerCase().includes(q));el('items').innerHTML=filtered.length?filtered.map(r=>`<article class="item"><div class="itemhead"><div><h3>${esc(r.title||r.action||'Eintrag')} </h3><div class="meta">${esc(r.status||'')} · ${esc(date(r.eventDate||r.created_at))} · ${esc(r.created_by_name||r.actor_name||'')}</div></div>${readonly?'':`<div class="actions"><button class="secondary" data-edit="${esc(r.id)}">Bearbeiten</button><button class="danger" data-delete="${esc(r.id)}">Löschen</button></div>`}</div><div class="desc">${esc(r.description||r.detail||'Keine weitere Beschreibung.')}</div></article>`).join(''):'<div class="empty">Keine Einträge vorhanden.</div>';}
- async function load(){msg('Daten werden geladen …');try{rows=await call('getModuleItems',key);if(!Array.isArray(rows))rows=[];msg(`${rows.length} Einträge geladen.`);render()}catch(e){msg(e.message||'Die Daten konnten nicht geladen werden.');el('items').innerHTML='<div class="empty">Zugriff fehlgeschlagen. Bitte Berechtigungen und Supabase-Konfiguration prüfen.</div>';}}
- function open(row){editing=row?.id||null;el('form').style.display='grid';el('title').value=row?.title||'';el('description').value=row?.description||'';el('status').value=row?.status||"pending";const d=row?.eventDate?new Date(row.eventDate):null;el('date').value=d&&!Number.isNaN(d.getTime())?new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,16):'';el('title').focus()}
- function close(){el('form').style.display='none';editing=null}
- if(!readonly){el('new').addEventListener('click',()=>open());el('cancel').addEventListener('click',close);el('save').addEventListener('click',async()=>{const title=el('title').value.trim();if(!title){msg('Bitte einen Titel eingeben.');return}const data={title,description:el('description').value.trim(),status:el('status').value,eventDate:el('date').value?new Date(el('date').value).toISOString():null};el('save').disabled=true;try{if(editing)await call('updateModuleItem',key,editing,data);else await call('createModuleItem',key,data);close();msg('Gespeichert.');await load()}catch(e){msg(e.message||'Speichern fehlgeschlagen.')}finally{el('save').disabled=false}});el('items').addEventListener('click',async e=>{const edit=e.target.closest('[data-edit]'),del=e.target.closest('[data-delete]');if(edit){const row=rows.find(r=>String(r.id)===edit.dataset.edit);if(row)open(row)}if(del&&confirm('Diesen Eintrag wirklich löschen?')){try{await call('deleteModuleItem',key,del.dataset.delete);await load()}catch(err){msg(err.message||'Löschen fehlgeschlagen.')}}})}
- el('search').addEventListener('input',render);el('reload').addEventListener('click',load);window.addEventListener("fib-mdt:refresh-request",function(){if(root.isConnected&&!el('form').matches(':focus-within')&&el('form').style.display==='none')load()});window.addEventListener("fib-mdt:data-changed",function(){if(root.isConnected&&el('form').style.display==='none')load()});load();
-})();
-</script>
+<script src="/js/pages/vacations.js?v=3.75" defer></script>
 </main>

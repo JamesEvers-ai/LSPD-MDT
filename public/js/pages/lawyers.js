@@ -1,0 +1,1261 @@
+
+(function () {
+
+  "use strict";
+
+
+  /* ==========================================================
+     STATE
+     ========================================================== */
+
+  window.lawyersPageState = {
+
+    data: [],
+
+    attorneys: [],
+
+    trainees: [],
+
+    filteredAttorneys: [],
+
+    filteredTrainees: [],
+
+    loading: false,
+
+    search: ""
+
+  };
+
+
+  /* ==========================================================
+     CACHE
+     ========================================================== */
+
+  if (!window.fibCache) {
+    window.fibCache = {};
+  }
+
+
+  if (!window.fibCache.lawyers) {
+
+    window.fibCache.lawyers = {
+
+      data: null,
+
+      timestamp: 0
+
+    };
+
+  }
+
+
+  /* ==========================================================
+     HELFER
+     ========================================================== */
+
+  function $(id) {
+
+    return document.getElementById(id);
+
+  }
+
+
+  function escapeHtml(value) {
+
+    if (
+      value === null ||
+      value === undefined
+    ) {
+
+      return "";
+
+    }
+
+
+    return String(value)
+
+      .replace(/&/g, "&amp;")
+
+      .replace(/</g, "&lt;")
+
+      .replace(/>/g, "&gt;")
+
+      .replace(/"/g, "&quot;")
+
+      .replace(/'/g, "&#039;");
+
+  }
+
+
+  function normalize(value) {
+
+    if (
+      value === null ||
+      value === undefined
+    ) {
+
+      return "";
+
+    }
+
+
+    return String(value)
+      .toLowerCase()
+      .trim();
+
+  }
+
+
+  function cleanValue(value) {
+
+    if (
+      value === null ||
+      value === undefined
+    ) {
+
+      return "";
+
+    }
+
+
+    return String(value)
+      .replace(/\r\n/g, "\n")
+      .trim();
+
+  }
+
+
+  function hasMeaningfulValue(value) {
+
+    const text =
+      cleanValue(value);
+
+
+    if (!text) {
+      return false;
+    }
+
+
+    return (
+      text !== "-" &&
+      text !== "—"
+    );
+
+  }
+
+
+  /* ==========================================================
+     SESSION TOKEN
+     ========================================================== */
+
+  function getLawyersSessionToken() {
+
+    try {
+
+      if (
+        typeof getSystemSessionToken ===
+        "function"
+      ) {
+
+        const token =
+          getSystemSessionToken();
+
+        if (token) {
+          return token;
+        }
+
+      }
+
+    } catch (error) {
+      console.warn(error);
+    }
+
+
+    try {
+
+      if (
+        typeof sessionToken !== "undefined" &&
+        sessionToken
+      ) {
+
+        return sessionToken;
+
+      }
+
+    } catch (error) {
+      // ignorieren
+    }
+
+
+    try {
+
+      if (
+        window.currentSessionToken
+      ) {
+
+        return window.currentSessionToken;
+
+      }
+
+    } catch (error) {
+      // ignorieren
+    }
+
+
+    try {
+
+      if (
+        window.sessionToken
+      ) {
+
+        return window.sessionToken;
+
+      }
+
+    } catch (error) {
+      // ignorieren
+    }
+
+
+    return "";
+
+  }
+
+
+  /* ==========================================================
+     DATEN VORBEREITEN
+     ========================================================== */
+
+  function prepareData(rawData) {
+
+    if (!Array.isArray(rawData)) {
+      return [];
+    }
+
+
+    return rawData.map(
+      function (row) {
+
+        return {
+
+          sheetRow:
+            row?.sheetRow ?? "",
+
+          status:
+            cleanValue(row?.status),
+
+          lawyer:
+            cleanValue(row?.lawyer),
+
+          passport:
+            cleanValue(row?.passport),
+
+          phone:
+            cleanValue(row?.phone),
+
+          defense:
+            cleanValue(row?.defense),
+
+          license:
+            cleanValue(row?.license),
+
+          licenseValidFrom:
+            cleanValue(row?.licenseValidFrom),
+
+          licenseValidUntil:
+            cleanValue(row?.licenseValidUntil),
+
+          renewal:
+            cleanValue(row?.renewal),
+
+          examiner:
+            cleanValue(row?.examiner),
+
+          note:
+            cleanValue(row?.note)
+
+        };
+
+      }
+    );
+
+  }
+
+
+  /* ==========================================================
+     ECHTER ANWALT
+     ========================================================== */
+
+  function hasRealLawyerData(row) {
+
+    if (!row) {
+      return false;
+    }
+
+
+    return (
+
+      hasMeaningfulValue(row.lawyer) ||
+
+      hasMeaningfulValue(row.passport) ||
+
+      hasMeaningfulValue(row.phone) ||
+
+      hasMeaningfulValue(row.licenseValidFrom) ||
+
+      hasMeaningfulValue(row.licenseValidUntil) ||
+
+      hasMeaningfulValue(row.examiner) ||
+
+      hasMeaningfulValue(row.note)
+
+    );
+
+  }
+
+
+  /* ==========================================================
+     ECHTER ANWÄRTER
+     ========================================================== */
+
+  function hasRealTraineeData(row) {
+
+    if (!row) {
+      return false;
+    }
+
+
+    return (
+
+      hasMeaningfulValue(row.lawyer) ||
+
+      hasMeaningfulValue(row.passport) ||
+
+      hasMeaningfulValue(row.phone) ||
+
+      hasMeaningfulValue(row.note)
+
+    );
+
+  }
+
+
+  /* ==========================================================
+     BEREICHE TRENNEN
+     ========================================================== */
+
+  function splitData(data) {
+
+    const attorneyRows =
+      data.slice(0, 19);
+
+
+    const traineeRows =
+      data.slice(20);
+
+
+    window.lawyersPageState.attorneys =
+      attorneyRows.filter(
+        hasRealLawyerData
+      );
+
+
+    window.lawyersPageState.trainees =
+      traineeRows.filter(
+        hasRealTraineeData
+      );
+
+  }
+
+
+  /* ==========================================================
+     SUCHE
+     ========================================================== */
+
+  function matchesSearch(row, search) {
+
+    if (!search) {
+      return true;
+    }
+
+
+    const haystack = [
+
+      row.status,
+      row.lawyer,
+      row.passport,
+      row.phone,
+      row.defense,
+      row.license,
+      row.licenseValidFrom,
+      row.licenseValidUntil,
+      row.renewal,
+      row.examiner,
+      row.note
+
+    ]
+
+      .map(normalize)
+
+      .join(" ");
+
+
+    return haystack.includes(
+      normalize(search)
+    );
+
+  }
+
+
+  function filterLawyers() {
+
+    const search =
+      window.lawyersPageState.search;
+
+
+    window.lawyersPageState.filteredAttorneys =
+
+      window.lawyersPageState.attorneys
+
+        .filter(
+          function (row) {
+
+            return matchesSearch(
+              row,
+              search
+            );
+
+          }
+        );
+
+
+    window.lawyersPageState.filteredTrainees =
+
+      window.lawyersPageState.trainees
+
+        .filter(
+          function (row) {
+
+            return matchesSearch(
+              row,
+              search
+            );
+
+          }
+        );
+
+
+    renderTables();
+
+  }
+
+
+  /* ==========================================================
+     STATUS
+     ========================================================== */
+
+  function formatStatus(value) {
+
+    const text =
+      cleanValue(value);
+
+
+    const normalized =
+      normalize(text);
+
+
+    let css =
+      "unknown";
+
+
+    if (
+      normalized === "erreichbar"
+    ) {
+
+      css =
+        "reachable";
+
+    } else if (
+      normalized === "nicht erreichbar"
+    ) {
+
+      css =
+        "unreachable";
+
+    } else if (
+      normalized === "anwärter"
+    ) {
+
+      css =
+        "trainee";
+
+    }
+
+
+    return `
+      <span class="lawyer-status ${css}">
+        ${escapeHtml(text || "Unbekannt")}
+      </span>
+    `;
+
+  }
+
+
+  function formatTraineeStatus() {
+
+    return `
+      <span class="lawyer-status trainee">
+        Anwärter
+      </span>
+    `;
+
+  }
+
+
+  /* ==========================================================
+     BOOLEAN
+     ========================================================== */
+
+  function formatBoolean(value) {
+
+    const text =
+      normalize(value);
+
+
+    if (
+      text === "true" ||
+      text === "ja" ||
+      text === "1" ||
+      text === "yes"
+    ) {
+
+      return `
+        <span class="lawyer-bool yes">
+          JA
+        </span>
+      `;
+
+    }
+
+
+    return `
+      <span class="lawyer-bool no">
+        NEIN
+      </span>
+    `;
+
+  }
+
+
+  /* ==========================================================
+     DATUM
+     ========================================================== */
+
+  function formatDate(value) {
+
+    const text =
+      cleanValue(value);
+
+
+    if (!text) {
+      return "—";
+    }
+
+
+    return escapeHtml(text);
+
+  }
+
+
+  /* ==========================================================
+     VERLÄNGERUNG
+     ========================================================== */
+
+  function formatRenewal(value) {
+
+    const text =
+      cleanValue(value);
+
+
+    if (!text) {
+      return "—";
+    }
+
+
+    if (
+      text === "1" ||
+      text === "1."
+    ) {
+
+      return "1.";
+
+    }
+
+
+    if (
+      text === "2" ||
+      text === "2."
+    ) {
+
+      return "2.";
+
+    }
+
+
+    return escapeHtml(text);
+
+  }
+
+
+  /* ==========================================================
+     RECHTSANWÄLTE RENDERN
+     ========================================================== */
+
+  function renderAttorneys() {
+
+    const body =
+      $("lawyersAttorneyBody");
+
+
+    if (!body) {
+      return;
+    }
+
+
+    const rows =
+      window.lawyersPageState
+        .filteredAttorneys;
+
+
+    if (!rows.length) {
+
+      body.innerHTML = `
+        <tr>
+          <td
+            colspan="11"
+            class="lawyers-state">
+
+            <strong>
+              Keine Rechtsanwälte gefunden
+            </strong>
+
+            Für die aktuelle Suche sind keine
+            Rechtsanwälte vorhanden.
+
+          </td>
+        </tr>
+      `;
+
+      return;
+    }
+
+
+    body.innerHTML =
+
+      rows.map(
+        function (row) {
+
+          return `
+            <tr>
+
+              <td>
+                ${formatStatus(row.status)}
+              </td>
+
+              <td>
+                ${
+                  row.lawyer
+                    ? escapeHtml(row.lawyer)
+                    : '<span class="muted">—</span>'
+                }
+              </td>
+
+              <td>
+                ${
+                  row.passport
+                    ? escapeHtml(row.passport)
+                    : '<span class="muted">—</span>'
+                }
+              </td>
+
+              <td>
+                ${
+                  row.phone
+                    ? escapeHtml(row.phone)
+                    : '<span class="muted">—</span>'
+                }
+              </td>
+
+              <td>
+                ${formatBoolean(row.defense)}
+              </td>
+
+              <td>
+                ${formatBoolean(row.license)}
+              </td>
+
+              <td>
+                ${formatDate(row.licenseValidFrom)}
+              </td>
+
+              <td>
+                ${formatDate(row.licenseValidUntil)}
+              </td>
+
+              <td>
+                ${formatRenewal(row.renewal)}
+              </td>
+
+              <td>
+                ${
+                  row.examiner
+                    ? escapeHtml(row.examiner)
+                    : '<span class="muted">—</span>'
+                }
+              </td>
+
+              <td>
+                ${
+                  row.note
+                    ? escapeHtml(row.note)
+                    : '<span class="muted">—</span>'
+                }
+              </td>
+
+            </tr>
+          `;
+
+        }
+      )
+
+      .join("");
+
+  }
+
+
+  /* ==========================================================
+     ANWÄRTER RENDERN
+     ========================================================== */
+
+  function renderTrainees() {
+
+    const body =
+      $("lawyersTraineeBody");
+
+
+    if (!body) {
+      return;
+    }
+
+
+    const rows =
+      window.lawyersPageState
+        .filteredTrainees;
+
+
+    if (!rows.length) {
+
+      body.innerHTML = `
+        <tr>
+          <td
+            colspan="5"
+            class="lawyers-state">
+
+            <strong>
+              Keine Anwärter gefunden
+            </strong>
+
+            Für die aktuelle Suche sind keine
+            Anwärter vorhanden.
+
+          </td>
+        </tr>
+      `;
+
+      return;
+    }
+
+
+    body.innerHTML =
+
+      rows.map(
+        function (row) {
+
+          return `
+            <tr>
+
+              <td>
+                ${formatTraineeStatus()}
+              </td>
+
+              <td>
+                ${
+                  row.lawyer
+                    ? escapeHtml(row.lawyer)
+                    : '<span class="muted">—</span>'
+                }
+              </td>
+
+              <td>
+                ${
+                  row.passport
+                    ? escapeHtml(row.passport)
+                    : '<span class="muted">—</span>'
+                }
+              </td>
+
+              <td>
+                ${
+                  row.phone
+                    ? escapeHtml(row.phone)
+                    : '<span class="muted">—</span>'
+                }
+              </td>
+
+              <td>
+                ${
+                  row.note
+                    ? escapeHtml(row.note)
+                    : '<span class="muted">—</span>'
+                }
+              </td>
+
+            </tr>
+          `;
+
+        }
+      )
+
+      .join("");
+
+  }
+
+
+  /* ==========================================================
+     RENDER
+     ========================================================== */
+
+  function renderTables() {
+
+    renderAttorneys();
+
+    renderTrainees();
+
+
+    const attorneyCount =
+      window.lawyersPageState
+        .filteredAttorneys.length;
+
+
+    const traineeCount =
+      window.lawyersPageState
+        .filteredTrainees.length;
+
+
+    const totalCount =
+      attorneyCount +
+      traineeCount;
+
+
+    const totalElement =
+      $("lawyersTotalCount");
+
+
+    const attorneyElement =
+      $("lawyersAttorneyCount");
+
+
+    const traineeElement =
+      $("lawyersTraineeCount");
+
+
+    const attorneySectionElement =
+      $("lawyersAttorneySectionCount");
+
+
+    const traineeSectionElement =
+      $("lawyersTraineeSectionCount");
+
+
+    if (totalElement) {
+
+      totalElement.textContent =
+        totalCount;
+
+    }
+
+
+    if (attorneyElement) {
+
+      attorneyElement.textContent =
+        attorneyCount;
+
+    }
+
+
+    if (traineeElement) {
+
+      traineeElement.textContent =
+        traineeCount;
+
+    }
+
+
+    if (attorneySectionElement) {
+
+      attorneySectionElement.textContent =
+        attorneyCount;
+
+    }
+
+
+    if (traineeSectionElement) {
+
+      traineeSectionElement.textContent =
+        traineeCount;
+
+    }
+
+  }
+
+
+  /* ==========================================================
+     LADEN
+     ========================================================== */
+
+  function loadLawyers() {
+
+    if (
+      window.lawyersPageState.loading
+    ) {
+
+      return;
+
+    }
+
+
+    const token =
+      getLawyersSessionToken();
+
+
+    if (!token) {
+
+      showLoadError(
+        "Kein gültiger Session-Token vorhanden."
+      );
+
+      return;
+
+    }
+
+
+    window.lawyersPageState.loading =
+      true;
+
+
+    CloudApi.run
+
+      .withSuccessHandler(
+        function (result) {
+
+          window.lawyersPageState.loading =
+            false;
+
+
+          if (
+            !Array.isArray(result)
+          ) {
+
+            showLoadError(
+              "Die Daten der Anwaltskammer konnten nicht geladen werden."
+            );
+
+            return;
+          }
+
+
+          /* Cache */
+
+          if (
+            window.fibCache &&
+            window.fibCache.lawyers
+          ) {
+
+            window.fibCache.lawyers.data =
+              result;
+
+            window.fibCache.lawyers.timestamp =
+              Date.now();
+
+          }
+
+
+          /* Daten */
+
+          window.lawyersPageState.data =
+            prepareData(result);
+
+
+          /* Bereiche */
+
+          splitData(
+            window.lawyersPageState.data
+          );
+
+
+          /* Suche */
+
+          const searchInput =
+            $("lawyersSearch");
+
+
+          window.lawyersPageState.search =
+
+            searchInput
+
+              ? searchInput.value.trim()
+
+              : "";
+
+
+          /* Render */
+
+          filterLawyers();
+
+        }
+      )
+
+
+      .withFailureHandler(
+        function (error) {
+
+          window.lawyersPageState.loading =
+            false;
+
+
+          let message =
+            "Die Daten der Anwaltskammer konnten nicht geladen werden.";
+
+
+          if (
+            error &&
+            error.message
+          ) {
+
+            message =
+              error.message;
+
+          }
+
+
+          showLoadError(
+            message
+          );
+
+        }
+      )
+
+
+      .getLawyers(
+        token
+      );
+
+  }
+
+
+  /* ==========================================================
+     FEHLER
+     ========================================================== */
+
+  function showLoadError(message) {
+
+    const attorneyBody =
+      $("lawyersAttorneyBody");
+
+
+    const traineeBody =
+      $("lawyersTraineeBody");
+
+
+    if (attorneyBody) {
+
+      attorneyBody.innerHTML = `
+        <tr>
+
+          <td
+            colspan="11"
+            class="lawyers-state error">
+
+            <strong>
+              Daten konnten nicht geladen werden
+            </strong>
+
+            ${escapeHtml(message)}
+
+          </td>
+
+        </tr>
+      `;
+
+    }
+
+
+    if (traineeBody) {
+
+      traineeBody.innerHTML = `
+        <tr>
+
+          <td
+            colspan="5"
+            class="lawyers-state error">
+
+            <strong>
+              Daten konnten nicht geladen werden
+            </strong>
+
+            ${escapeHtml(message)}
+
+          </td>
+
+        </tr>
+      `;
+
+    }
+
+  }
+
+
+  /* ==========================================================
+     AKTUALISIEREN
+     ========================================================== */
+
+  window.refreshLawyers =
+    function () {
+
+      window.FIBMDTCache?.refresh("getLawyers");
+      loadLawyers();
+
+    };
+
+
+  /* ==========================================================
+     SUCHE
+     ========================================================== */
+
+  function setupSearch() {
+
+    const input =
+      $("lawyersSearch");
+
+
+    if (!input) {
+      return;
+    }
+
+
+    if (
+      input.dataset.lawyersSearchBound ===
+      "true"
+    ) {
+      return;
+    }
+
+
+    input.dataset.lawyersSearchBound =
+      "true";
+
+
+    input.addEventListener(
+      "input",
+      function () {
+
+        window.lawyersPageState.search =
+          input.value.trim();
+
+
+        filterLawyers();
+
+      }
+    );
+
+  }
+
+
+  /* ==========================================================
+     UHR
+     ========================================================== */
+
+  function updateLawyersClock() {
+
+    const element =
+      $("lawyersClock");
+
+
+    if (!element) {
+      return;
+    }
+
+
+    element.textContent =
+      new Date().toLocaleTimeString(
+        "de-DE"
+      );
+
+  }
+
+
+  /* ==========================================================
+     INIT
+     ========================================================== */
+
+  function initLawyersPage() {
+
+    setupSearch();
+
+    updateLawyersClock();
+
+
+    if (
+      window.lawyersClockInterval
+    ) {
+
+      clearInterval(
+        window.lawyersClockInterval
+      );
+
+    }
+
+
+    window.lawyersClockInterval =
+      setInterval(
+        updateLawyersClock,
+        1000
+      );
+
+
+    loadLawyers();
+
+  }
+
+
+  /* ==========================================================
+     START
+     ========================================================== */
+
+  if (
+    document.readyState ===
+    "loading"
+  ) {
+
+    document.addEventListener(
+      "DOMContentLoaded",
+      initLawyersPage
+    );
+
+  } else {
+
+    initLawyersPage();
+
+  }
+
+})();

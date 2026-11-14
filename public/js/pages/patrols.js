@@ -1,0 +1,1652 @@
+
+(function () {
+    "use strict";
+
+    const previous = window.__FIB_MDT_PATROLS__;
+    const state = previous || {
+        patrolData: [],
+        patrolUsers: [],
+        ownPersonnelProfile: null,
+        ownPersonnelProfileLoaded: false,
+        ownPersonnelProfilePromise: null,
+        patrolDataLoaded: false,
+        patrolUsersLoaded: false,
+        patrolDataPromise: null,
+        patrolUsersPromise: null,
+        patrolFilters: {
+            callsign: null,
+            vehicle: null,
+            group: "status"
+        },
+        initialized: false,
+        instanceId: "",
+        mounted: false
+    };
+
+    window.__FIB_MDT_PATROLS__ = state;
+    let dutySaveQueue = Promise.resolve();
+
+    const PATROL_PERMISSIONS = Object.freeze({
+        view: "patrols.view",
+        create: "patrols.create",
+        edit: "patrols.edit",
+        delete: "patrols.delete"
+    });
+
+    const CALLSIGNS = [
+        "ADAM",
+        "DAVID",
+        "EDWARD",
+        "KING",
+        "LINCOLN",
+        "SAM",
+        "TOM",
+        "VICTOR"
+    ];
+
+    const VEHICLES = [
+        "STR",
+        "STR (UM)",
+        "OFF",
+        "OFF (UM)",
+        "HSP",
+        "HSP (UM)",
+        "OVW"
+    ];
+
+    const DEFAULT_STATUSES = ["10-1", "10-3", "10-6", "10-23", "10-76"];
+    let STATUSES = [...DEFAULT_STATUSES];
+    async function loadConfiguredTenCodes() {
+      try {
+        const result = await window.runServer("getPatrolTenCodes");
+        const values = Array.isArray(result?.codes) ? result.codes : [];
+        if (values.length) STATUSES = [...new Set(values.map(v => String(typeof v === "string" ? v : (v.code || v.value || v.name || "")).trim()).filter(Boolean))];
+        
+      } catch (e) { console.warn("Ten-Code-Konfiguration nicht verfügbar; Standardcodes werden verwendet.", e); }
+    }
+
+    const PAGE_CACHE_MS = 30000;
+
+    window.fibCache = window.fibCache || {};
+    window.fibCache.patrols = window.fibCache.patrols || { data: null, timestamp: 0 };
+    window.fibCache.patrolUsers = window.fibCache.patrolUsers || { data: null, timestamp: 0 };
+
+    function escapeHtml(value) {
+        if (typeof window.escapeDashboardHtml === "function") {
+            return window.escapeDashboardHtml(value);
+        }
+
+        return String(value ?? "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+    function getToken() {
+        try {
+            if (typeof sessionToken !== "undefined" && sessionToken) {
+                return String(sessionToken);
+            }
+        } catch (error) {}
+
+        try {
+            return (
+                sessionStorage.getItem("fib_mdt_session") ||
+                sessionStorage.getItem("lspd_mdt_session") ||
+                ""
+            );
+        } catch (error) {
+            return "";
+        }
+    }
+
+    function isMasterAccount() {
+        try {
+            if (typeof isMaster !== "undefined" && isMaster === true) return true;
+        } catch (error) {}
+
+        return window.isMaster === true;
+    }
+
+    function hasPatrolPermission(permission) {
+        if (!permission) return true;
+        if (isMasterAccount()) return true;
+
+        try {
+            if (
+                typeof hasPermission === "function" &&
+                hasPermission(permission)
+            ) {
+                return true;
+            }
+        } catch (error) {}
+
+        try {
+            if (
+                Array.isArray(myPermissions) &&
+                myPermissions.includes(permission)
+            ) {
+                return true;
+            }
+        } catch (error) {}
+
+        return (
+            Array.isArray(window.myPermissions) &&
+            window.myPermissions.includes(permission)
+        );
+    }
+
+    function canCreate() {
+        return hasPatrolPermission(PATROL_PERMISSIONS.create);
+    }
+
+    function canEdit() {
+        return hasPatrolPermission(PATROL_PERMISSIONS.edit);
+    }
+
+    function canDelete() {
+        return isMasterAccount() || hasPatrolPermission(PATROL_PERMISSIONS.delete);
+    }
+
+    function currentDomInstance() {
+        return (
+            state.mounted &&
+            state.instanceId &&
+            document.getElementById("patrolsList")
+        );
+    }
+
+    function systemNotify(type, title, message) {
+        if (
+            window.MDT &&
+            MDT.notify &&
+            typeof MDT.notify[type] === "function"
+        ) {
+            return MDT.notify[type](title, message);
+        }
+
+        return null;
+    }
+
+    function showSuccess(message) {
+        return systemNotify("success", "Erfolgreich", message);
+    }
+
+    function showError(message) {
+        return systemNotify(
+            "error",
+            "Fehler",
+            message || "Die Aktion konnte nicht ausgeführt werden."
+        );
+    }
+
+    function cacheValid(cache) {
+        return (
+            cache &&
+            Array.isArray(cache.data) &&
+            cache.timestamp > 0 &&
+            Date.now() - cache.timestamp < PAGE_CACHE_MS
+        );
+    }
+
+    function clearPatrolsCache() {
+        window.fibCache.patrols.data = null;
+        window.fibCache.patrols.timestamp = 0;
+        state.patrolDataLoaded = false;
+    }
+
+    function clearPatrolUsersCache() {
+        window.fibCache.patrolUsers.data = null;
+        window.fibCache.patrolUsers.timestamp = 0;
+        state.patrolUsersLoaded = false;
+    }
+
+    function getLoggedInUserId() {
+        try {
+            if (typeof currentUser !== "undefined" && currentUser) {
+                return String(currentUser.id || currentUser.userId || currentUser.ID || "");
+            }
+        } catch (_) {}
+        return String(window.currentUser?.id || window.currentUser?.userId || "");
+    }
+
+    function renderOwnStatus() {
+        const userId = getLoggedInUserId();
+        const ownPatrol = (state.patrolData || []).find(function (patrol) {
+            return (patrol.members || []).some(function (member) {
+                return String(member.id || member.userId || "") === userId;
+            });
+        });
+        const profile = state.ownPersonnelProfile || {};
+        const ownCallSign = String(profile.callSign || "").trim();
+        const inPatrol = Boolean(ownPatrol);
+        // The top-right strip is a duty overview, not a radio-code display:
+        // show the selected activity as Status and the selected operational area
+        // as Einsatzort. The database `status` (e.g. 10-01) and callsign/number
+        // belong to the patrol record and must not be placed in these fields.
+        const statusText = inPatrol
+            ? String(ownPatrol.activity || "Tätigkeit nicht hinterlegt")
+            : (profile.personnelStatus ? String(profile.personnelStatus) : "Nicht in Streife");
+        const unitText = inPatrol
+            ? String(ownPatrol.location || "Einsatzort nicht hinterlegt")
+            : "Kein Einsatzort";
+        if (typeof window.fibUpdateOwnStatus === "function") {
+            window.fibUpdateOwnStatus({
+                callSign: ownCallSign || "Kein Funkrufname hinterlegt",
+                status: statusText,
+                unit: unitText,
+                inPatrol: inPatrol
+            });
+        }
+    }
+
+    function restoreOwnDutyPicker() {
+      // Do not publish an off-duty state while the patrol request is still in flight.
+      // Profile and patrol data load independently; the old implementation could
+      // briefly overwrite a valid local/server selection with an empty state.
+      if (!state.patrolDataLoaded || !Array.isArray(state.patrolData) || !state.ownPersonnelProfile) return;
+      const profile = state.ownPersonnelProfile || {};
+      const ownId = String(profile.userId || profile.user_id || profile.id || getLoggedInUserId() || "");
+      if (!ownId) return;
+      const ownPatrol = state.patrolData.find(p => (p.members || []).some(m =>
+        String(m.id || m.user_id || m.userId || m.userID || "") === ownId
+      ));
+      if (ownPatrol) {
+        window.dispatchEvent(new CustomEvent("fib-mdt:duty-state-restored", {detail: {
+          inDuty: true,
+          location: String(ownPatrol.location || ""),
+          activity: String(ownPatrol.activity || ""),
+          vehicleType: String(ownPatrol.vehicleType || ownPatrol.vehicle_type || ""),
+          tenCode: String(ownPatrol.tenCode || ownPatrol.ten_code || ownPatrol.status || "10-1")
+        }}));
+      } else {
+        window.dispatchEvent(new CustomEvent("fib-mdt:duty-state-restored", {detail: {inDuty: false}}));
+      }
+    }
+
+    function fetchOwnPersonnelProfile(forceReload) {
+        if (state.ownPersonnelProfileLoaded && !forceReload) {
+            renderOwnStatus();
+            return Promise.resolve(state.ownPersonnelProfile);
+        }
+        if (state.ownPersonnelProfilePromise && !forceReload) return state.ownPersonnelProfilePromise;
+        state.ownPersonnelProfilePromise = new Promise(function (resolve, reject) {
+            CloudApi.run
+                .withSuccessHandler(function (profile) {
+                    state.ownPersonnelProfile = profile && typeof profile === "object" ? profile : {};
+                    state.ownPersonnelProfileLoaded = true;
+                    state.ownPersonnelProfilePromise = null;
+                    renderOwnStatus();
+                    restoreOwnDutyPicker();
+                    resolve(state.ownPersonnelProfile);
+                })
+                .withFailureHandler(function (error) {
+                    state.ownPersonnelProfilePromise = null;
+                    const callSignEl = document.getElementById("patrolOwnCallSign");
+                    if (callSignEl) callSignEl.textContent = "Nicht verfügbar";
+                    reject(error);
+                })
+                .getMyPersonnelProfile(getToken());
+        });
+        return state.ownPersonnelProfilePromise;
+    }
+
+    function updateCount() {
+        const element = document.getElementById("patrolCount");
+        if (!element) return;
+
+        const count = Array.isArray(state.patrolData)
+            ? state.patrolData.length
+            : 0;
+
+        element.textContent =
+            count === 1 ? "1 Streife" : count + " Streifen";
+    }
+
+    function setLoading(loading) {
+        const button = document.getElementById("patrolRefreshButton");
+        const icon = document.getElementById("patrolRefreshIcon");
+
+        if (button) {
+            button.disabled = !!loading;
+            button.classList.toggle("is-loading", !!loading);
+        }
+
+        if (icon) {
+            icon.setAttribute("aria-busy", loading ? "true" : "false");
+        }
+    }
+
+    function renderAccessDenied() {
+        const container = document.getElementById("patrolsList");
+        if (!container) return;
+
+        container.innerHTML = `
+            <div class="patrol-inline-message">
+                <div>
+                    <strong>Kein Zugriff auf die Leitstelle</strong>
+                    Für die Leitstelle wird die Berechtigung
+                    „${escapeHtml(PATROL_PERMISSIONS.view)}“ benötigt.
+                </div>
+            </div>
+        `;
+    }
+
+    // Liefert den Funkrufnamen-Typ aus Kennungen wie "Victor-02" oder "ADAM 01".
+    // Dadurch entstehen keine separaten Filter für jede einzelne Streifennummer.
+    function getCallsignType(value) {
+        const raw = String(value || "").trim();
+        if (!raw) return "";
+        const normalized = raw.toUpperCase().replace(/[–—]/g, "-").trim();
+        const known = CALLSIGNS.find(function (type) {
+            return normalized === type || normalized.startsWith(type + "-") || normalized.startsWith(type + " ");
+        });
+        if (known) return known;
+        // Fallback für künftig ergänzte Funkrufnamen im Muster "NAME-02".
+        const match = normalized.match(/^([A-ZÄÖÜ]+)[\s-]+\d+[A-Z]?$/);
+        return match ? match[1] : raw;
+    }
+
+    function getAvailableCallsigns() {
+        const values = new Set(CALLSIGNS);
+        (state.patrolData || []).forEach(function (patrol) {
+            const value = getCallsignType(patrol.callsign);
+            if (value) values.add(value);
+        });
+        return Array.from(values).sort(function (a, b) { return a.localeCompare(b, "de"); });
+    }
+
+    function refreshCallsignFilters() {
+        const container = document.getElementById("patrolCallsignFilters");
+        if (!container) return;
+        container.innerHTML = "";
+        createFilterButton(container, "Alle", null, "callsign");
+        getAvailableCallsigns().forEach(function (value) {
+            createFilterButton(container, value, value, "callsign");
+        });
+    }
+
+    function buildFilters() {
+        const callsignContainer =
+            document.getElementById("patrolCallsignFilters");
+        const vehicleContainer =
+            document.getElementById("patrolVehicleFilters");
+
+        if (!callsignContainer || !vehicleContainer) return;
+
+        callsignContainer.innerHTML = "";
+        vehicleContainer.innerHTML = "";
+
+        createFilterButton(
+            callsignContainer,
+            "Alle",
+            null,
+            "callsign"
+        );
+
+        getAvailableCallsigns().forEach(function (value) {
+            createFilterButton(callsignContainer, value, value, "callsign");
+        });
+
+        createFilterButton(
+            vehicleContainer,
+            "Alle",
+            null,
+            "vehicle"
+        );
+
+        VEHICLES.forEach(function (value) {
+            createFilterButton(
+                vehicleContainer,
+                value,
+                value,
+                "vehicle"
+            );
+        });
+    }
+
+    function createFilterButton(container, label, value, type) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "patrol-filter";
+
+        if (state.patrolFilters[type] === value) {
+            button.classList.add("active");
+        }
+
+        button.textContent = label;
+
+        button.addEventListener("click", function () {
+            state.patrolFilters[type] = value;
+
+            container
+                .querySelectorAll(".patrol-filter")
+                .forEach(function (item) {
+                    item.classList.remove("active");
+                });
+
+            button.classList.add("active");
+            renderPatrols();
+        });
+
+        container.appendChild(button);
+    }
+
+    function fetchPatrols(forceReload) {
+        const cache = window.fibCache.patrols;
+
+        if (!forceReload && cacheValid(cache)) {
+            state.patrolData = cache.data;
+            state.patrolDataLoaded = true;
+            renderPatrols();
+            renderOwnStatus();
+            restoreOwnDutyPicker();
+            return Promise.resolve(state.patrolData);
+        }
+
+        if (state.patrolDataPromise && !forceReload) {
+            return state.patrolDataPromise;
+        }
+
+        setLoading(true);
+
+        state.patrolDataPromise = new Promise(function (resolve, reject) {
+            CloudApi.run
+                .withSuccessHandler(function (data) {
+                    const normalized = Array.isArray(data) ? data : [];
+
+                    state.patrolData = normalized;
+                    state.patrolDataLoaded = true;
+                    cache.data = normalized;
+                    cache.timestamp = Date.now();
+
+                    state.patrolDataPromise = null;
+                    setLoading(false);
+                    updateCount();
+                    refreshCallsignFilters();
+                    renderPatrols();
+                    renderOwnStatus();
+                    restoreOwnDutyPicker();
+                    resolve(normalized);
+                })
+                .withFailureHandler(function (error) {
+                    state.patrolDataPromise = null;
+                    setLoading(false);
+
+                    if (!state.patrolData.length) {
+                        const container =
+                            document.getElementById("patrolsList");
+
+                        if (container) {
+                            container.innerHTML = `
+                                <div class="patrol-empty">
+                                    <div class="patrol-empty-icon">
+                                        <i class="fa-solid fa-triangle-exclamation"></i>
+                                    </div>
+                                    <div class="patrol-empty-title">
+                                        Leitstelle konnte nicht geladen werden
+                                    </div>
+                                    <div class="patrol-empty-text">
+                                        Bitte versuche es erneut.
+                                    </div>
+                                </div>
+                            `;
+                        }
+                    }
+
+                    showError(
+                        error && error.message
+                            ? error.message
+                            : "Die Streifen konnten nicht geladen werden."
+                    );
+
+                    reject(error);
+                })
+                .getPatrols(getToken());
+        });
+
+        return state.patrolDataPromise;
+    }
+
+    function fetchPatrolUsers(forceReload) {
+        const cache = window.fibCache.patrolUsers;
+
+        if (!forceReload && cacheValid(cache)) {
+            state.patrolUsers = cache.data;
+            state.patrolUsersLoaded = true;
+            return Promise.resolve(state.patrolUsers);
+        }
+
+        if (state.patrolUsersPromise && !forceReload) {
+            return state.patrolUsersPromise;
+        }
+
+        state.patrolUsersPromise = new Promise(function (resolve, reject) {
+            CloudApi.run
+                .withSuccessHandler(function (data) {
+                    const normalized = Array.isArray(data) ? data : [];
+
+                    state.patrolUsers = normalized;
+                    state.patrolUsersLoaded = true;
+                    cache.data = normalized;
+                    cache.timestamp = Date.now();
+                    state.patrolUsersPromise = null;
+
+                    resolve(normalized);
+                })
+                .withFailureHandler(function (error) {
+                    state.patrolUsersPromise = null;
+                    showError(
+                        error && error.message
+                            ? error.message
+                            : "Die Beamten konnten nicht geladen werden."
+                    );
+                    reject(error);
+                })
+                .getPatrolEligibleUsers(getToken());
+        });
+
+        return state.patrolUsersPromise;
+    }
+
+    const PATROL_COLOR_DEFAULTS = {callsignTypeBg:"#174a70",callsignTypeFg:"#d9efff",callsignNumberBg:"#2879b9",callsignNumberFg:"#ffffff",tenCodeBg:"#164e63",tenCodeFg:"#cffafe",locationBg:"#334155",locationFg:"#dbeafe",rankBg:"#2879b9",rankFg:"#ffffff",nameBg:"#475569",nameFg:"#cbd5e1",tenCodeByCode:{"10-1":{bg:"#166534",fg:"#dcfce7"},"10-3":{bg:"#991b1b",fg:"#fee2e2"},"10-6":{bg:"#854d0e",fg:"#fef3c7"},"10-23":{bg:"#1e40af",fg:"#dbeafe"},"10-76":{bg:"#155e75",fg:"#cffafe"}}};
+    const PATROL_COLOR_VARS = {callsignTypeBg:"--patrol-callsign-type-bg",callsignTypeFg:"--patrol-callsign-type-fg",callsignNumberBg:"--patrol-callsign-number-bg",callsignNumberFg:"--patrol-callsign-number-fg",tenCodeBg:"--patrol-ten-code-bg",tenCodeFg:"--patrol-ten-code-fg",locationBg:"--patrol-location-bg",locationFg:"--patrol-location-fg",rankBg:"--patrol-rank-bg",rankFg:"--patrol-rank-fg",nameBg:"--patrol-name-bg",nameFg:"--patrol-name-fg"};
+    let patrolDisplayColors = {...PATROL_COLOR_DEFAULTS};
+    function applyPatrolDisplayColors(colors) {
+      patrolDisplayColors = {...PATROL_COLOR_DEFAULTS, ...(colors || {}), tenCodeByCode:{...PATROL_COLOR_DEFAULTS.tenCodeByCode, ...((colors || {}).tenCodeByCode || {})}};
+      Object.keys(PATROL_COLOR_VARS).forEach(function(key){ document.documentElement.style.setProperty(PATROL_COLOR_VARS[key], patrolDisplayColors[key]); });
+      const topbarMap={callsignType:['callsignTypeBg','callsignTypeFg'],callsignNumber:['callsignNumberBg','callsignNumberFg'],tenCode:['tenCodeBg','tenCodeFg'],location:['locationBg','locationFg'],rank:['rankBg','rankFg'],name:['nameBg','nameFg']};
+      Object.entries(topbarMap).forEach(([slot,keys])=>{document.querySelectorAll(`[data-patrol-topbar-color="${slot}"]`).forEach(el=>{el.style.setProperty('--patrol-topbar-bg',patrolDisplayColors[keys[0]]);el.style.setProperty('--patrol-topbar-fg',patrolDisplayColors[keys[1]]);});});
+      document.querySelectorAll("[data-patrol-color]").forEach(function(input){ const value=patrolDisplayColors[input.dataset.patrolColor]; if(/^#[0-9a-f]{6}$/i.test(value||"")) input.value=value; });
+      document.querySelectorAll("[data-patrol-hex]").forEach(function(input){input.value=patrolDisplayColors[input.dataset.patrolHex]||PATROL_COLOR_DEFAULTS[input.dataset.patrolHex];});
+      document.querySelectorAll("[data-ten-code-color]").forEach(function(input){const code=input.dataset.tenCodeColor,part=input.dataset.part;input.value=patrolDisplayColors.tenCodeByCode?.[code]?.[part]||PATROL_COLOR_DEFAULTS.tenCodeByCode[code]?.[part]||"#64748b";});
+      const preview={patrolColorPreviewType:['callsignTypeBg','callsignTypeFg'],patrolColorPreviewNumber:['callsignNumberBg','callsignNumberFg'],patrolColorPreviewTenCode:['tenCodeBg','tenCodeFg'],patrolColorPreviewLocation:['locationBg','locationFg'],patrolColorPreviewRank:['rankBg','rankFg'],patrolColorPreviewName:['nameBg','nameFg']};
+      Object.entries(preview).forEach(([id,keys])=>{const el=document.getElementById(id);if(el){el.style.background=patrolDisplayColors[keys[0]];el.style.color=patrolDisplayColors[keys[1]];}});
+    }
+    function renderTenCodeColorSettings() {
+      const root=document.getElementById("patrolTenCodeColorFields"); if(!root)return;
+      const codes=[...new Set((STATUSES||DEFAULT_STATUSES).map(v=>String(v||"").trim()).filter(v=>/^10-\d{1,2}$/.test(v)))];
+      root.innerHTML=codes.map(code=>{const colors=patrolDisplayColors.tenCodeByCode?.[code]||{};const bg=colors.bg||"#64748b",fg=colors.fg||"#ffffff";return `<label>${escapeHtml(code)} – Hintergrund<input type="color" data-ten-code-color="${escapeHtml(code)}" data-part="bg" value="${bg}"></label><label>${escapeHtml(code)} – Text<input type="color" data-ten-code-color="${escapeHtml(code)}" data-part="fg" value="${fg}"></label>`;}).join("")||'<div style="color:#9eafc4">Keine Ten Codes konfiguriert.</div>';
+    }
+    async function loadPatrolDisplayConfig() {
+      try { const result = await window.runServer("getPatrolDisplayConfig"); applyPatrolDisplayColors(result && result.colors); renderTenCodeColorSettings(); const button=document.getElementById("patrolDisplayConfigButton"); if(button) button.hidden = !(result && result.master === true); }
+      catch(error) { console.warn("Patrol display config could not be loaded", error); renderTenCodeColorSettings(); }
+    }
+    function initPatrolDisplayConfig() {
+      const panel=document.getElementById("patrolDisplayConfigPanel"), button=document.getElementById("patrolDisplayConfigButton");
+      if(!panel || panel.dataset.bound) return; panel.dataset.bound="1";
+      let savedColors={...patrolDisplayColors}; const close=()=>{applyPatrolDisplayColors(savedColors);panel.hidden=true;};
+      button?.addEventListener("click",()=>{if(button.hidden)return;savedColors={...patrolDisplayColors};applyPatrolDisplayColors(patrolDisplayColors);panel.hidden=false;});
+      document.getElementById("patrolDisplayConfigClose")?.addEventListener("click",close);
+      document.getElementById("patrolDisplayConfigCancel")?.addEventListener("click",close);
+      panel.querySelectorAll("[data-patrol-color]").forEach(input=>input.addEventListener("input",()=>{patrolDisplayColors[input.dataset.patrolColor]=input.value;applyPatrolDisplayColors(patrolDisplayColors);}));
+      panel.querySelectorAll("[data-patrol-hex]").forEach(input=>input.addEventListener("change",()=>{const key=input.dataset.patrolHex,value=input.value.trim();if(!/^#[0-9a-f]{6}$/i.test(value)){input.value=patrolDisplayColors[key];return;}patrolDisplayColors[key]=value;applyPatrolDisplayColors(patrolDisplayColors);}));
+      panel.addEventListener("input",event=>{const input=event.target.closest("[data-ten-code-color]");if(!input)return;const code=input.dataset.tenCodeColor,part=input.dataset.part;patrolDisplayColors.tenCodeByCode=patrolDisplayColors.tenCodeByCode||{};patrolDisplayColors.tenCodeByCode[code]=patrolDisplayColors.tenCodeByCode[code]||{};patrolDisplayColors.tenCodeByCode[code][part]=input.value;});
+      document.getElementById("patrolDisplayConfigSave")?.addEventListener("click",async()=>{const msg=document.getElementById("patrolDisplayConfigMessage"),save=document.getElementById("patrolDisplayConfigSave");save.disabled=true;msg.textContent="Speichere…";try{const result=await window.runServer("savePatrolDisplayConfig",sessionStorage.getItem("fib_mdt_session")||sessionStorage.getItem("lspd_mdt_session")||"",patrolDisplayColors);if(!result||result.success!==true)throw new Error(result?.message||"Speichern fehlgeschlagen.");savedColors={...patrolDisplayColors};applyPatrolDisplayColors(result.colors||patrolDisplayColors);msg.textContent="Farben gespeichert.";}catch(error){msg.textContent=error.message||"Farben konnten nicht gespeichert werden.";}finally{save.disabled=false;}});
+    }
+
+    function refreshPatrolData() {
+        clearPatrolsCache();
+        clearPatrolUsersCache();
+
+        fetchOwnPersonnelProfile(true).catch(function () {});
+        fetchPatrolUsers(true).catch(function () {});
+        fetchPatrols(true).catch(function () {});
+    }
+
+    function renderPatrols() {
+        const container = document.getElementById("patrolsList");
+        if (!container) return;
+
+        updateCount();
+
+        const filtered = state.patrolData.filter(function (patrol) {
+            const callsign = String(patrol.callsign || "").trim();
+            const vehicle = String(patrol.vehicleType || "").trim();
+
+            if (
+                state.patrolFilters.callsign &&
+                getCallsignType(callsign) !== state.patrolFilters.callsign
+            ) {
+                return false;
+            }
+
+            if (
+                state.patrolFilters.vehicle &&
+                vehicle !== state.patrolFilters.vehicle
+            ) {
+                return false;
+            }
+
+            return true;
+        });
+
+        if (!filtered.length) {
+            container.innerHTML = `
+                <div class="patrol-empty">
+                    <div class="patrol-empty-icon">
+                        <i class="fa-solid fa-car-side"></i>
+                    </div>
+                    <div class="patrol-empty-title">Keine Streifen gefunden</div>
+                    <div class="patrol-empty-text">
+                        Für die aktuelle Filterauswahl sind keine Streifen eingetragen.
+                    </div>
+                </div>
+            `;
+            return;
+        }
+
+        const groups = Object.create(null);
+
+        filtered.forEach(function (patrol) {
+            const group =
+                state.patrolFilters.group === "callsign"
+                    ? String(patrol.callsign || "Unbekannt").trim()
+                    : String(patrol.tenCode || patrol.ten_code || patrol.status || "Unbekannt").trim();
+
+            if (!groups[group]) groups[group] = [];
+            groups[group].push(patrol);
+        });
+
+        container.innerHTML = "";
+
+        Object.keys(groups)
+            .sort()
+            .forEach(function (groupName) {
+                const group = document.createElement("div");
+                group.className = "patrol-group";
+
+                group.innerHTML = `
+                    <div class="patrol-group-title">
+                        ${escapeHtml(groupName)}
+                        <span class="patrol-group-count">
+                            ${groups[groupName].length}
+                        </span>
+                    </div>
+                `;
+
+                groups[groupName].forEach(function (patrol) {
+                    group.appendChild(createPatrolCard(patrol));
+                });
+
+                container.appendChild(group);
+            });
+    }
+
+    function abbreviateRank(rank) {
+        const value = String(rank || "").trim();
+        if (!value) return "—";
+        const words = value.split(/\s+/).filter(Boolean);
+        return words.length > 1 ? words.map(function (word) { return word[0].toUpperCase(); }).join("") : value;
+    }
+
+    function shortAgentName(name) {
+        const value = String(name || "Unbekannt").trim();
+        const parts = value.split(/\s+/).filter(Boolean);
+        if (parts.length < 2) return value;
+        return parts[0].charAt(0).toUpperCase() + ". " + parts.slice(1).join(" ");
+    }
+
+    function createPatrolCard(patrol) {
+        const card = document.createElement("div");
+        card.className = "patrol-card";
+
+        const statusClass =
+            String(patrol.tenCode || patrol.ten_code || patrol.status || "")
+                .toLowerCase()
+                .replace(/[^a-z0-9]+/g, "-");
+
+        const members = Array.isArray(patrol.members)
+            ? patrol.members
+            : [];
+
+        const membersHtml = members.length
+            ? members
+                .map(function (member) {
+                    return `
+                        <div class="patrol-member">
+                            <div class="patrol-member-rank">
+                                ${escapeHtml(member.rankShortName || member.rank || "Kein Rang")}
+                            </div>
+                            <div class="patrol-member-name">
+                                ${escapeHtml(member.name || "Unbekannt")}${member.callSign ? ` <span class="patrol-member-callsign">· ${escapeHtml(member.callSign)}</span>` : ""}
+                            </div>
+                        </div>
+                    `;
+                })
+                .join("")
+            : `
+                <div class="patrol-member">
+                    <div class="patrol-member-name">Keine Besatzung</div>
+                </div>
+            `;
+
+        const actionAllowed = canEdit() || canDelete();
+
+        // Older duty rows may contain the callsign in both callsign/number and
+        // accidentally in location. Avoid displaying duplicate values in the UI.
+        const patrolCallsign = String(patrol.callsign || patrol.number || "Unbekannt").trim();
+        const patrolNumber = String(patrol.number || "").trim();
+        const patrolLocation = String(patrol.location || "").trim();
+        const patrolDisplayStatus = String(patrol.tenCode || patrol.ten_code || patrol.status || "Unbekannt").trim();
+        const patrolActivityStatus = String(patrol.activity || "").trim();
+        const tenCodeStyle = patrolDisplayColors.tenCodeByCode?.[patrolDisplayStatus] || null;
+        const tenCodeStyleAttr = tenCodeStyle ? `style="background:${escapeHtml(tenCodeStyle.bg || "#164e63")};color:${escapeHtml(tenCodeStyle.fg || "#cffafe")};border-color:${escapeHtml(tenCodeStyle.bg || "#164e63")}"` : "";
+        const splitCallsign = patrolCallsign.match(/^(.+?)[- ]?(\d{1,3})$/);
+        const displayCallsign = splitCallsign ? splitCallsign[1].trim() : patrolCallsign;
+        // Older rows sometimes stored the complete callsign in both columns.
+        // Prefer the explicit number only when it is actually a number/suffix.
+        const explicitNumber = /^\d{1,3}[A-Z]?$/i.test(patrolNumber) ? patrolNumber : "";
+        const displayNumber = explicitNumber || (splitCallsign ? splitCallsign[2] : "");
+        const showPatrolNumber = Boolean(displayNumber);
+        const showPatrolLocation = patrolLocation && patrolLocation !== patrolCallsign && patrolLocation !== patrolNumber;
+
+        card.innerHTML = `
+            <div class="patrol-callsign">
+                <div class="patrol-callsign-type">
+                    ${escapeHtml(displayCallsign)}
+                </div>
+                ${showPatrolNumber ? `<div class="patrol-callsign-number">${escapeHtml(displayNumber)}</div>` : ""}
+            </div>
+
+            ${patrolActivityStatus ? `<div class="patrol-activity-status" title="Aktueller Streifenstatus">${escapeHtml(patrolActivityStatus)}</div>` : ""}
+            <div class="patrol-status status-${escapeHtml(statusClass)}" ${tenCodeStyleAttr} title="Ten Code dieser Streife">
+                <span class="patrol-status-label">${escapeHtml(patrolDisplayStatus)}</span>
+            </div>
+            ${showPatrolLocation ? `<div class="patrol-location">${escapeHtml(patrolLocation)}</div>` : ""}
+
+            <div class="patrol-vehicle">
+                ${escapeHtml(patrol.vehicleType)}
+            </div>
+
+            <div class="patrol-members">
+                ${membersHtml}
+            </div>
+            <button class="patrol-action-button patrol-join-button" type="button" title="Dieser Streife beitreten" aria-label="Dieser Streife beitreten" data-patrol-join="${escapeHtml(patrol.id)}">+</button>
+
+            ${
+                actionAllowed
+                    ? `
+                        <button
+                            class="patrol-action-button"
+                            type="button"
+                            title="Streife bearbeiten"
+                            data-patrol-action="${escapeHtml(patrol.id)}"
+                        >
+                            ⋮
+                        </button>
+                    `
+                    : `
+                        <div class="patrol-no-action" aria-hidden="true"></div>
+                    `
+            }
+        `;
+
+        const joinButton = card.querySelector("[data-patrol-join]");
+        if (joinButton) {
+            const alreadyMember = members.some(function (member) { return String(member.id) === String(state.currentUserId || window.currentUser?.id || ""); });
+            if (alreadyMember) { joinButton.disabled = true; joinButton.title = "Du bist bereits Mitglied dieser Streife"; joinButton.textContent = "✓"; }
+            joinButton.addEventListener("click", function (event) {
+                event.stopPropagation();
+                joinButton.disabled = true;
+                CloudApi.run.withSuccessHandler(function () {
+                    clearPatrolsCache();
+                    refreshPatrolData();
+                    if (typeof window.showSuccess === "function") window.showSuccess("Du bist der Streife beigetreten.");
+                }).withFailureHandler(function (error) {
+                    joinButton.disabled = false;
+                    if (typeof window.showError === "function") window.showError(error?.message || String(error));
+                }).joinPatrol(getToken(), patrol.id);
+            });
+        }
+
+        const action = card.querySelector("[data-patrol-action]");
+        if (action) {
+            action.addEventListener("click", function (event) {
+                event.stopPropagation();
+                openPatrolModal(patrol);
+            });
+        }
+
+        return card;
+    }
+
+    function buildPatrolForm(patrol) {
+        const editing = !!patrol;
+
+        return `
+            <div class="patrol-form-grid">
+                <div class="patrol-field">
+                    <label>Funkrufname aus der Personalakte</label>
+                    <input
+                        id="patrolModalCallsign"
+                        type="text"
+                        maxlength="80"
+                        autocomplete="off"
+                        placeholder="Wird aus dem Funkrufnamen übernommen"
+                    >
+                </div>
+
+                <div class="patrol-field">
+                    <label>Nummer</label>
+                    <input
+                        id="patrolModalNumber"
+                        type="text"
+                        maxlength="6"
+                        placeholder="z. B. 21"
+                    >
+                </div>
+
+                <div class="patrol-field">
+                    <label>Fahrzeugtyp</label>
+                    <select id="patrolModalVehicle">
+                        ${VEHICLES.map(function (value) {
+                            return `
+                                <option value="${escapeHtml(value)}">
+                                    ${escapeHtml(value)}
+                                </option>
+                            `;
+                        }).join("")}
+                    </select>
+                </div>
+
+                <div class="patrol-field">
+                    <label>Status</label>
+                    <select id="patrolModalStatus">
+                        ${STATUSES.map(function (value) {
+                            return `
+                                <option value="${escapeHtml(value)}">
+                                    ${escapeHtml(value)}
+                                </option>
+                            `;
+                        }).join("")}
+                    </select>
+                </div>
+
+                <div class="patrol-field full">
+                    <div class="patrol-members-box">
+                        <div class="patrol-members-header">
+                            <span>Besatzung</span>
+                            <button
+                                type="button"
+                                class="patrol-add-member"
+                                id="patrolAddMember"
+                            >
+                                + Beamten hinzufügen
+                            </button>
+                        </div>
+
+                        <div id="patrolSelectedMembers"></div>
+                    </div>
+
+                    <div
+                        class="patrol-member-picker"
+                        id="patrolMemberPicker"
+                        style="display:none;"
+                    >
+                        <input
+                            class="patrol-member-search"
+                            id="patrolMemberSearch"
+                            placeholder="Beamten suchen..."
+                            type="text"
+                            autocomplete="off"
+                        >
+                        <div id="patrolMemberOptions"></div>
+                    </div>
+                </div>
+
+                <div class="patrol-field full">
+                    <div id="patrolModalError" class="patrol-modal-error" style="display:none;"></div>
+                </div>
+            </div>
+        `;
+    }
+
+    function openPatrolModal(patrol) {
+        const editing = !!patrol;
+        const editable = editing ? canEdit() : canCreate();
+
+        if (!editable) {
+            showError(
+                editing
+                    ? "Du besitzt keine Berechtigung zum Bearbeiten von Streifen."
+                    : "Du besitzt keine Berechtigung zum Erstellen von Streifen."
+            );
+            return;
+        }
+
+        if (
+            !window.FIB_MDT_MODAL ||
+            typeof FIB_MDT_MODAL.open !== "function"
+        ) {
+            showError("Das globale Modal ist nicht verfügbar.");
+            return;
+        }
+
+        let selectedMembers = (
+            editing && Array.isArray(patrol.members)
+                ? patrol.members
+                : []
+        ).map(function (member) {
+            return {
+                id: member.id,
+                name: member.name,
+                username: member.username || "",
+                rank: member.rank || "Kein Rang",
+                callSign: member.callSign || "",
+                position: member.position === "Lead" ? "Lead" : "Member"
+            };
+        });
+
+        FIB_MDT_MODAL.open({
+            title: editing ? "Streife bearbeiten" : "Neue Streife",
+            subtitle: "Streifeneinheit in der Leitstelle",
+            body: buildPatrolForm(patrol),
+            saveVisible: true,
+            saveText: editing ? "Änderungen speichern" : "In Dienst gehen",
+            cancelText: "Abbrechen",
+            onSave: function () {
+                savePatrol(patrol, selectedMembers);
+            }
+        });
+
+        const callsign =
+            document.getElementById("patrolModalCallsign");
+        const number =
+            document.getElementById("patrolModalNumber");
+        const vehicle =
+            document.getElementById("patrolModalVehicle");
+        const status =
+            document.getElementById("patrolModalStatus");
+        const picker =
+            document.getElementById("patrolMemberPicker");
+        const search =
+            document.getElementById("patrolMemberSearch");
+
+        if (editing && patrol) {
+            callsign.value = patrol.callsign || "";
+            number.value = patrol.number || "";
+            vehicle.value = patrol.vehicleType || VEHICLES[0];
+            status.value = patrol.status || STATUSES[0];
+        } else {
+            callsign.value = String(state.ownPersonnelProfile?.callSign || "").trim();
+            vehicle.value = VEHICLES[0];
+            status.value = STATUSES[0];
+        }
+
+        function modalError(message) {
+            const element = document.getElementById("patrolModalError");
+            if (!element) return;
+            element.style.display = "block";
+            element.textContent = String(message || "");
+        }
+
+        function clearModalError() {
+            const element = document.getElementById("patrolModalError");
+            if (!element) return;
+            element.style.display = "none";
+            element.textContent = "";
+        }
+
+        function renderSelectedMembers() {
+            const container =
+                document.getElementById("patrolSelectedMembers");
+            if (!container) return;
+
+            if (!selectedMembers.length) {
+                container.innerHTML = `
+                    <div class="patrol-modal-empty">
+                        Noch keine Beamten zugewiesen.
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = selectedMembers
+                .map(function (member, index) {
+                    return `
+                        <div class="patrol-selected-member">
+                            <div class="patrol-selected-information">
+                                <div class="patrol-selected-rank">
+                                    ${escapeHtml(member.rankShortName || member.rank || "Kein Rang")}
+                                </div>
+                                <div class="patrol-selected-name">
+                                    ${escapeHtml(member.name || "Unbekannt")}
+                                </div>
+                            </div>
+
+                            <div style="display:flex;align-items:center;gap:7px;flex:0 0 auto;">
+                                <select
+                                    class="patrol-member-position"
+                                    data-member-position="${index}"
+                                >
+                                    <option
+                                        value="Member"
+                                        ${member.position !== "Lead" ? "selected" : ""}
+                                    >
+                                        Mitglied
+                                    </option>
+                                    <option
+                                        value="Lead"
+                                        ${member.position === "Lead" ? "selected" : ""}
+                                    >
+                                        Streifenführer
+                                    </option>
+                                </select>
+
+                                <button
+                                    class="patrol-remove-member"
+                                    data-remove-member="${index}"
+                                    type="button"
+                                    title="Beamten entfernen"
+                                    aria-label="Streifenpartner entfernen"
+                                >
+                                    ×
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                })
+                .join("");
+
+            container
+                .querySelectorAll("[data-remove-member]")
+                .forEach(function (button) {
+                    button.addEventListener("click", function () {
+                        const index =
+                            Number(button.dataset.removeMember);
+
+                        selectedMembers.splice(index, 1);
+                        renderSelectedMembers();
+                        renderMemberOptions();
+                    });
+                });
+
+            container
+                .querySelectorAll("[data-member-position]")
+                .forEach(function (select) {
+                    select.addEventListener("change", function () {
+                        const index =
+                            Number(select.dataset.memberPosition);
+
+                        if (selectedMembers[index]) {
+                            selectedMembers[index].position = select.value;
+                            if (select.value === "Lead" && selectedMembers[index].callSign) {
+                                const callsignInput = document.getElementById("patrolModalCallsign");
+                                if (callsignInput) callsignInput.value = selectedMembers[index].callSign;
+                            }
+                            clearModalError();
+                        }
+                    });
+                });
+        }
+
+        function renderMemberOptions() {
+            const container =
+                document.getElementById("patrolMemberOptions");
+
+            if (!container) return;
+
+            if (!state.patrolUsersLoaded) {
+                container.innerHTML = `
+                    <div class="patrol-modal-empty">
+                        Beamte werden geladen...
+                    </div>
+                `;
+                return;
+            }
+
+            const query =
+                String(search ? search.value : "")
+                    .trim()
+                    .toLowerCase();
+
+            const selectedIds = selectedMembers.map(function (member) {
+                return String(member.id);
+            });
+
+            const available = state.patrolUsers
+                .filter(function (user) {
+                    return !selectedIds.includes(String(user.id));
+                })
+                .filter(function (user) {
+                    if (!query) return true;
+
+                    const haystack = [
+                        user.name,
+                        user.username,
+                        user.rank
+                    ]
+                        .map(function (value) {
+                            return String(value || "").toLowerCase();
+                        })
+                        .join(" ");
+
+                    return haystack.includes(query);
+                });
+
+            if (!available.length) {
+                container.innerHTML = `
+                    <div class="patrol-modal-empty">
+                        Keine passenden Beamten gefunden.
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = available
+                .map(function (user) {
+                    return `
+                        <button
+                            class="patrol-user-option"
+                            data-user-id="${escapeHtml(user.id)}"
+                            type="button"
+                        >
+                            <div class="patrol-user-option-info">
+                                <div class="patrol-user-option-rank">
+                                    ${escapeHtml(user.rank || "Kein Rang")}
+                                </div>
+                                <div class="patrol-user-option-name">
+                                    ${escapeHtml(user.name || "Unbekannt")}
+                                </div>
+                            </div>
+                            <div style="font-size:9px;color:#687588;">
+                                Hinzufügen
+                            </div>
+                        </button>
+                    `;
+                })
+                .join("");
+
+            container
+                .querySelectorAll("[data-user-id]")
+                .forEach(function (button) {
+                    button.addEventListener("click", function () {
+                        const user = state.patrolUsers.find(function (item) {
+                            return String(item.id) ===
+                                String(button.dataset.userId);
+                        });
+
+                        if (!user) return;
+
+                        if (
+                            selectedMembers.some(function (item) {
+                                return String(item.id) === String(user.id);
+                            })
+                        ) {
+                            return;
+                        }
+
+                        selectedMembers.push({
+                            id: user.id,
+                            name: user.name,
+                            username: user.username || "",
+                            rank: user.rank || "Kein Rang",
+                            callSign: user.callSign || "",
+                            position:
+                                selectedMembers.length === 0
+                                    ? "Lead"
+                                    : "Member"
+                        });
+                        if (selectedMembers[selectedMembers.length - 1].position === "Lead" && user.callSign) {
+                            const callsignInput = document.getElementById("patrolModalCallsign");
+                            if (callsignInput) callsignInput.value = user.callSign;
+                        }
+
+                        clearModalError();
+                        renderSelectedMembers();
+                        renderMemberOptions();
+                    });
+                });
+        }
+
+        renderSelectedMembers();
+        renderMemberOptions();
+
+        const addButton =
+            document.getElementById("patrolAddMember");
+
+        if (addButton && !addButton.dataset.bound) {
+            addButton.dataset.bound = "true";
+            addButton.addEventListener("click", function () {
+                if (!picker) return;
+
+                picker.style.display =
+                    picker.style.display === "none"
+                        ? "block"
+                        : "none";
+
+                if (picker.style.display === "block") {
+                    search?.focus();
+                    renderMemberOptions();
+                }
+            });
+        }
+
+        if (search && !search.dataset.bound) {
+            search.dataset.bound = "true";
+            search.addEventListener("input", renderMemberOptions);
+        }
+
+        /*
+         * Die Benutzerliste kann parallel zum Modal geöffnet werden.
+         * Sobald sie ankommt, wird der Picker automatisch aktualisiert.
+         */
+        fetchPatrolUsers(false)
+            .then(function () {
+                renderMemberOptions();
+            })
+            .catch(function (error) {});
+
+        if (editing && canDelete()) {
+            FIB_MDT_MODAL.setFooterButtons([
+                {
+                    label: "Streife entfernen",
+                    className: "danger",
+                    onClick: function () {
+                        deletePatrol(patrol);
+                    }
+                }
+            ], { keepSave: true });
+        }
+
+        clearModalError();
+
+        return true;
+    }
+
+    function setModalBusy(busy, label) {
+        const save = FIB_MDT_MODAL?.getSaveButton?.();
+        const cancel = FIB_MDT_MODAL?.getCancelButton?.();
+
+        if (save) {
+            save.disabled = !!busy;
+            save.textContent =
+                label ||
+                save.textContent ||
+                "Speichern";
+        }
+
+        // Keep Cancel available even while saving. The save action alone is locked
+        // to prevent duplicate submissions; users must never be trapped in a modal.
+        if (cancel) {
+            cancel.disabled = false;
+            cancel.removeAttribute("disabled");
+        }
+    }
+
+    function readPatrolModalData(selectedMembers, patrol) {
+        const callsign =
+            document.getElementById("patrolModalCallsign");
+        const number =
+            document.getElementById("patrolModalNumber");
+        const vehicle =
+            document.getElementById("patrolModalVehicle");
+        const status =
+            document.getElementById("patrolModalStatus");
+
+        return {
+            id: patrol ? patrol.id : null,
+            callsign: callsign?.value?.trim() || "",
+            number: number?.value?.trim() || "",
+            vehicleType: vehicle?.value || "",
+            status: status?.value || "",
+            members: selectedMembers.map(function (member) {
+                return {
+                    id: member.id,
+                    position: member.position === "Lead"
+                        ? "Lead"
+                        : "Member"
+                };
+            })
+        };
+    }
+
+    function savePatrol(patrol, selectedMembers) {
+        const editing = !!patrol;
+        const form = readPatrolModalData(selectedMembers, patrol);
+
+        if (!form.number) {
+            showError("Bitte eine Streifennummer angeben.");
+            return;
+        }
+
+        if (!form.callsign || !String(form.callsign).trim()) {
+            showError("Bitte einen Funkrufnamen aus der Personalakte hinterlegen oder eingeben.");
+            return;
+        }
+
+        if (!VEHICLES.includes(form.vehicleType)) {
+            showError("Bitte einen gültigen Fahrzeugtyp auswählen.");
+            return;
+        }
+
+        if (!STATUSES.includes(form.status)) {
+            showError("Bitte einen gültigen Status auswählen.");
+            return;
+        }
+
+        const leads = selectedMembers.filter(function (member) {
+            return member.position === "Lead";
+        });
+
+        if (leads.length > 1) {
+            showError("Eine Streife kann nur einen Streifenführer haben.");
+            return;
+        }
+
+        setModalBusy(
+            true,
+            editing ? "Speichern..." : "Erstellen..."
+        );
+
+        const method = editing ? "updatePatrol" : "createPatrol";
+
+        CloudApi.run
+            .withSuccessHandler(function (result) {
+                const saved = result?.patrol || result;
+
+                if (!saved || !saved.id) {
+                    FIB_MDT_MODAL.close();
+                    clearPatrolsCache();
+                    fetchPatrols(true).catch(function () {});
+                    showSuccess(
+                        editing
+                            ? "Die Streife wurde aktualisiert."
+                            : "Die Streife wurde erstellt."
+                    );
+                    return;
+                }
+
+                if (editing) {
+                    const index = state.patrolData.findIndex(function (item) {
+                        return String(item.id) === String(saved.id);
+                    });
+
+                    if (index >= 0) {
+                        state.patrolData[index] = saved;
+                    } else {
+                        state.patrolData.push(saved);
+                    }
+                } else {
+                    state.patrolData.push(saved);
+                }
+
+                window.fibCache.patrols.data = state.patrolData;
+                window.fibCache.patrols.timestamp = Date.now();
+                state.patrolDataLoaded = true;
+
+                renderPatrols();
+                FIB_MDT_MODAL.close();
+
+                showSuccess(
+                    editing
+                        ? "Die Streife wurde aktualisiert."
+                        : "Die Streife wurde erstellt."
+                );
+            })
+            .withFailureHandler(function (error) {
+                setModalBusy(
+                    false,
+                    editing ? "Änderungen speichern" : "In Dienst gehen"
+                );
+
+                showError(
+                    error && error.message
+                        ? error.message
+                        : "Die Streife konnte nicht gespeichert werden."
+                );
+            })
+            [method](getToken(), form);
+    }
+
+    async function deletePatrol(patrol) {
+        if (!canDelete()) {
+            showError("Du besitzt keine Berechtigung zum Entfernen von Streifen.");
+            return;
+        }
+
+        const confirmed = await FIB_MDT_MODAL.confirm({
+            title: "Streife entfernen",
+            subtitle: "Diese Aktion kann nicht rückgängig gemacht werden.",
+            message: "Möchtest du diese Streife wirklich entfernen?",
+            confirmText: "Streife entfernen",
+            cancelText: "Abbrechen",
+            danger: true
+        });
+        if (!confirmed) return;
+
+        CloudApi.run
+            .withSuccessHandler(function () {
+                state.patrolData = state.patrolData.filter(function (item) {
+                    return String(item.id) !== String(patrol.id);
+                });
+
+                window.fibCache.patrols.data = state.patrolData;
+                window.fibCache.patrols.timestamp = Date.now();
+                state.patrolDataLoaded = true;
+
+                renderPatrols();
+
+                showSuccess("Die Streife wurde entfernt.");
+            })
+            .withFailureHandler(function (error) {
+                showError(
+                    error && error.message
+                        ? error.message
+                        : "Die Streife konnte nicht entfernt werden."
+                );
+            })
+            .deletePatrol(getToken(), patrol.id);
+    }
+
+    function bindStaticEvents() {
+        const createButton = document.getElementById("patrolCreateButton");
+        // Duty creation now happens exclusively in the topbar picker, never in the legacy modal.
+        if (createButton) createButton.style.display = "none";
+        if (!window.fibDutyStartListenerBound) {
+            window.fibDutyStartListenerBound = true;
+            function handleDutySelection(event) {
+                // Serialize rapid topbar changes. updatePatrol replaces membership rows,
+                // so concurrent writes could otherwise delete a newer update.
+                dutySaveQueue = dutySaveQueue.catch(function () {}).then(function () { return persistDutySelection(event); });
+                return dutySaveQueue;
+            }
+            async function persistDutySelection(event) {
+                const detail = event.detail || {};
+                const isStart = event.type === "fib-mdt:duty-start-request";
+                if (!detail.location || !detail.activity || !detail.vehicleType) return;
+                try {
+                    const profile = await fetchOwnPersonnelProfile(false);
+                    const callsign = String(profile?.callSign || profile?.call_sign || "").trim();
+                    if (!callsign) {
+                        showError("Bitte hinterlege zuerst dein Callsign in deiner Personalakte.");
+                        return;
+                    }
+                    const ownId = String(profile.userId || profile.user_id || profile.id || "");
+                    const existing = (state.patrolData || []).find(p => (p.members || []).some(m => String(m.id || m.user_id) === ownId));
+                    // Selection changes only update an existing duty entry; they must never silently start a new shift.
+                    if (!isStart && !existing) return;
+                    const applyButton = document.getElementById("fibDutyStartButton");
+                    if (applyButton) applyButton.disabled = true;
+                    const form = {
+                        ...(existing ? {id: existing.id} : {}),
+                        callsign: callsign,
+                        number: callsign,
+                        vehicleType: detail.vehicleType,
+                        tenCode: detail.tenCode || existing?.tenCode || existing?.ten_code || existing?.status || (detail.activity === "OOV" ? "10-6" : "10-1"),
+                        location: detail.location,
+                        activity: detail.activity,
+                        members: existing ? (existing.members || []).map(m => ({id: m.id || m.user_id, position: m.position || "Member"})) : []
+                    };
+                    const saveMethod = existing ? "updatePatrol" : "createPatrol";
+                    CloudApi.run.withSuccessHandler(function (result) {
+                        const saved = result?.patrol || result;
+                        if (saved && saved.id) {
+                            const idx = (state.patrolData || []).findIndex(p => String(p.id) === String(saved.id));
+                            if (idx >= 0) state.patrolData[idx] = saved; else state.patrolData.push(saved);
+                        }
+                        clearPatrolsCache();
+                        fetchPatrols(true).catch(function () {});
+                        if (isStart) window.dispatchEvent(new CustomEvent("fib-mdt:duty-started", {detail:{...form,callSign:callsign}}));
+                        else window.dispatchEvent(new CustomEvent("fib-mdt:duty-started", {detail:{...form,callSign:callsign}}));
+                        if (isStart && typeof window.showSuccess === "function") window.showSuccess("Du bist jetzt im Dienst.");
+                        if (applyButton) applyButton.disabled = false;
+                    }).withFailureHandler(function (error) {
+                        if (applyButton) applyButton.disabled = false;
+                        if (typeof window.showError === "function") window.showError(error?.message || "Der Dienststatus konnte nicht gespeichert werden.");
+                    })[saveMethod](getToken(), form);
+                } catch (error) {
+                    if (typeof window.showError === "function") window.showError(error?.message || "Dein Callsign konnte nicht aus der Personalakte geladen werden.");
+                }
+            }
+            window.addEventListener("fib-mdt:duty-start-request", handleDutySelection);
+            window.addEventListener("fib-mdt:duty-selection-changed", handleDutySelection);
+            window.addEventListener("fib-mdt:ten-code-changed", async function(event) {
+                const code = String(event.detail?.tenCode || "").trim();
+                if (!code) return;
+                try {
+                    await fetchPatrols(true);
+                    const profile = await fetchOwnPersonnelProfile(true);
+                    const ownId = String(profile.userId || profile.user_id || profile.id || "");
+                    const existing = (state.patrolData || []).find(p => (p.members || []).some(m => String(m.id || m.user_id) === ownId));
+                    if (!existing) { showError("Du bist aktuell keiner Streife zugeordnet."); return; }
+                    const result = await window.runServer("setPatrolTenCode", {id: existing.id, tenCode: code});
+                    if (!result || result.success === false) throw new Error(result?.message || "Ten Code konnte nicht gespeichert werden.");
+                    existing.tenCode = code; existing.ten_code = code;
+                    clearPatrolsCache();
+                    await fetchPatrols(true);
+                    if (typeof window.showSuccess === "function") window.showSuccess("Ten Code der Streife aktualisiert.");
+                } catch (error) {
+                    showError(error?.message || "Ten Code konnte nicht gespeichert werden.");
+                }
+            });
+        }
+
+        const refreshButton =
+            document.getElementById("patrolRefreshButton");
+
+        if (refreshButton && !refreshButton.dataset.bound) {
+            refreshButton.dataset.bound = "true";
+            refreshButton.addEventListener("click", refreshPatrolData);
+        }
+        const endDutyButton = document.getElementById("fibDutyEndButton");
+        if (endDutyButton && !endDutyButton.dataset.apiBound) {
+            endDutyButton.dataset.apiBound = "true";
+            endDutyButton.addEventListener("click", function () {
+                endDutyButton.disabled = true;
+                CloudApi.run.withSuccessHandler(function () {
+                    clearPatrolsCache();
+                    refreshPatrolData();
+                    endDutyButton.disabled = false;
+                    if (typeof window.showSuccess === "function") window.showSuccess("Du hast deinen Dienst beendet.");
+                    window.dispatchEvent(new CustomEvent("fib-mdt:duty-ended"));
+                }).withFailureHandler(function (error) {
+                    endDutyButton.disabled = false;
+                    if (typeof window.showError === "function") window.showError(error?.message || String(error));
+                }).leavePatrol(getToken());
+            });
+        }
+
+        document
+            .querySelectorAll(".patrol-group-button")
+            .forEach(function (button) {
+                if (button.dataset.bound) return;
+
+                button.dataset.bound = "true";
+                button.addEventListener("click", function () {
+                    state.patrolFilters.group =
+                        button.dataset.group || "status";
+
+                    document
+                        .querySelectorAll(".patrol-group-button")
+                        .forEach(function (item) {
+                            item.classList.remove("active");
+                        });
+
+                    button.classList.add("active");
+                    renderPatrols();
+                });
+            });
+    }
+
+    function applyPermissionUI() {
+        const createButton =
+            document.getElementById("patrolCreateButton");
+
+        if (createButton) createButton.style.display = "none";
+
+        const description =
+            document.getElementById("patrolPermissionHint");
+
+        if (description) {
+            if (isMasterAccount()) {
+                description.textContent = "Masterzugriff";
+            } else if (canEdit() || canDelete()) {
+                description.textContent = "Verwaltung freigeschaltet";
+            } else {
+                description.textContent = "Nur Lesezugriff";
+            }
+        }
+    }
+
+    function initializePatrols() {
+        state.instanceId =
+            String(Date.now()) +
+            "_" +
+            Math.random().toString(36).slice(2);
+
+        state.mounted = true;
+
+        if (!hasPatrolPermission(PATROL_PERMISSIONS.view)) {
+            applyPermissionUI();
+            renderAccessDenied();
+            state.initialized = true;
+            return;
+        }
+
+        applyPermissionUI();
+        initPatrolDisplayConfig();
+        loadPatrolDisplayConfig();
+        loadConfiguredTenCodes().then(function(){ const select=document.getElementById("patrolModalStatus"); if(select){const selected=select.value;select.innerHTML=STATUSES.map(v=>`<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join("");if(STATUSES.includes(selected))select.value=selected;} renderTenCodeColorSettings(); });
+        buildFilters();
+        bindStaticEvents();
+
+        if (cacheValid(window.fibCache.patrols)) {
+            state.patrolData = window.fibCache.patrols.data;
+            state.patrolDataLoaded = true;
+            renderPatrols();
+        }
+
+        if (cacheValid(window.fibCache.patrolUsers)) {
+            state.patrolUsers = window.fibCache.patrolUsers.data;
+            state.patrolUsersLoaded = true;
+        }
+
+        fetchOwnPersonnelProfile(false).catch(function () {});
+        fetchPatrols(false).catch(function () {});
+        if (canCreate() || canEdit()) {
+            fetchPatrolUsers(false).catch(function () {});
+        }
+        renderOwnStatus();
+
+        state.initialized = true;
+    }
+
+    window.initializePatrols = initializePatrols;
+    // Cross-client modular status sync: refresh the persisted patrol snapshot regularly.
+    // This makes changes saved by another Agent appear without a manual page reload.
+    if (!window.fibPatrolLiveSyncTimer) {
+        window.fibPatrolLiveSyncTimer = window.setInterval(function () {
+            const list = document.getElementById("patrolsList");
+            const modal = document.getElementById("fibGlobalModalOverlay");
+            if (list && !state.saving && !(modal && modal.classList.contains("open"))) {
+                fetchPatrols(true).catch(function () {});
+            }
+        }, 5000);
+    }
+    window.addEventListener("fib-mdt:refresh-request", function (event) { const modal=document.getElementById("fibGlobalModalOverlay"); if (document.getElementById("patrolsList") && !state.saving && !(modal && modal.classList.contains("open"))) refreshPatrolData(); });
+    window.addEventListener("fib-mdt:data-changed", function (event) { const modal=document.getElementById("fibGlobalModalOverlay"); if (document.getElementById("patrolsList") && !(modal && modal.classList.contains("open")) && /Patrol|patrol|Member|member/.test(String(event.detail && event.detail.method || ""))) refreshPatrolData(); });
+})();

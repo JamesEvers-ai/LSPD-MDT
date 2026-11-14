@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "wrangler pages dev public",
-    "deploy": "wrangler pages deploy public --project-name=fib-mdt"
+    "deploy": "wrangler pages deploy public --project-name=lspd-mdt"
   },
   "devDependencies": {
     "wrangler": "^4.0.0"
