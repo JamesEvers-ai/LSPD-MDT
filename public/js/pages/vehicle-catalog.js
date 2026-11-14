@@ -23,8 +23,8 @@
  function resetForm(){state.editId=null;$("vcFormTitle").textContent="Fahrzeug anlegen";$("vcName").value="";$("vcClass").value="STR";$("vcImage").value="";$("vcDescription").value="";notify("");}
  function openForm(item){state.editId=item?.id||null;$("vcFormTitle").textContent=item?"Fahrzeug bearbeiten":"Fahrzeug anlegen";$("vcName").value=item?.name||"";$("vcClass").value=item?.vehicle_class||"STR";$("vcImage").value=item?.image_url||"";$("vcDescription").value=item?.description||"";$("vcAdmin").classList.add("open");$("vcName").focus();}
  async function save(){const name=$("vcName").value.trim(),vehicleClass=$("vcClass").value,imageUrl=$("vcImage").value.trim(),description=$("vcDescription").value.trim();if(!name){notify("Bitte einen Fahrzeugnamen angeben.",true);return;}if(imageUrl&&!/^https:\/\//i.test(imageUrl)){notify("Bitte einen HTTPS-Bildlink verwenden.",true);return;}const btn=$("vcSave");btn.disabled=true;try{await api("saveVehicleCatalogItem",{id:state.editId,name,vehicleClass,imageUrl,description,active:true});$("vcAdmin").classList.remove("open");resetForm();await load();}catch(e){notify(e.message||"Speichern fehlgeschlagen.",true);}finally{btn.disabled=false;}}
- function askRemove(id){const item=state.items.find(x=>x.id===id);if(!item)return;state.deleteId=id;$("vcDeleteText").textContent="Soll „"+item.name+"“ wirklich aus dem Fahrzeugkatalog entfernt werden?";$("vcDeleteDialog").style.display="flex";}
- async function remove(){const id=state.deleteId;if(!id)return;$("vcDeleteConfirm").disabled=true;try{await api("deleteVehicleCatalogItem",id);$("vcDeleteDialog").style.display="none";state.deleteId=null;await load();}catch(e){if(window.showError)window.showError(e.message||"Entfernen fehlgeschlagen.");}finally{$("vcDeleteConfirm").disabled=false;}}
+ function askRemove(id){const item=state.items.find(x=>x.id===id);if(!item)return;state.deleteId=id;$("vcDeleteText").textContent="Soll „"+item.name+"“ wirklich aus dem Fahrzeugkatalog entfernt werden?";$("vcDeleteDialog").classList.add("open");$("vcDeleteDialog").setAttribute("aria-hidden","false");}
+ async function remove(){const id=state.deleteId;if(!id)return;$("vcDeleteConfirm").disabled=true;try{await api("deleteVehicleCatalogItem",id);$("vcDeleteDialog").classList.remove("open");$("vcDeleteDialog").setAttribute("aria-hidden","true");state.deleteId=null;await load();}catch(e){if(window.showError)window.showError(e.message||"Entfernen fehlgeschlagen.");}finally{$("vcDeleteConfirm").disabled=false;}}
  $("vcAddButton").addEventListener("click",()=>{openForm(null);});
  $("vcCancel").addEventListener("click",()=>{$("vcAdmin").classList.remove("open");resetForm();});
  $("vcSave").addEventListener("click",save);
@@ -32,9 +32,9 @@
  $("vcSearch").addEventListener("input",e=>{state.search=e.target.value;render();});
  $("vcFilters").addEventListener("click",e=>{const b=e.target.closest("[data-class]");if(!b)return;state.filter=b.dataset.class;render();});
  $("vcGrid").addEventListener("click",e=>{const edit=e.target.closest("[data-edit]"),del=e.target.closest("[data-delete]");if(edit){const item=state.items.find(x=>x.id===edit.dataset.edit);if(item)openForm(item);}if(del)askRemove(del.dataset.delete);});
- $("vcDeleteCancel").addEventListener("click",()=>{$("vcDeleteDialog").style.display="none";state.deleteId=null;});
+ $("vcDeleteCancel").addEventListener("click",()=>{$("vcDeleteDialog").classList.remove("open");$("vcDeleteDialog").setAttribute("aria-hidden","true");state.deleteId=null;});
  $("vcDeleteConfirm").addEventListener("click",remove);
- $("vcDeleteDialog").addEventListener("click",e=>{if(e.target.id==="vcDeleteDialog"){$("vcDeleteDialog").style.display="none";state.deleteId=null;}});
+ $("vcDeleteDialog").addEventListener("click",e=>{if(e.target.id==="vcDeleteDialog"){$("vcDeleteDialog").classList.remove("open");$("vcDeleteDialog").setAttribute("aria-hidden","true");state.deleteId=null;}});
  window.addEventListener("fib-mdt:data-changed",e=>{if(["saveVehicleCatalogItem","deleteVehicleCatalogItem"].includes(e.detail?.method))load();});
  load();
 })();

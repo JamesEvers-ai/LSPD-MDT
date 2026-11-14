@@ -127,3 +127,46 @@ body{overflow:hidden}
 /* Favicon and responsive layout */
 @media(max-width:1100px){.dashboard-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.dashboard-main-grid{grid-template-columns:1fr}.mdt-workspace{padding:18px!important}}
 @media(max-width:760px){.sidebar{width:58px!important}.sidebar:hover{width:58px!important}.main{padding-left:58px!important}.sidebar-header{padding:0 8px!important}.brand-text,.nav-label,.nav-section-title{display:none!important}.topbar{padding:0 12px!important;gap:8px}.fib-own-status-strip{overflow:auto;max-width:65vw}.mdt-workspace{padding:12px!important}.mdt-workspace :where(.agents-page-header,.fines-header,.lawyers-header,.patrols-header,.records-header,.warrants-header,.wanted-header,.classifications-header,.system-header,.vc-head,.ifines-top,.dashboard-welcome){align-items:flex-start;flex-direction:column}.dashboard-stats{grid-template-columns:1fr 1fr}.dashboard-quick-actions{grid-template-columns:1fr}.mdt-workspace :where(table){min-width:720px}}
+
+
+/* Vehicle catalogue — explicit card geometry; never allow source image dimensions to control layout. */
+.mdt-workspace--vehicle-catalog .vehicle-catalog-page{display:block;width:100%;max-width:1480px;margin:0 auto;padding:22px 26px 42px!important;color:var(--lspd-ink)!important}
+.mdt-workspace--vehicle-catalog .vc-head{display:flex;align-items:center;justify-content:space-between;gap:18px;margin:0 0 18px;padding:20px 22px;background:#fff;border:1px solid var(--lspd-line);border-left:5px solid var(--lspd-blue);border-radius:10px;box-shadow:var(--lspd-shadow)}
+.mdt-workspace--vehicle-catalog .vc-eyebrow{margin:0 0 5px;color:var(--lspd-blue);font-size:10px;font-weight:850;letter-spacing:.13em;text-transform:uppercase}
+.mdt-workspace--vehicle-catalog .vc-title{margin:0;color:var(--lspd-ink)!important;font-size:25px;font-weight:850;line-height:1.2}
+.mdt-workspace--vehicle-catalog .vc-subtitle{margin:6px 0 0;color:var(--lspd-muted);font-size:12px;line-height:1.5}
+.mdt-workspace--vehicle-catalog .vc-admin{display:none;margin:0 0 16px;padding:18px;background:#fff;border:1px solid var(--lspd-line);border-radius:9px;box-shadow:var(--lspd-shadow)}
+.mdt-workspace--vehicle-catalog .vc-admin.open{display:block}
+.mdt-workspace--vehicle-catalog .vc-admin h3{margin:0 0 14px;color:var(--lspd-ink);font-size:16px;font-weight:800}
+.mdt-workspace--vehicle-catalog .vc-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.mdt-workspace--vehicle-catalog .vc-field.full{grid-column:1/-1}
+.mdt-workspace--vehicle-catalog .vc-form-actions,.mdt-workspace--vehicle-catalog .vc-dialog-actions{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:8px;margin-top:14px}
+.mdt-workspace--vehicle-catalog .vc-status{min-height:18px;margin-top:8px;color:var(--lspd-muted);font-size:11px}
+.mdt-workspace--vehicle-catalog .vc-toolbar{display:flex;align-items:center;gap:10px;margin:0 0 12px;padding:12px;background:#fff;border:1px solid var(--lspd-line);border-radius:8px}
+.mdt-workspace--vehicle-catalog .vc-search{flex:1;min-width:180px}
+.mdt-workspace--vehicle-catalog .vc-filters{display:flex;flex-wrap:wrap;gap:7px;margin:0 0 12px}
+.mdt-workspace--vehicle-catalog .vc-filter{min-height:32px;padding:6px 10px;background:#fff!important;color:#52677d!important;border:1px solid var(--lspd-line-dark)!important;border-radius:5px!important;font-size:11px!important;font-weight:700!important}
+.mdt-workspace--vehicle-catalog .vc-filter.active{background:var(--lspd-blue)!important;color:#fff!important;border-color:var(--lspd-blue)!important;box-shadow:inset 0 -3px var(--lspd-yellow)!important}
+.mdt-workspace--vehicle-catalog .vc-count{margin:0 0 10px;color:var(--lspd-muted);font-size:11px;font-weight:700}
+.mdt-workspace--vehicle-catalog .vc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));align-items:stretch;gap:16px}
+.mdt-workspace--vehicle-catalog .vc-card{display:flex;flex-direction:column;min-width:0;overflow:hidden;background:#fff!important;border:1px solid var(--lspd-line)!important;border-radius:9px!important;box-shadow:var(--lspd-shadow)!important;color:var(--lspd-ink)!important;transition:box-shadow .16s,border-color .16s,transform .16s}
+.mdt-workspace--vehicle-catalog .vc-card:hover{transform:translateY(-2px);border-color:#a9bfd5!important;box-shadow:0 9px 24px rgba(25,55,87,.12)!important}
+.mdt-workspace--vehicle-catalog .vc-image{position:relative;display:flex;align-items:center;justify-content:center;width:100%;height:205px;min-height:205px;max-height:205px;overflow:hidden;background:linear-gradient(135deg,#e8eef4,#dce6ef)!important;border:0!important;border-bottom:1px solid var(--lspd-line)!important}
+.mdt-workspace--vehicle-catalog .vc-image img{display:block!important;width:100%!important;height:100%!important;max-width:100%!important;max-height:100%!important;object-fit:contain!important;object-position:center!important;margin:0!important;padding:10px!important}
+.mdt-workspace--vehicle-catalog .vc-no-image{display:flex;align-items:center;justify-content:center;width:100%;height:100%;color:#718399;font-size:10px;font-weight:800;letter-spacing:.12em}
+.mdt-workspace--vehicle-catalog .vc-card-body{display:flex;flex:1;flex-direction:column;gap:10px;min-width:0;padding:14px 15px}
+.mdt-workspace--vehicle-catalog .vc-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;min-width:0}
+.mdt-workspace--vehicle-catalog .vc-name{min-width:0;color:var(--lspd-ink)!important;font-size:15px!important;font-weight:850!important;line-height:1.35;overflow-wrap:anywhere}
+.mdt-workspace--vehicle-catalog .vc-tag{flex:0 0 auto;padding:4px 7px;background:#edf4fa!important;border:1px solid #d5e3f0!important;border-radius:4px!important;color:var(--lspd-blue-deep)!important;font-size:9px;font-weight:850;letter-spacing:.04em}
+.mdt-workspace--vehicle-catalog .vc-description{margin:0;color:var(--lspd-muted)!important;font-size:11px!important;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere}
+.mdt-workspace--vehicle-catalog .vc-card-actions{display:flex;gap:7px;margin-top:auto;padding-top:4px}
+.mdt-workspace--vehicle-catalog .vc-button{min-height:33px;padding:7px 11px;background:#fff!important;color:var(--lspd-blue-deep)!important;border:1px solid var(--lspd-line-dark)!important;border-radius:5px!important;font-size:11px!important;font-weight:750!important}
+.mdt-workspace--vehicle-catalog .vc-button.primary{background:var(--lspd-blue)!important;color:#fff!important;border-color:var(--lspd-blue)!important}
+.mdt-workspace--vehicle-catalog .vc-button.danger{background:#fff!important;color:var(--lspd-red)!important;border-color:#e6c5c2!important}
+.mdt-workspace--vehicle-catalog .vc-empty,.mdt-workspace--vehicle-catalog .vc-loading{grid-column:1/-1;padding:34px 18px;background:#fff;border:1px dashed var(--lspd-line-dark);border-radius:8px;color:var(--lspd-muted);font-size:12px;text-align:center}
+.mdt-workspace--vehicle-catalog .vc-dialog{position:fixed;inset:0;z-index:99999;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(15,32,50,.56);backdrop-filter:blur(3px)}
+.mdt-workspace--vehicle-catalog .vc-dialog.open{display:flex}
+.mdt-workspace--vehicle-catalog .vc-dialog-panel{width:min(440px,100%);padding:21px;background:#fff;border:1px solid var(--lspd-line);border-radius:10px;box-shadow:0 22px 65px rgba(15,32,50,.25)}
+.mdt-workspace--vehicle-catalog .vc-dialog-title{margin:0 0 9px;color:var(--lspd-ink);font-size:17px;font-weight:850}
+.mdt-workspace--vehicle-catalog .vc-dialog-copy{margin:0;color:var(--lspd-muted);font-size:12px;line-height:1.55}
+@media(max-width:760px){.mdt-workspace--vehicle-catalog .vehicle-catalog-page{padding:14px!important}.mdt-workspace--vehicle-catalog .vc-head{align-items:flex-start;flex-direction:column;padding:16px}.mdt-workspace--vehicle-catalog .vc-grid{grid-template-columns:1fr}.mdt-workspace--vehicle-catalog .vc-form-grid{grid-template-columns:1fr}.mdt-workspace--vehicle-catalog .vc-field.full{grid-column:auto}.mdt-workspace--vehicle-catalog .vc-image{height:190px;min-height:190px;max-height:190px}}

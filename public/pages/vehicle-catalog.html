@@ -16,12 +16,12 @@
  <div class="vc-count" id="vcCount"></div>
  <div class="vc-grid" id="vcGrid"><div class="vc-loading">Fahrzeugkatalog wird geladen …</div></div>
 </div>
-<div id="vcDeleteDialog" style="display:none;position:fixed;inset:0;z-index:99999;background:#050a10c9;align-items:center;justify-content:center;padding:20px">
- <div style="width:min(420px,100%);background:#172331;border:1px solid #3b5269;border-radius:13px;padding:20px;box-shadow:0 20px 60px #0009">
-  <div style="font-size:16px;font-weight:750;margin-bottom:8px">Fahrzeug entfernen?</div>
-  <div id="vcDeleteText" style="font-size:13px;color:#aebed0;line-height:1.5"></div>
-  <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:18px"><button class="vc-button" id="vcDeleteCancel">Abbrechen</button><button class="vc-button danger" id="vcDeleteConfirm">Entfernen</button></div>
- </div>
+<div id="vcDeleteDialog" class="vc-dialog" aria-hidden="true">
+ <section class="vc-dialog-panel" role="dialog" aria-modal="true" aria-labelledby="vcDeleteTitle">
+  <h2 id="vcDeleteTitle" class="vc-dialog-title">Fahrzeug entfernen?</h2>
+  <p id="vcDeleteText" class="vc-dialog-copy"></p>
+  <div class="vc-dialog-actions"><button class="vc-button" id="vcDeleteCancel" type="button">Abbrechen</button><button class="vc-button danger" id="vcDeleteConfirm" type="button">Entfernen</button></div>
+ </section>
 </div>
-<script src="/js/pages/vehicle-catalog.js?v=3.75" defer></script>
+<script src="/js/pages/vehicle-catalog.js?v=3.76" defer></script>
 </main>
