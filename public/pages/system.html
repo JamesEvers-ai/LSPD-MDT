@@ -1,4 +1,1391 @@
-<main class="mdt-workspace mdt-workspace--system" data-mdt-page="system" data-lspd-module="system">
+<style>
+  /* =========================================================
+     LSPD MDT – SYSTEMVERWALTUNG
+     Farbschema abgestimmt auf den Bußgeldkatalog
+     ========================================================= */
+
+  .system-page {
+    display: flex;
+    flex-direction: column;
+
+    width: 100%;
+    max-width: none;
+    min-height: 100%;
+
+    box-sizing: border-box;
+
+    color: #f5f7fa;
+
+    padding: 10px 18px 90px 18px;
+
+    margin: 0 auto;
+
+    overflow-x: hidden;
+  }
+
+
+  /* =========================================================
+     HEADER
+     ========================================================= */
+
+  .system-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+
+    gap: 20px;
+
+    margin-bottom: 18px;
+  }
+
+  .system-header-left {
+    min-width: 0;
+  }
+
+  .system-header h1 {
+    margin: 0;
+
+    font-size: 23px;
+    font-weight: 700;
+
+    letter-spacing: -0.4px;
+
+    color: #fff;
+  }
+
+  .system-header p {
+    margin: 5px 0 0;
+
+    color: rgba(255,255,255,.35);
+
+    font-size: 12px;
+  }
+
+
+  /* =========================================================
+     TABS
+     ========================================================= */
+
+  .system-tabs {
+    display: flex;
+    align-items: center;
+
+    gap: 5px;
+
+    width: fit-content;
+
+    padding: 4px;
+    margin-bottom: 14px;
+
+    background: rgba(255,255,255,.025);
+
+    border:
+      1px solid
+      rgba(255,255,255,.075);
+
+    border-radius: 12px;
+  }
+
+  .system-tab {
+    border: 0;
+
+    background: transparent;
+
+    color: rgba(255,255,255,.48);
+
+    padding: 8px 13px;
+
+    border-radius: 8px;
+
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 600;
+
+    cursor: pointer;
+
+    transition:
+      background .16s ease,
+      color .16s ease;
+  }
+
+  .system-tab:hover {
+    color: rgba(255,255,255,.78);
+
+    background:
+      rgba(255,255,255,.055);
+  }
+
+  .system-tab.active {
+    color: #fff;
+
+    background:
+      rgba(255,255,255,.09);
+  }
+
+
+  /* =========================================================
+     SECTIONS
+     ========================================================= */
+
+  .system-section {
+    display: none;
+  }
+
+  .system-section.active {
+    display: block;
+  }
+
+
+  /* =========================================================
+     TOOLBAR
+     ========================================================= */
+
+  .system-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 16px;
+
+    padding: 14px 15px;
+    margin-bottom: 10px;
+
+    background:
+      rgba(255,255,255,.025);
+
+    border:
+      1px solid
+      rgba(255,255,255,.075);
+
+    border-radius: 14px;
+
+    box-shadow:
+      0 10px 30px
+      rgba(0,0,0,.14);
+  }
+
+  .system-toolbar-title {
+    font-size: 13px;
+    font-weight: 650;
+
+    color:
+      rgba(255,255,255,.78);
+  }
+
+  .system-toolbar-description {
+    margin-top: 3px;
+
+    color:
+      rgba(255,255,255,.38);
+
+    font-size: 10px;
+  }
+
+
+  /* =========================================================
+     BUTTONS
+     ========================================================= */
+
+  .system-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 7px;
+
+    min-height: 34px;
+
+    padding: 0 12px;
+
+    border-radius: 9px;
+
+    border:
+      1px solid
+      rgba(255,255,255,.075);
+
+    background:
+      rgba(255,255,255,.025);
+
+    color:
+      rgba(255,255,255,.58);
+
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 600;
+
+    cursor: pointer;
+
+    transition:
+      background .16s ease,
+      border-color .16s ease,
+      color .16s ease,
+      transform .16s ease;
+  }
+
+  .system-button:hover {
+    background:
+      rgba(255,255,255,.055);
+
+    border-color:
+      rgba(255,255,255,.12);
+
+    color:
+      #fff;
+  }
+
+  .system-button:active {
+    transform:
+      translateY(1px);
+  }
+
+  .system-button.primary {
+    background:
+      rgba(255,255,255,.09);
+
+    border-color:
+      rgba(255,255,255,.17);
+
+    color:
+      #fff;
+  }
+
+  .system-button.primary:hover {
+    background:
+      rgba(255,255,255,.13);
+
+    border-color:
+      rgba(255,255,255,.2);
+  }
+
+  .system-button:disabled {
+    opacity: .45;
+
+    cursor: not-allowed;
+
+    transform: none;
+  }
+
+  .system-button.danger {
+    color:
+      #ff8d8d;
+
+    border-color:
+      rgba(255,82,82,.16);
+
+    background:
+      rgba(255,65,65,.055);
+  }
+
+  .system-button.danger:hover {
+    background:
+      rgba(255,65,65,.09);
+
+    border-color:
+      rgba(255,82,82,.25);
+  }
+
+  .system-action-button {
+    min-height: 29px;
+
+    padding: 0 9px;
+
+    font-size: 10px;
+  }
+
+
+  /* =========================================================
+     TABLE
+     ========================================================= */
+
+  .system-table-wrapper {
+    position: relative;
+
+    width: 100%;
+
+    box-sizing: border-box;
+
+    overflow: hidden;
+
+    background:
+      rgba(255,255,255,.025);
+
+    border:
+      1px solid
+      rgba(255,255,255,.075);
+
+    border-radius: 14px;
+
+    box-shadow:
+      0 10px 30px
+      rgba(0,0,0,.14);
+  }
+
+  .system-table {
+    width: 100%;
+
+    border-collapse: separate;
+    border-spacing: 0;
+
+    table-layout: fixed;
+  }
+
+  .system-table th {
+    height: 38px;
+
+    padding: 0 13px;
+
+    background:
+      rgba(255,255,255,.025);
+
+    color:
+      rgba(255,255,255,.32);
+
+    font-size: 8px;
+    font-weight: 700;
+
+    letter-spacing: .55px;
+
+    text-transform: uppercase;
+
+    text-align: left;
+
+    border-bottom:
+      1px solid
+      rgba(255,255,255,.055);
+  }
+
+  .system-table td {
+    height: 47px;
+
+    box-sizing: border-box;
+
+    padding: 9px 13px;
+
+    color:
+      rgba(255,255,255,.72);
+
+    font-size: 11px;
+
+    border-bottom:
+      1px solid
+      rgba(255,255,255,.045);
+
+    overflow: hidden;
+
+    text-overflow: ellipsis;
+
+    white-space: nowrap;
+  }
+
+  .system-table tbody tr {
+    transition:
+      background .15s ease,
+      box-shadow .15s ease;
+  }
+
+  .system-table tbody tr:hover {
+    background:
+      rgba(255,255,255,.035);
+  }
+
+  .system-table tbody tr:last-child td {
+    border-bottom: 0;
+  }
+
+  .system-empty {
+    height: auto !important;
+
+    padding: 38px 20px !important;
+
+    text-align: center;
+
+    color:
+      rgba(255,255,255,.32) !important;
+  }
+
+  .system-table-muted {
+    color:
+      rgba(255,255,255,.19);
+  }
+
+
+  /* =========================================================
+     RANK SHORTNAME
+     ========================================================= */
+
+  .system-rank-shortname {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    min-height: 22px;
+
+    padding: 0 7px;
+
+    border-radius: 7px;
+
+    background:
+      rgba(255,255,255,.035);
+
+    border:
+      1px solid
+      rgba(255,255,255,.08);
+
+    color:
+      rgba(255,255,255,.68);
+
+    font-size: 9px;
+    font-weight: 650;
+
+    letter-spacing: .2px;
+  }
+
+
+  /* =========================================================
+     STATUS / BADGES
+     ========================================================= */
+
+  .system-status {
+    display: inline-flex;
+    align-items: center;
+
+    gap: 5px;
+
+    min-height: 25px;
+
+    padding: 0 7px;
+
+    border-radius: 7px;
+
+    font-size: 9px;
+    font-weight: 700;
+
+    border:
+      1px solid
+      rgba(255,255,255,.06);
+  }
+
+  .system-status::before {
+    content: "";
+
+    width: 5px;
+    height: 5px;
+
+    border-radius: 50%;
+  }
+
+  .system-status.active {
+    color:
+      rgba(255,255,255,.88);
+
+    background:
+      rgba(255,255,255,.075);
+  }
+
+  .system-status.active::before {
+    background:
+      rgba(255,255,255,.72);
+  }
+
+  .system-status.inactive {
+    color:
+      rgba(255,255,255,.22);
+
+    background:
+      rgba(255,255,255,.018);
+  }
+
+  .system-status.inactive::before {
+    background:
+      rgba(255,255,255,.2);
+  }
+
+
+  .system-master,
+  .system-normal {
+    display: inline-flex;
+
+    min-height: 25px;
+
+    align-items: center;
+
+    padding: 0 7px;
+
+    border-radius: 7px;
+
+    font-size: 9px;
+    font-weight: 650;
+
+    border:
+      1px solid
+      rgba(255,255,255,.06);
+  }
+
+  .system-master {
+    color:
+      rgba(255,255,255,.88);
+
+    background:
+      rgba(255,255,255,.075);
+  }
+
+  .system-normal {
+    color:
+      rgba(255,255,255,.22);
+
+    background:
+      rgba(255,255,255,.018);
+  }
+
+
+  /* =========================================================
+     RANK PERMISSIONS
+     ========================================================= */
+
+  .rank-permission-layout {
+    display: grid;
+
+    grid-template-columns:
+      230px
+      minmax(0,1fr);
+
+    gap: 10px;
+
+    align-items: start;
+  }
+
+  .rank-permission-sidebar,
+  .rank-permission-content {
+    background:
+      rgba(255,255,255,.025);
+
+    border:
+      1px solid
+      rgba(255,255,255,.075);
+
+    border-radius: 14px;
+  }
+
+  .rank-permission-sidebar {
+    padding: 13px;
+  }
+
+  .rank-permission-content {
+    min-width: 0;
+
+    padding: 15px;
+  }
+
+  .rank-permission-title {
+    font-size: 14px;
+    font-weight: 650;
+
+    color:
+      rgba(255,255,255,.78);
+  }
+
+  .rank-permission-description {
+    margin-top: 4px;
+
+    color:
+      rgba(255,255,255,.38);
+
+    font-size: 10px;
+
+    line-height: 1.45;
+  }
+
+  .rank-permission-header {
+    min-width: 0;
+  }
+
+
+  /* =========================================================
+     CUSTOM SELECT
+     ========================================================= */
+
+  .system-custom-select {
+    position: relative;
+
+    width: 100%;
+  }
+
+  .system-custom-select-trigger {
+    width: 100%;
+
+    min-height: 39px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 10px;
+
+    padding: 9px 12px;
+
+    border: 1px solid #2b394d;
+
+    border-radius: 8px;
+
+    background: linear-gradient(180deg, #151e2b, #101722);
+
+    color: #e6edf7;
+
+    font-family: inherit;
+    font-size: 12px;
+    line-height: 1.35;
+
+    text-align: left;
+
+    cursor: pointer;
+
+    outline: none;
+
+    transition:
+      border-color .16s ease,
+      background .16s ease,
+      color .16s ease;
+  }
+
+  .system-custom-select-trigger:hover {
+    background:
+      rgba(255,255,255,.055);
+
+    border-color:
+      rgba(255,255,255,.12);
+
+    color:
+      #fff;
+  }
+
+  .system-custom-select.open
+  .system-custom-select-trigger {
+    border-color:
+      rgba(255,255,255,.17);
+
+    background:
+      rgba(255,255,255,.09);
+
+    color:
+      #fff;
+  }
+
+  .system-custom-select-chevron {
+    flex: 0 0 auto;
+
+    color:
+      rgba(255,255,255,.38);
+
+    font-size: 13px;
+
+    line-height: 1;
+
+    transition:
+      transform .15s ease;
+  }
+
+  .system-custom-select.open
+  .system-custom-select-chevron {
+    transform:
+      rotate(180deg);
+  }
+
+  .system-custom-select-menu {
+    position: absolute;
+
+    z-index: 5000;
+
+    top:
+      calc(100% + 5px);
+
+    left: 0;
+    right: 0;
+
+    max-height: 240px;
+
+    overflow-y: auto;
+
+    padding: 5px;
+
+    background: #0d1420;
+
+    border: 1px solid #2a3b52;
+
+    border-radius: 9px;
+
+    box-shadow:
+      0 14px 35px
+      rgba(0,0,0,.38),
+
+      0 2px 8px
+      rgba(0,0,0,.25);
+
+    opacity: 0;
+
+    visibility: hidden;
+
+    pointer-events: none;
+
+    transform:
+      translateY(-3px);
+
+    transition:
+      opacity .12s ease,
+      transform .12s ease,
+      visibility .12s ease;
+  }
+
+  .system-custom-select.open
+  .system-custom-select-menu {
+    opacity: 1;
+
+    visibility: visible;
+
+    pointer-events: auto;
+
+    transform:
+      translateY(0);
+  }
+
+  .system-custom-select-option {
+    display: block;
+
+    width: 100%;
+
+    min-height: 33px;
+    padding: 8px 10px;
+
+    border: 1px solid transparent;
+
+    border-radius: 6px;
+
+    background: transparent;
+
+    color: #cbd5e1;
+
+    font-family: inherit;
+    font-size: 12px;
+    line-height: 1.35;
+
+    text-align: left;
+
+    cursor: pointer;
+  }
+
+  .system-custom-select-option:hover {
+    color: #fff;
+
+    background: #17263a;
+  }
+
+  .system-custom-select-option.selected {
+    color: #93c5fd;
+
+    border-color: rgba(69,145,232,.25);
+    background: rgba(37,99,235,.16);
+  }
+
+  .system-custom-select-empty {
+    padding: 10px;
+
+    color:
+      rgba(255,255,255,.32);
+
+    font-size: 10px;
+
+    text-align: center;
+  }
+
+  .system-select-hidden {
+    position: absolute !important;
+
+    width: 1px !important;
+    height: 1px !important;
+
+    margin: -1px !important;
+
+    padding: 0 !important;
+
+    overflow: hidden !important;
+
+    clip:
+      rect(0,0,0,0) !important;
+
+    clip-path:
+      inset(50%) !important;
+
+    white-space: nowrap !important;
+
+    border: 0 !important;
+  }
+
+
+  /* =========================================================
+     PERMISSION LIST
+     ========================================================= */
+
+  .permission-category {
+    margin-top: 16px;
+  }
+
+  .permission-category:first-child {
+    margin-top: 0;
+  }
+
+  .permission-category-title {
+    margin-bottom: 7px;
+
+    color:
+      rgba(255,255,255,.35);
+
+    font-size: 8px;
+    font-weight: 700;
+
+    letter-spacing: .6px;
+
+    text-transform: uppercase;
+  }
+
+  .permission-list {
+    display: grid;
+
+    grid-template-columns:
+      repeat(2,minmax(0,1fr));
+
+    gap: 6px;
+  }
+
+  .permission-item {
+    display: flex;
+
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 12px;
+
+    min-height: 48px;
+
+    padding: 9px 11px;
+
+    border:
+      1px solid
+      rgba(255,255,255,.055);
+
+    border-radius: 8px;
+
+    background:
+      rgba(255,255,255,.018);
+
+    cursor: pointer;
+
+    transition:
+      background .15s ease,
+      border-color .15s ease;
+  }
+
+  .permission-item:hover {
+    background:
+      rgba(255,255,255,.04);
+
+    border-color:
+      rgba(255,255,255,.08);
+  }
+
+  .permission-item-content {
+    min-width: 0;
+  }
+
+  .permission-item-name {
+    color:
+      rgba(255,255,255,.76);
+
+    font-size: 10px;
+    font-weight: 600;
+  }
+
+  .permission-item-key {
+    margin-top: 2px;
+
+    color:
+      rgba(255,255,255,.28);
+
+    font-size: 8px;
+
+    overflow: hidden;
+
+    text-overflow: ellipsis;
+
+    white-space: nowrap;
+  }
+
+  .permission-item input[type="checkbox"] {
+    appearance: none;
+
+    width: 16px;
+    height: 16px;
+
+    flex: 0 0 16px;
+
+    margin: 0;
+
+    border:
+      1px solid
+      rgba(255,255,255,.14);
+
+    border-radius: 5px;
+
+    background:
+      rgba(255,255,255,.025);
+
+    cursor: pointer;
+
+    position: relative;
+  }
+
+  .permission-item
+  input[type="checkbox"]:checked {
+    background:
+      rgba(255,255,255,.09);
+
+    border-color:
+      rgba(255,255,255,.17);
+  }
+
+  .permission-item
+  input[type="checkbox"]:checked::after {
+    content: "✓";
+
+    position: absolute;
+
+    inset: 0;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    color:
+      #fff;
+
+    font-size: 10px;
+    font-weight: 700;
+  }
+
+  .rank-permission-save {
+    display: flex;
+
+    justify-content: flex-end;
+
+    margin-top: 14px;
+
+    padding-top: 13px;
+
+    border-top:
+      1px solid
+      rgba(255,255,255,.055);
+  }
+
+
+  /* =========================================================
+     MODAL
+     ========================================================= */
+
+  .system-modal-overlay {
+    position: fixed;
+
+    inset: 0;
+
+    z-index: 10000;
+
+    display: none;
+
+    align-items: center;
+    justify-content: center;
+
+    padding: 20px;
+
+    background:
+      rgba(0,0,0,.58);
+
+    backdrop-filter:
+      blur(7px);
+  }
+
+  .system-modal-overlay.active {
+    display: flex;
+  }
+
+  .system-modal {
+    width:
+      min(600px,100%);
+
+    max-height:
+      min(720px,calc(100vh - 40px));
+
+    display: flex;
+
+    flex-direction: column;
+
+    background:
+      #111419;
+
+    border:
+      1px solid
+      rgba(255,255,255,.085);
+
+    border-radius: 14px;
+
+    box-shadow:
+      0 24px 70px
+      rgba(0,0,0,.5),
+
+      0 4px 15px
+      rgba(0,0,0,.25);
+
+    overflow: visible;
+  }
+
+  .system-modal-header {
+    display: flex;
+
+    align-items: flex-start;
+    justify-content: space-between;
+
+    gap: 15px;
+
+    padding:
+      17px 18px 14px;
+
+    border-bottom:
+      1px solid
+      rgba(255,255,255,.055);
+  }
+
+  .system-modal-title {
+    color:
+      #fff;
+
+    font-size: 15px;
+    font-weight: 700;
+  }
+
+  .system-modal-description {
+    margin-top: 4px;
+
+    color:
+      rgba(255,255,255,.38);
+
+    font-size: 10px;
+  }
+
+  .system-modal-close {
+    width: 28px;
+    height: 28px;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    flex: 0 0 28px;
+
+    border: 0;
+
+    border-radius: 7px;
+
+    background:
+      rgba(255,255,255,.025);
+
+    color:
+      rgba(255,255,255,.45);
+
+    font-family: inherit;
+    font-size: 15px;
+
+    cursor: pointer;
+
+    transition:
+      background .16s ease,
+      color .16s ease;
+  }
+
+  .system-modal-close:hover {
+    background:
+      rgba(255,255,255,.055);
+
+    color:
+      #fff;
+  }
+
+  .system-modal-body {
+    padding:
+      16px 18px;
+
+    overflow: visible;
+  }
+
+  .system-modal-actions {
+    display: flex;
+
+    justify-content: flex-end;
+
+    gap: 7px;
+
+    padding:
+      13px 18px;
+
+    border-top:
+      1px solid
+      rgba(255,255,255,.055);
+  }
+
+
+  /* =========================================================
+     FORM
+     ========================================================= */
+
+  .system-form {
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 13px;
+  }
+
+  .system-form-grid {
+    display: grid;
+
+    grid-template-columns:
+      repeat(2,minmax(0,1fr));
+
+    gap: 12px;
+  }
+
+  .system-form-group {
+    min-width: 0;
+  }
+
+  .system-form-group.full {
+    grid-column:
+      1 / -1;
+  }
+
+  .system-form-label {
+    display: block;
+
+    margin-bottom: 5px;
+
+    color:
+      rgba(255,255,255,.4);
+
+    font-size: 8px;
+    font-weight: 700;
+
+    letter-spacing: .55px;
+
+    text-transform: uppercase;
+  }
+
+  .system-form-input,
+  .system-form-textarea {
+    width: 100%;
+
+    box-sizing: border-box;
+
+    border:
+      1px solid
+      rgba(255,255,255,.075);
+
+    border-radius: 8px;
+
+    background:
+      rgba(255,255,255,.025);
+
+    color:
+      rgba(255,255,255,.84);
+
+    font-family: inherit;
+    font-size: 11px;
+
+    outline: none;
+
+    transition:
+      border-color .16s ease,
+      background .16s ease;
+  }
+
+  .system-form-input {
+    height: 38px;
+
+    padding:
+      0 10px;
+  }
+
+  .system-form-textarea {
+    min-height: 90px;
+
+    padding: 10px;
+
+    resize: vertical;
+  }
+
+  .system-form-input::placeholder,
+  .system-form-textarea::placeholder {
+    color:
+      rgba(255,255,255,.22);
+  }
+
+  .system-form-input:focus,
+  .system-form-textarea:focus {
+    border-color:
+      rgba(255,255,255,.16);
+
+    background:
+      rgba(255,255,255,.05);
+  }
+
+  .system-form-checkbox {
+    display: flex;
+
+    align-items: center;
+
+    gap: 8px;
+
+    color:
+      rgba(255,255,255,.62);
+
+    font-size: 10px;
+
+    cursor: pointer;
+  }
+
+  .system-form-checkbox input {
+    appearance: none;
+
+    width: 16px;
+    height: 16px;
+
+    margin: 0;
+
+    flex: 0 0 16px;
+
+    border:
+      1px solid
+      rgba(255,255,255,.14);
+
+    border-radius: 5px;
+
+    background:
+      rgba(255,255,255,.025);
+
+    cursor: pointer;
+
+    position: relative;
+  }
+
+  .system-form-checkbox input:checked {
+    background:
+      rgba(255,255,255,.09);
+
+    border-color:
+      rgba(255,255,255,.17);
+  }
+
+  .system-form-checkbox
+  input:checked::after {
+    content: "✓";
+
+    position: absolute;
+
+    inset: 0;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    color:
+      #fff;
+
+    font-size: 10px;
+    font-weight: 700;
+  }
+
+  .system-form-hint {
+    margin-top: 5px;
+
+    color:
+      rgba(255,255,255,.25);
+
+    font-size: 8px;
+
+    line-height: 1.4;
+  }
+
+
+  /* =========================================================
+     RESPONSIVE
+     ========================================================= */
+
+  @media (max-width: 900px) {
+
+    .rank-permission-layout {
+      grid-template-columns:
+        1fr;
+    }
+
+    .permission-list {
+      grid-template-columns:
+        1fr;
+    }
+
+  }
+
+
+  @media (max-width: 650px) {
+
+    .system-header {
+      flex-direction: column;
+    }
+
+    .system-tabs {
+      width: 100%;
+
+      overflow-x: auto;
+    }
+
+    .system-tab {
+      white-space: nowrap;
+    }
+
+    .system-toolbar {
+      align-items: flex-start;
+
+      flex-direction: column;
+    }
+
+    .system-form-grid {
+      grid-template-columns:
+        1fr;
+    }
+
+    .system-form-group.full {
+      grid-column:
+        auto;
+    }
+
+    .system-table-wrapper {
+      overflow-x: auto;
+    }
+
+    .system-table {
+      min-width: 720px;
+    }
+
+  }
+</style>
+
+
 <div class="system-page">
 
   <!-- =======================================================
@@ -495,5 +1882,6902 @@
 </div>
 
 
-<script src="/js/pages/system.js?v=3.76" defer></script>
-</main>
+<script>
+(function () {
+
+  "use strict";
+
+
+  /* =========================================================
+     PERSISTENTER SEITEN-STATE
+     ========================================================= */
+
+  const state =
+    window.__FIB_MDT_SYSTEM_PAGE__ || {
+
+      systemUsers: [],
+      systemUsersLoaded: false,
+      systemUsersPromise: null,
+
+      systemRanks: [],
+      systemRanksLoaded: false,
+      systemRanksPromise: null,
+
+      systemPermissions: [],
+      systemPermissionsLoaded: false,
+      systemPermissionsPromise: null,
+
+      rankPermissions: Object.create(null),
+      rankPermissionPromises: Object.create(null),
+
+      selectedRankId: "",
+      activeTab: "users",
+      currentSessionToken: "",
+
+      systemModalResolve: null,
+      systemModalBusy: false,
+
+      documentEventsBound: false,
+      systemGlobalEvents: null,
+
+      instanceId: "",
+      mounted: false,
+      previousDeactivate: null
+
+    };
+
+
+  window.__FIB_MDT_SYSTEM_PAGE__ =
+    state;
+
+
+  /* =========================================================
+     NOTIFICATIONS
+     ========================================================= */
+
+  function systemNotify(
+    type,
+    title,
+    message,
+    options = {}
+  ) {
+
+    if (
+      window.MDT &&
+      MDT.notify &&
+      typeof MDT.notify[type] ===
+        "function"
+    ) {
+
+      return MDT.notify[type](
+        title,
+        message,
+        options
+      );
+
+    }
+
+    return null;
+
+  }
+
+
+  function showSystemError(
+    message
+  ) {
+
+    return systemNotify(
+      "error",
+      "Fehler",
+      message ||
+        "Die Aktion konnte nicht ausgeführt werden."
+    );
+
+  }
+
+
+  function showSystemSuccess(
+    message
+  ) {
+
+    return systemNotify(
+      "success",
+      "Erfolgreich",
+      message ||
+        "Die Aktion wurde erfolgreich ausgeführt."
+    );
+
+  }
+
+
+  function hasSystemPermission(permission) {
+
+    if (
+      typeof isMaster !== "undefined" &&
+      isMaster === true
+    ) {
+
+      return true;
+
+    }
+
+
+    if (!permission) {
+      return false;
+    }
+
+
+    let permissions = [];
+
+
+    try {
+
+      if (
+        typeof myPermissions !== "undefined" &&
+        Array.isArray(myPermissions)
+      ) {
+
+        permissions = myPermissions;
+
+      } else if (
+        Array.isArray(window.myPermissions)
+      ) {
+
+        permissions = window.myPermissions;
+
+      }
+
+    } catch (error) {
+
+      permissions = [];
+
+    }
+
+
+    return permissions.some(
+      value =>
+        String(value) ===
+        String(permission)
+    );
+
+  }
+
+
+  function canViewSystemUsers() {
+
+    return (
+      hasSystemPermission("system.users.view") ||
+      hasSystemPermission("system.users.manage")
+    );
+
+  }
+
+
+  function canManageSystemUsers() {
+
+    return hasSystemPermission(
+      "system.users.manage"
+    );
+
+  }
+
+
+  function canManageSystemMaster() {
+
+    return (
+      typeof isMaster !== "undefined" &&
+      isMaster === true
+    );
+
+  }
+
+
+  function ensureSessionState() {
+
+    const token =
+      getSystemSessionToken();
+
+
+    if (
+      state.currentSessionToken === token
+    ) {
+
+      return;
+
+    }
+
+
+    state.currentSessionToken = token;
+
+
+    state.systemUsers = [];
+    state.systemUsersLoaded = false;
+    state.systemUsersPromise = null;
+
+    state.systemRanks = [];
+    state.systemRanksLoaded = false;
+    state.systemRanksPromise = null;
+
+    state.systemPermissions = [];
+    state.systemPermissionsLoaded = false;
+    state.systemPermissionsPromise = null;
+
+    state.rankPermissions = Object.create(null);
+    state.rankPermissionPromises = Object.create(null);
+
+  }
+
+
+  function systemRunServer(
+    method,
+    ...args
+  ) {
+
+    if (
+      typeof window.runServer ===
+      "function"
+    ) {
+
+      return Promise.resolve(
+        window.runServer(
+          method,
+          ...args
+        )
+      );
+
+    }
+
+
+    return new Promise(
+      (resolve, reject) => {
+
+        try {
+
+          if (
+            typeof CloudApi === "undefined" || !CloudApi.run
+          ) {
+
+            reject(
+              new Error(
+                "Die Server-Schnittstelle des MDT ist nicht verfügbar."
+              )
+            );
+
+            return;
+
+          }
+
+
+          let runner =
+            CloudApi.run
+              .withSuccessHandler(resolve)
+              .withFailureHandler(reject);
+
+
+          if (
+            typeof runner[method] !==
+            "function"
+          ) {
+
+            reject(
+              new Error(
+                "Serverfunktion nicht gefunden: " +
+                method
+              )
+            );
+
+            return;
+
+          }
+
+
+          runner[method](
+            ...args
+          );
+
+        } catch (error) {
+
+          reject(error);
+
+        }
+
+      }
+    );
+
+  }
+
+
+  function normalizeUser(user) {
+
+    if (!user) {
+      return null;
+    }
+
+
+    return {
+
+      ...user,
+
+      id:
+        String(
+          user.ID ??
+          user.id ??
+          ""
+        ).trim(),
+
+      username:
+        String(
+          user.Username ??
+          user.username ??
+          ""
+        ).trim(),
+
+      name:
+        String(
+          user.Name ??
+          user.name ??
+          ""
+        ).trim(),
+
+      rank:
+        String(
+          user.RankID ??
+          user.rankId ??
+          user.Rank ??
+          user.rank ??
+          ""
+        ).trim(),
+
+      approved:
+        user.Approved === true ||
+        String(user.Approved ?? user.approved ?? "")
+          .trim()
+          .toUpperCase() === "TRUE",
+
+      active:
+        user.Active === true ||
+        String(user.Active ?? user.active ?? "")
+          .trim()
+          .toUpperCase() === "TRUE",
+
+      master:
+        user.Master === true ||
+        String(user.Master ?? user.master ?? "")
+          .trim()
+          .toUpperCase() === "TRUE"
+
+    };
+
+  }
+
+
+  function normalizeRank(rank) {
+
+    if (!rank) {
+      return null;
+    }
+
+
+    return {
+
+      ...rank,
+
+      id: getRankId(rank),
+      name: getRankName(rank),
+      shortName: getRankShortName(rank),
+      level: getRankLevel(rank),
+      active: getRankActive(rank)
+
+    };
+
+  }
+
+
+  function normalizePermission(permission) {
+
+    if (!permission) {
+      return null;
+    }
+
+
+    return {
+
+      ...permission,
+
+      id:
+        String(
+          permission.ID ??
+          permission.id ??
+          ""
+        ).trim(),
+
+      name:
+        String(
+          permission.Name ??
+          permission.name ??
+          ""
+        ).trim(),
+
+      key:
+        String(
+          permission.Key ??
+          permission.key ??
+          ""
+        ).trim(),
+
+      category:
+        String(
+          permission.Category ??
+          permission.category ??
+          "Allgemein"
+        ).trim() || "Allgemein"
+
+    };
+
+  }
+
+
+  function getUserById(id) {
+
+    const normalizedId =
+      String(id || "").trim();
+
+
+    return (
+      state.systemUsers.find(
+        user =>
+          String(user.id || "").trim() ===
+          normalizedId
+      ) ||
+      null
+    );
+
+  }
+
+
+  function getRankById(id) {
+
+    const normalizedId =
+      String(id || "").trim();
+
+
+    return (
+      state.systemRanks.find(
+        rank =>
+          getRankId(rank) === normalizedId
+      ) ||
+      null
+    );
+
+  }
+
+
+  function getPermissionById(id) {
+
+    const normalizedId =
+      String(id || "").trim();
+
+
+    return (
+      state.systemPermissions.find(
+        permission =>
+          String(permission.id || "").trim() ===
+          normalizedId
+      ) ||
+      null
+    );
+
+  }
+
+
+  const instanceId =
+    String(Date.now()) +
+    "_" +
+    Math.random().toString(36).slice(2);
+
+
+  const previousDeactivate =
+    state.previousDeactivate;
+
+
+  if (
+    typeof previousDeactivate ===
+    "function"
+  ) {
+
+    try {
+      previousDeactivate();
+    } catch (error) {}
+
+  }
+
+
+  state.instanceId =
+    instanceId;
+
+  state.mounted =
+    true;
+
+
+  function isCurrentInstance() {
+
+    return (
+      state.mounted === true &&
+      state.instanceId === instanceId
+    );
+
+  }
+
+
+  state.previousDeactivate =
+    function() {
+
+      if (
+        state.instanceId === instanceId
+      ) {
+
+        state.mounted =
+          false;
+
+      }
+
+    };
+
+
+  /* =========================================================
+     TAB NAVIGATION
+     ========================================================= */
+
+  function openSystemTab(
+    tab
+  ) {
+
+    document
+      .querySelectorAll(
+        ".system-tab"
+      )
+      .forEach(
+        button => {
+
+          button.classList.toggle(
+            "active",
+            button.dataset.systemTab ===
+              tab
+          );
+
+        }
+      );
+
+
+    document
+      .querySelectorAll(
+        ".system-section"
+      )
+      .forEach(
+        section => {
+
+          section.classList.remove(
+            "active"
+          );
+
+        }
+      );
+
+
+    const sectionMap = {
+
+      users:
+        "systemSectionUsers",
+
+      ranks:
+        "systemSectionRanks",
+
+      permissions:
+        "systemSectionPermissions",
+
+      rankPermissions:
+        "systemSectionRankPermissions"
+
+    };
+
+
+    const section =
+      document.getElementById(
+        sectionMap[tab]
+      );
+
+
+    if (section) {
+
+      section.classList.add(
+        "active"
+      );
+
+    }
+
+
+    if (tab === "users") {
+
+      loadSystemUsers();
+
+    }
+
+
+    if (tab === "ranks") {
+
+      loadSystemRanks();
+
+    }
+
+
+    if (tab === "permissions") {
+
+      loadSystemPermissions();
+
+    }
+
+
+    if (
+      tab === "rankPermissions"
+    ) {
+
+      loadRankPermissionData();
+
+    }
+
+  }
+
+
+  /* =========================================================
+     SESSION
+     ========================================================= */
+
+  function getSystemSessionToken() {
+
+    if (
+      typeof sessionToken !==
+        "undefined" &&
+      sessionToken
+    ) {
+
+      return sessionToken;
+
+    }
+
+
+    if (
+      window.sessionToken
+    ) {
+
+      return window.sessionToken;
+
+    }
+
+
+    try {
+
+      const storedToken =
+        sessionStorage.getItem(
+          "fib_mdt_session"
+        );
+
+
+      if (storedToken) {
+
+        return storedToken;
+
+      }
+
+    } catch (error) {
+
+      console.warn(
+        "SessionStorage konnte nicht gelesen werden:",
+        error
+      );
+
+    }
+
+
+    return "";
+
+  }
+
+
+  /* =========================================================
+     HTML ESCAPE
+     ========================================================= */
+
+  function escapeHtml(
+    value
+  ) {
+
+    if (
+      value === null ||
+      value === undefined
+    ) {
+
+      return "";
+
+    }
+
+
+    return String(value)
+
+      .replace(
+        /&/g,
+        "&amp;"
+      )
+
+      .replace(
+        /</g,
+        "&lt;"
+      )
+
+      .replace(
+        />/g,
+        "&gt;"
+      )
+
+      .replace(
+        /"/g,
+        "&quot;"
+      )
+
+      .replace(
+        /'/g,
+        "&#039;"
+      );
+
+  }
+
+
+  /* =========================================================
+     RANK HELPERS
+     ========================================================= */
+
+  function getRankId(
+    rank
+  ) {
+
+    return String(
+
+      rank?.ID ??
+      rank?.id ??
+      rank?.RankID ??
+      rank?.rankId ??
+      ""
+
+    ).trim();
+
+  }
+
+
+  function getRankName(
+    rank
+  ) {
+
+    return String(
+
+      rank?.Name ??
+      rank?.name ??
+      rank?.Rank ??
+      rank?.rank ??
+      "Unbenannter Rang"
+
+    ).trim();
+
+  }
+
+
+  function getRankShortName(
+    rank
+  ) {
+
+    return String(
+
+      rank?.ShortName ??
+      rank?.shortName ??
+      rank?.Shortname ??
+      rank?.shortname ??
+      ""
+
+    ).trim();
+
+  }
+
+
+  function getRankLevel(
+    rank
+  ) {
+
+    return String(
+
+      rank?.Level ??
+      rank?.level ??
+      ""
+
+    ).trim();
+
+  }
+
+
+  function getRankPriority(
+    rank
+  ) {
+
+    return getRankLevel(
+      rank
+    );
+
+  }
+
+
+  function getRankActive(
+    rank
+  ) {
+
+    if (
+      rank?.Active !== undefined &&
+      rank?.Active !== null
+    ) {
+
+      return (
+        rank.Active === true ||
+        String(rank.Active)
+          .trim()
+          .toUpperCase() ===
+          "TRUE"
+      );
+
+    }
+
+
+    if (
+      rank?.active !== undefined &&
+      rank?.active !== null
+    ) {
+
+      return (
+        rank.active === true ||
+        String(rank.active)
+          .trim()
+          .toUpperCase() ===
+          "TRUE"
+      );
+
+    }
+
+
+    return true;
+
+  }
+
+
+  function getUserRankId(
+    user
+  ) {
+
+    return String(
+
+      user?.RankID ??
+      user?.rankId ??
+      user?.RankId ??
+      user?.Rank ??
+      user?.rank ??
+      ""
+
+    ).trim();
+
+  }
+
+
+  function normalizeRankLookupValue(value) {
+
+    if (
+      value === null ||
+      value === undefined
+    ) {
+
+      return "";
+
+    }
+
+
+    if (
+      typeof value === "object"
+    ) {
+
+      return String(
+        value.id ??
+        value.ID ??
+        value.rank_id ??
+        value.RankID ??
+        value.rankId ??
+        ""
+      ).trim().toLowerCase();
+
+    }
+
+
+    return String(value)
+      .trim()
+      .toLowerCase();
+
+  }
+
+
+  function findSystemRankByAnyValue(value) {
+
+    const normalized =
+      normalizeRankLookupValue(value);
+
+
+    if (
+      !normalized ||
+      !Array.isArray(state.systemRanks)
+    ) {
+
+      return null;
+
+    }
+
+
+    return (
+      state.systemRanks.find(
+        rank => {
+
+          const id =
+            normalizeRankLookupValue(
+              getRankId(rank)
+            );
+
+          const name =
+            normalizeRankLookupValue(
+              getRankName(rank)
+            );
+
+          const shortName =
+            normalizeRankLookupValue(
+              getRankShortName(rank)
+            );
+
+
+          return (
+            normalized === id ||
+            normalized === name ||
+            (shortName && normalized === shortName)
+          );
+
+        }
+      ) ||
+      null
+    );
+
+  }
+
+
+  function getUserRankName(user) {
+
+    if (!user) {
+      return "Kein Rang";
+    }
+
+
+    /*
+     * Manche Backend-Versionen liefern bereits einen
+     * separaten RankName. Diesen bevorzugen wir nur dann,
+     * wenn er tatsächlich nicht wie eine Rang-ID aussieht.
+     */
+    const directName =
+      user.RankName ??
+      user.rankName ??
+      user.rank_name;
+
+
+    if (
+      directName !== null &&
+      directName !== undefined &&
+      String(directName).trim() !== ""
+    ) {
+
+      const directNameString =
+        String(directName).trim();
+
+
+      const nameMatch =
+        findSystemRankByAnyValue(
+          directNameString
+        );
+
+
+      if (nameMatch) {
+        return getRankName(nameMatch);
+      }
+
+
+      /*
+       * Nur einen bereits lesbaren Namen zurückgeben.
+       * Reine Rang-IDs werden nicht als Rangname angezeigt.
+       */
+      const directLooksLikeId =
+        /^R[A-Z0-9]{6,}$/i.test(
+          directNameString
+        );
+
+
+      if (!directLooksLikeId) {
+        return directNameString;
+      }
+
+    }
+
+
+    /*
+     * Primär ist USERS.rank die Rang-ID.
+     */
+    const rankId =
+      getUserRankId(user);
+
+
+    if (rankId) {
+
+      const matchingRank =
+        findSystemRankByAnyValue(rankId);
+
+
+      if (matchingRank) {
+        return getRankName(matchingRank);
+      }
+
+    }
+
+
+    /*
+     * Fallback für ältere Datensätze, bei denen direkt
+     * ein Rangname gespeichert worden sein könnte.
+     */
+    const directRank =
+      user.Rank ??
+      user.rank ??
+      user.rankName ??
+      user.RankName;
+
+
+    if (
+      directRank &&
+      typeof directRank === "object"
+    ) {
+
+      const nestedRank =
+        getRankName(directRank);
+
+      if (
+        nestedRank &&
+        nestedRank !== "Unbenannter Rang"
+      ) {
+        return nestedRank;
+      }
+
+    }
+
+
+    if (
+      directRank !== null &&
+      directRank !== undefined
+    ) {
+
+      const directRankString =
+        String(directRank).trim();
+
+
+      if (directRankString) {
+
+        const matchingRank =
+          findSystemRankByAnyValue(
+            directRankString
+          );
+
+
+        if (matchingRank) {
+          return getRankName(matchingRank);
+        }
+
+
+        if (
+          !/^R[A-Z0-9]{6,}$/i.test(
+            directRankString
+          )
+        ) {
+
+          return directRankString;
+
+        }
+
+      }
+
+    }
+
+
+    return "Kein Rang";
+
+  }
+
+
+  /* =========================================================
+     MODAL HELPERS
+     ========================================================= */
+
+  function setSystemModalBusy(busy) {
+    state.systemModalBusy = !!busy;
+    const manager = window.FIB_MDT_MODAL;
+    const button = manager && manager.getSaveButton ? manager.getSaveButton() : document.getElementById("systemModalConfirm");
+    if (!button) return;
+    if (busy) {
+      if (!button.dataset.originalText) button.dataset.originalText = button.textContent;
+      button.disabled = true;
+      button.textContent = "Speichern …";
+    } else {
+      button.disabled = false;
+      button.textContent = button.dataset.originalText || "Speichern";
+      delete button.dataset.originalText;
+    }
+  }
+
+
+  function resetSystemModalAfterFailure() {
+
+    setSystemModalBusy(
+      false
+    );
+
+  }
+
+
+  function openSystemModal(title, description, bodyHtml, confirmText = "Speichern", onConfirm = null) {
+    state.systemModalResolve = typeof onConfirm === "function" ? onConfirm : null;
+    setSystemModalBusy(false);
+    const manager = window.FIB_MDT_MODAL;
+    if (!manager || typeof manager.open !== "function") {
+      console.error("Das zentrale LSPD-MDT-Modal ist nicht verfügbar.");
+      return;
+    }
+    manager.open({
+      title: title || "Systemverwaltung",
+      subtitle: description || "",
+      body: bodyHtml || "",
+      saveVisible: true,
+      saveText: confirmText || "Speichern",
+      cancelText: "Abbrechen",
+      onSave: function () { confirmSystemModal(); },
+      onClose: function () { state.systemModalResolve = null; state.systemModalBusy = false; }
+    });
+  }
+
+
+  /*
+   * WICHTIG:
+   *
+   * closeSystemModal() führt NIEMALS mehr
+   * einen gespeicherten Callback aus.
+   *
+   * Dadurch können:
+   * - X
+   * - Escape
+   * - Klick auf den Overlay-Hintergrund
+   *
+   * nicht versehentlich einen Speichervorgang
+   * auslösen.
+   */
+  function closeSystemModal() {
+    const manager = window.FIB_MDT_MODAL;
+    if (manager && typeof manager.close === "function") manager.close();
+    const legacyOverlay = document.getElementById("systemModalOverlay");
+    if (legacyOverlay) legacyOverlay.classList.remove("active");
+    state.systemModalResolve = null;
+    setSystemModalBusy(false);
+  }
+
+
+  /*
+   * Der Confirm-Callback bleibt solange erhalten,
+   * bis der Server-Aufruf erfolgreich war.
+   *
+   * Bei einem Fehler kann derselbe Dialog daher
+   * erneut gespeichert werden.
+   */
+  function confirmSystemModal() {
+
+    if (
+      state.systemModalBusy
+    ) {
+
+      return;
+
+    }
+
+
+    const callback =
+      state.systemModalResolve;
+
+
+    if (
+      typeof callback !==
+        "function"
+    ) {
+
+      closeSystemModal();
+
+      return;
+
+    }
+
+
+    setSystemModalBusy(
+      true
+    );
+
+
+    try {
+      const result = callback(true);
+      if (result && typeof result.then === "function") {
+        result.then(function (value) {
+          if (value === false) resetSystemModalAfterFailure();
+          else setSystemModalBusy(false);
+        }).catch(function (error) {
+          console.error("System-Modal Callback-Fehler:", error);
+          resetSystemModalAfterFailure();
+          showSystemError(error?.message || "Die Aktion konnte nicht ausgeführt werden.");
+        });
+        return;
+      }
+
+      /*
+       * false bedeutet:
+       * Validierung fehlgeschlagen.
+       *
+       * Der Dialog bleibt offen und
+       * der Callback bleibt erhalten.
+       */
+      if (
+        result === false
+      ) {
+
+        resetSystemModalAfterFailure();
+
+      }
+
+    } catch (error) {
+
+      console.error(
+        "System-Modal Callback-Fehler:",
+        error
+      );
+
+
+      resetSystemModalAfterFailure();
+
+
+      showSystemError(
+        error?.message ||
+          "Die Aktion konnte nicht ausgeführt werden."
+      );
+
+    }
+
+  }
+
+
+  /* =========================================================
+     RANK CACHE
+     ========================================================= */
+
+  function ensureSystemRanksLoaded() {
+
+    ensureSessionState();
+
+
+    if (
+      state.systemRanksLoaded
+    ) {
+
+      return Promise.resolve(
+        state.systemRanks
+      );
+
+    }
+
+
+    if (
+      state.systemRanksPromise
+    ) {
+
+      return state.systemRanksPromise;
+
+    }
+
+
+    const token =
+      getSystemSessionToken();
+
+
+    if (!token) {
+
+      const error =
+        new Error("Keine aktive Sitzung.");
+
+      showSystemError(
+        error.message
+      );
+
+      return Promise.reject(error);
+
+    }
+
+
+    state.systemRanksPromise =
+      systemRunServer(
+        "systemGetUserRanks",
+        token
+      )
+        .then(
+          result => {
+
+            const rows =
+              Array.isArray(result)
+                ? result
+                : Array.isArray(result?.ranks)
+                  ? result.ranks
+                  : [];
+
+
+            const normalizedRanks =
+              rows
+                .map(normalizeRank)
+                .filter(Boolean);
+
+
+            /*
+             * Einige ältere System-Endpunkte liefern zwar die
+             * Rang-ID, aber nicht den Namen. In diesem Fall
+             * wird der Rang zusätzlich über den normalen
+             * Rang-Lookup aufgelöst. Bereits vollständige
+             * Datensätze werden nicht erneut angefragt.
+             */
+            const unresolvedIds =
+              normalizedRanks
+                .filter(
+                  rank => {
+
+                    const id =
+                      getRankId(rank);
+
+                    const name =
+                      getRankName(rank);
+
+                    return (
+                      !!id &&
+                      (
+                        !name ||
+                        name === "Unbenannter Rang" ||
+                        normalizeRankLookupValue(name) ===
+                          normalizeRankLookupValue(id)
+                      )
+                    );
+
+                  }
+                )
+                .map(
+                  rank => getRankId(rank)
+                )
+                .filter(Boolean);
+
+            if (unresolvedIds.length) {
+
+              return systemRunServer(
+                "systemGetAllRanks",
+                token
+              ).then(
+                freshRows => {
+
+                  const freshRanks =
+                    (Array.isArray(freshRows)
+                      ? freshRows
+                      : Array.isArray(freshRows?.ranks)
+                        ? freshRows.ranks
+                        : []
+                    )
+                      .map(normalizeRank)
+                      .filter(Boolean);
+
+                  state.systemRanks =
+                    freshRanks.length
+                      ? freshRanks
+                      : normalizedRanks;
+
+                  state.systemRanksLoaded =
+                    true;
+
+                  return state.systemRanks;
+
+                }
+              );
+
+            }
+
+
+            state.systemRanks =
+              normalizedRanks;
+
+
+            state.systemRanksLoaded =
+              true;
+
+
+            return state.systemRanks;
+
+          }
+        )
+        .catch(
+          error => {
+
+            state.systemRanksLoaded =
+              false;
+
+            throw error;
+
+          }
+        )
+        .finally(
+          () => {
+
+            state.systemRanksPromise =
+              null;
+
+          }
+        );
+
+
+    return state.systemRanksPromise;
+
+  }
+
+
+  function getSystemRankOptions(
+    selectedId = ""
+  ) {
+
+    return state.systemRanks
+
+      .map(
+        rank => {
+
+          const id =
+            getRankId(
+              rank
+            );
+
+
+          const name =
+            getRankName(
+              rank
+            );
+
+
+          const shortName =
+            getRankShortName(
+              rank
+            );
+
+
+          const level =
+            getRankLevel(
+              rank
+            );
+
+
+          const labelParts =
+            [
+              name,
+              shortName
+                ? `(${shortName})`
+                : "",
+              level !== ""
+                ? `· Level ${level}`
+                : ""
+            ]
+              .filter(Boolean)
+              .join(" ");
+
+
+          return {
+
+            id,
+
+            name,
+
+            shortName,
+
+            level,
+
+            label:
+              labelParts ||
+              name,
+
+            selected:
+              String(id) ===
+              String(selectedId)
+
+          };
+
+        }
+      )
+
+      .filter(
+        option =>
+          option.id !== ""
+      );
+
+  }
+
+
+  /* =========================================================
+     RANK DROPDOWN
+     RANGBERECHTIGUNGEN
+     ========================================================= */
+
+  function toggleSystemRankDropdown(
+    event
+  ) {
+
+    if (event) {
+
+      event.stopPropagation();
+
+    }
+
+
+    const wrapper =
+      document.getElementById(
+        "permissionRankCustomSelect"
+      );
+
+
+    if (!wrapper) {
+
+      return;
+
+    }
+
+
+    const isOpen =
+      wrapper.classList.contains(
+        "open"
+      );
+
+
+    closeAllSystemDropdowns();
+
+
+    if (!isOpen) {
+
+      wrapper.classList.add(
+        "open"
+      );
+
+    }
+
+  }
+
+
+  function selectSystemRankDropdown(
+    rankId,
+    rankLabel
+  ) {
+
+    const nativeSelect =
+      document.getElementById(
+        "permissionRankSelect"
+      );
+
+
+    const label =
+      document.getElementById(
+        "permissionRankSelectedLabel"
+      );
+
+
+    const wrapper =
+      document.getElementById(
+        "permissionRankCustomSelect"
+      );
+
+
+    const menu =
+      document.getElementById(
+        "permissionRankDropdown"
+      );
+
+
+    if (
+      !nativeSelect ||
+      !label
+    ) {
+
+      return;
+
+    }
+
+
+    nativeSelect.value =
+      String(rankId);
+
+
+    label.textContent =
+      rankLabel;
+
+
+    if (menu) {
+
+      menu
+        .querySelectorAll(
+          ".system-custom-select-option"
+        )
+        .forEach(
+          option => {
+
+            option.classList.toggle(
+              "selected",
+              option.dataset.rankId ===
+                String(rankId)
+            );
+
+          }
+        );
+
+    }
+
+
+    if (wrapper) {
+
+      wrapper.classList.remove(
+        "open"
+      );
+
+    }
+
+
+    loadRankPermissionEditor();
+
+  }
+
+
+  function populatePermissionRankDropdown(
+    selectedRankId = ""
+  ) {
+
+    const nativeSelect =
+      document.getElementById(
+        "permissionRankSelect"
+      );
+
+
+    const menu =
+      document.getElementById(
+        "permissionRankDropdown"
+      );
+
+
+    const label =
+      document.getElementById(
+        "permissionRankSelectedLabel"
+      );
+
+
+    if (
+      !nativeSelect ||
+      !menu ||
+      !label
+    ) {
+
+      return;
+
+    }
+
+
+    nativeSelect.innerHTML =
+      "";
+
+    menu.innerHTML =
+      "";
+
+
+    const options =
+      getSystemRankOptions(
+        selectedRankId
+      );
+
+
+    if (!options.length) {
+
+      label.textContent =
+        "Keine Ränge verfügbar";
+
+
+      menu.innerHTML = `
+        <div class="system-custom-select-empty">
+          Keine Ränge verfügbar
+        </div>
+      `;
+
+
+      return;
+
+    }
+
+
+    let selected =
+      null;
+
+
+    options.forEach(
+      optionData => {
+
+        const option =
+          document.createElement(
+            "option"
+          );
+
+
+        option.value =
+          optionData.id;
+
+
+        option.textContent =
+          optionData.label;
+
+
+        if (
+          optionData.selected
+        ) {
+
+          option.selected =
+            true;
+
+
+          selected =
+            optionData;
+
+        }
+
+
+        nativeSelect.appendChild(
+          option
+        );
+
+
+        const item =
+          document.createElement(
+            "button"
+          );
+
+
+        item.type =
+          "button";
+
+
+        item.className =
+          "system-custom-select-option";
+
+
+        item.dataset.rankId =
+          optionData.id;
+
+
+        item.textContent =
+          optionData.label;
+
+
+        if (
+          optionData.selected
+        ) {
+
+          item.classList.add(
+            "selected"
+          );
+
+        }
+
+
+        item.onclick =
+          function (
+            event
+          ) {
+
+            event.stopPropagation();
+
+
+            selectSystemRankDropdown(
+              optionData.id,
+              optionData.label
+            );
+
+          };
+
+
+        menu.appendChild(
+          item
+        );
+
+      }
+    );
+
+
+    if (selected) {
+
+      label.textContent =
+        selected.label;
+
+    } else {
+
+      label.textContent =
+        "Rang auswählen...";
+
+    }
+
+  }
+
+
+  /* =========================================================
+     RANK DROPDOWN
+     BENUTZER ERSTELLEN
+     ========================================================= */
+
+  function toggleCreateUserRankDropdown(
+    event
+  ) {
+
+    if (event) {
+
+      event.stopPropagation();
+
+    }
+
+
+    const wrapper =
+      document.getElementById(
+        "createUserRankCustomSelect"
+      );
+
+
+    if (!wrapper) {
+
+      return;
+
+    }
+
+
+    const isOpen =
+      wrapper.classList.contains(
+        "open"
+      );
+
+
+    closeAllSystemDropdowns();
+
+
+    if (!isOpen) {
+
+      wrapper.classList.add(
+        "open"
+      );
+
+    }
+
+  }
+
+
+  function selectCreateUserRank(
+    rankId,
+    rankLabel
+  ) {
+
+    const nativeSelect =
+      document.getElementById(
+        "createUserRank"
+      );
+
+
+    const label =
+      document.getElementById(
+        "createUserRankSelectedLabel"
+      );
+
+
+    const wrapper =
+      document.getElementById(
+        "createUserRankCustomSelect"
+      );
+
+
+    const menu =
+      document.getElementById(
+        "createUserRankDropdown"
+      );
+
+
+    if (
+      !nativeSelect ||
+      !label
+    ) {
+
+      return;
+
+    }
+
+
+    nativeSelect.value =
+      String(rankId);
+
+
+    label.textContent =
+      rankLabel;
+
+
+    if (menu) {
+
+      menu
+        .querySelectorAll(
+          ".system-custom-select-option"
+        )
+        .forEach(
+          option => {
+
+            option.classList.toggle(
+              "selected",
+              option.dataset.rankId ===
+                String(rankId)
+            );
+
+          }
+        );
+
+    }
+
+
+    if (wrapper) {
+
+      wrapper.classList.remove(
+        "open"
+      );
+
+    }
+
+  }
+
+
+  function populateCreateUserRankDropdown(
+    selectedRankId = ""
+  ) {
+
+    const nativeSelect =
+      document.getElementById(
+        "createUserRank"
+      );
+
+
+    const menu =
+      document.getElementById(
+        "createUserRankDropdown"
+      );
+
+
+    const label =
+      document.getElementById(
+        "createUserRankSelectedLabel"
+      );
+
+
+    if (
+      !nativeSelect ||
+      !menu ||
+      !label
+    ) {
+
+      return;
+
+    }
+
+
+    nativeSelect.innerHTML =
+      "";
+
+    menu.innerHTML =
+      "";
+
+
+    const options =
+      getSystemRankOptions(
+        selectedRankId
+      );
+
+
+    if (!options.length) {
+
+      label.textContent =
+        "Keine Ränge verfügbar";
+
+
+      menu.innerHTML = `
+        <div class="system-custom-select-empty">
+          Keine Ränge verfügbar
+        </div>
+      `;
+
+
+      return;
+
+    }
+
+
+    let selected =
+      null;
+
+
+    options.forEach(
+      optionData => {
+
+        const option =
+          document.createElement(
+            "option"
+          );
+
+
+        option.value =
+          optionData.id;
+
+
+        option.textContent =
+          optionData.label;
+
+
+        if (
+          optionData.selected
+        ) {
+
+          option.selected =
+            true;
+
+
+          selected =
+            optionData;
+
+        }
+
+
+        nativeSelect.appendChild(
+          option
+        );
+
+
+        const item =
+          document.createElement(
+            "button"
+          );
+
+
+        item.type =
+          "button";
+
+
+        item.className =
+          "system-custom-select-option";
+
+
+        item.dataset.rankId =
+          optionData.id;
+
+
+        item.textContent =
+          optionData.label;
+
+
+        if (
+          optionData.selected
+        ) {
+
+          item.classList.add(
+            "selected"
+          );
+
+        }
+
+
+        item.onclick =
+          function (
+            event
+          ) {
+
+            event.stopPropagation();
+
+
+            selectCreateUserRank(
+              optionData.id,
+              optionData.label
+            );
+
+          };
+
+
+        menu.appendChild(
+          item
+        );
+
+      }
+    );
+
+
+    if (selected) {
+
+      label.textContent =
+        selected.label;
+
+    } else {
+
+      label.textContent =
+        "Rang auswählen...";
+
+    }
+
+  }
+
+
+  /* =========================================================
+     RANK DROPDOWN
+     BENUTZER BEARBEITEN
+     ========================================================= */
+
+  function toggleEditUserRankDropdown(
+    event
+  ) {
+
+    if (event) {
+
+      event.stopPropagation();
+
+    }
+
+
+    const wrapper =
+      document.getElementById(
+        "editUserRankCustomSelect"
+      );
+
+
+    if (!wrapper) {
+
+      return;
+
+    }
+
+
+    const isOpen =
+      wrapper.classList.contains(
+        "open"
+      );
+
+
+    closeAllSystemDropdowns();
+
+
+    if (!isOpen) {
+
+      wrapper.classList.add(
+        "open"
+      );
+
+    }
+
+  }
+
+
+  function selectEditUserRank(
+    rankId,
+    rankLabel
+  ) {
+
+    const nativeSelect =
+      document.getElementById(
+        "editUserRank"
+      );
+
+
+    const label =
+      document.getElementById(
+        "editUserRankSelectedLabel"
+      );
+
+
+    const wrapper =
+      document.getElementById(
+        "editUserRankCustomSelect"
+      );
+
+
+    const menu =
+      document.getElementById(
+        "editUserRankDropdown"
+      );
+
+
+    if (
+      !nativeSelect ||
+      !label
+    ) {
+
+      return;
+
+    }
+
+
+    nativeSelect.value =
+      String(rankId);
+
+
+    label.textContent =
+      rankLabel;
+
+
+    if (menu) {
+
+      menu
+        .querySelectorAll(
+          ".system-custom-select-option"
+        )
+        .forEach(
+          option => {
+
+            option.classList.toggle(
+              "selected",
+              option.dataset.rankId ===
+                String(rankId)
+            );
+
+          }
+        );
+
+    }
+
+
+    if (wrapper) {
+
+      wrapper.classList.remove(
+        "open"
+      );
+
+    }
+
+  }
+
+
+  function populateEditUserRankDropdown(
+    selectedRankId = ""
+  ) {
+
+    const nativeSelect =
+      document.getElementById(
+        "editUserRank"
+      );
+
+
+    const menu =
+      document.getElementById(
+        "editUserRankDropdown"
+      );
+
+
+    const label =
+      document.getElementById(
+        "editUserRankSelectedLabel"
+      );
+
+
+    if (
+      !nativeSelect ||
+      !menu ||
+      !label
+    ) {
+
+      return;
+
+    }
+
+
+    nativeSelect.innerHTML =
+      "";
+
+    menu.innerHTML =
+      "";
+
+
+    const options =
+      getSystemRankOptions(
+        selectedRankId
+      );
+
+
+    if (!options.length) {
+
+      label.textContent =
+        "Keine Ränge verfügbar";
+
+
+      menu.innerHTML = `
+        <div class="system-custom-select-empty">
+          Keine Ränge verfügbar
+        </div>
+      `;
+
+
+      return;
+
+    }
+
+
+    let selected =
+      null;
+
+
+    options.forEach(
+      optionData => {
+
+        const option =
+          document.createElement(
+            "option"
+          );
+
+
+        option.value =
+          optionData.id;
+
+
+        option.textContent =
+          optionData.label;
+
+
+        if (
+          optionData.selected
+        ) {
+
+          option.selected =
+            true;
+
+
+          selected =
+            optionData;
+
+        }
+
+
+        nativeSelect.appendChild(
+          option
+        );
+
+
+        const item =
+          document.createElement(
+            "button"
+          );
+
+
+        item.type =
+          "button";
+
+
+        item.className =
+          "system-custom-select-option";
+
+
+        item.dataset.rankId =
+          optionData.id;
+
+
+        item.textContent =
+          optionData.label;
+
+
+        if (
+          optionData.selected
+        ) {
+
+          item.classList.add(
+            "selected"
+          );
+
+        }
+
+
+        item.onclick =
+          function (
+            event
+          ) {
+
+            event.stopPropagation();
+
+
+            selectEditUserRank(
+              optionData.id,
+              optionData.label
+            );
+
+          };
+
+
+        menu.appendChild(
+          item
+        );
+
+      }
+    );
+
+
+    if (selected) {
+
+      label.textContent =
+        selected.label;
+
+    } else {
+
+      label.textContent =
+        "Rang auswählen...";
+
+    }
+
+  }
+
+
+  /* =========================================================
+     CLOSE DROPDOWNS
+     ========================================================= */
+
+  function closeAllSystemDropdowns() {
+
+    document
+      .querySelectorAll(
+        ".system-custom-select.open"
+      )
+      .forEach(
+        element => {
+
+          element.classList.remove(
+            "open"
+          );
+
+        }
+      );
+
+  }
+
+
+  function updateSystemCreateUserButton() {
+
+    const button =
+      document.getElementById(
+        "systemCreateUserButton"
+      );
+
+
+    if (!button) {
+      return;
+    }
+
+
+    const allowed =
+      canManageSystemUsers();
+
+
+    button.style.display =
+      allowed ? "" : "none";
+
+  }
+
+
+  function renderTableMessage(
+    table,
+    colspan,
+    message
+  ) {
+
+    if (!table) {
+      return;
+    }
+
+
+    table.innerHTML = `
+      <tr>
+        <td
+          colspan="${Number(colspan) || 1}"
+          class="system-empty"
+        >
+          ${escapeHtml(message || "")}
+        </td>
+      </tr>
+    `;
+
+  }
+
+
+  function toggleDropdown(
+    wrapperId,
+    event
+  ) {
+
+    if (event) {
+      event.stopPropagation();
+    }
+
+
+    const wrapper =
+      document.getElementById(wrapperId);
+
+
+    if (!wrapper) {
+      return;
+    }
+
+
+    const wasOpen =
+      wrapper.classList.contains("open");
+
+
+    closeAllSystemDropdowns();
+
+
+    if (!wasOpen) {
+      wrapper.classList.add("open");
+    }
+
+  }
+
+
+  function selectRankDropdownValue(
+    config,
+    rankId,
+    rankLabel
+  ) {
+
+    const nativeSelect =
+      document.getElementById(
+        config?.selectId
+      );
+
+    const label =
+      document.getElementById(
+        config?.labelId
+      );
+
+    const wrapper =
+      document.getElementById(
+        config?.wrapperId
+      );
+
+    const menu =
+      document.getElementById(
+        config?.menuId
+      );
+
+
+    if (!nativeSelect || !label) {
+      return;
+    }
+
+
+    nativeSelect.value =
+      String(rankId || "");
+
+    label.textContent =
+      rankLabel || "Rang auswählen...";
+
+
+    if (menu) {
+
+      menu
+        .querySelectorAll(
+          ".system-custom-select-option"
+        )
+        .forEach(
+          option => {
+
+            option.classList.toggle(
+              "selected",
+              option.dataset.rankId ===
+                String(rankId)
+            );
+
+          }
+        );
+
+    }
+
+
+    if (wrapper) {
+      wrapper.classList.remove("open");
+    }
+
+  }
+
+
+  function populateRankDropdown(
+    config
+  ) {
+
+    const nativeSelect =
+      document.getElementById(
+        config?.selectId
+      );
+
+    const menu =
+      document.getElementById(
+        config?.menuId
+      );
+
+    const label =
+      document.getElementById(
+        config?.labelId
+      );
+
+
+    if (!nativeSelect || !menu || !label) {
+      return;
+    }
+
+
+    nativeSelect.innerHTML = "";
+    menu.innerHTML = "";
+
+
+    let options =
+      Array.isArray(state.systemRanks)
+        ? state.systemRanks.slice()
+        : [];
+
+
+    if (config?.onlyActive === true) {
+
+      options =
+        options.filter(
+          rank => getRankActive(rank)
+        );
+
+    }
+
+
+    options =
+      options
+        .map(
+          rank => {
+
+            const id =
+              getRankId(rank);
+
+            const name =
+              getRankName(rank);
+
+            const shortName =
+              getRankShortName(rank);
+
+            const level =
+              getRankLevel(rank);
+
+            const labelParts =
+              [
+                name,
+                shortName
+                  ? `(${shortName})`
+                  : "",
+                level !== ""
+                  ? `· Level ${level}`
+                  : ""
+              ]
+                .filter(Boolean)
+                .join(" ");
+
+            return {
+              id,
+              label:
+                labelParts || name
+            };
+
+          }
+        )
+        .filter(
+          option =>
+            option.id !== ""
+        );
+
+
+    const selectedId =
+      String(config?.selectedRankId || "");
+
+    const selected =
+      options.find(
+        option =>
+          String(option.id) ===
+          selectedId
+      );
+
+
+    options.forEach(
+      optionData => {
+
+        const nativeOption =
+          document.createElement("option");
+
+        nativeOption.value =
+          optionData.id;
+
+        nativeOption.textContent =
+          optionData.label;
+
+        nativeSelect.appendChild(
+          nativeOption
+        );
+
+
+        const item =
+          document.createElement("button");
+
+        item.type = "button";
+        item.className =
+          "system-custom-select-option";
+        item.dataset.rankId =
+          optionData.id;
+        item.textContent =
+          optionData.label;
+
+        if (
+          String(optionData.id) ===
+          selectedId
+        ) {
+          item.classList.add("selected");
+        }
+
+
+        item.onclick =
+          function(event) {
+
+            event.preventDefault();
+            event.stopPropagation();
+
+            if (
+              typeof config?.onSelect ===
+              "function"
+            ) {
+
+              config.onSelect(
+                optionData.id,
+                optionData.label
+              );
+
+            } else {
+
+              selectRankDropdownValue(
+                config,
+                optionData.id,
+                optionData.label
+              );
+
+            }
+
+          };
+
+
+        menu.appendChild(item);
+
+      }
+    );
+
+
+    if (selected) {
+
+      nativeSelect.value =
+        selected.id;
+
+      label.textContent =
+        selected.label;
+
+    } else {
+
+      label.textContent =
+        "Rang auswählen...";
+
+      nativeSelect.value =
+        "";
+
+    }
+
+  }
+
+
+  /* =========================================================
+     USERS
+     ========================================================= */
+
+  async function loadSystemUsers(
+    options = {}
+  ) {
+
+    const table =
+      document.getElementById(
+        "usersTable"
+      );
+
+
+    if (!table) {
+      return;
+    }
+
+
+    ensureSessionState();
+
+
+    if (!canViewSystemUsers()) {
+
+      renderTableMessage(
+        table,
+        6,
+        "Keine Berechtigung zum Einsehen der Benutzerverwaltung."
+      );
+
+      updateSystemCreateUserButton();
+      return;
+
+    }
+
+
+    if (
+      state.systemUsersLoaded &&
+      options.force !== true
+    ) {
+
+      renderSystemUsers(
+        state.systemUsers
+      );
+
+      updateSystemCreateUserButton();
+      return;
+
+    }
+
+
+    renderTableMessage(
+      table,
+      6,
+      "Benutzer werden geladen..."
+    );
+
+
+    const token =
+      getSystemSessionToken();
+
+
+    if (!token) {
+
+      renderTableMessage(
+        table,
+        6,
+        "Keine aktive Sitzung."
+      );
+
+      showSystemError(
+        "Keine aktive Sitzung."
+      );
+      return;
+
+    }
+
+
+    try {
+
+      await ensureSystemRanksLoaded();
+
+
+      if (
+        state.systemUsersPromise &&
+        options.force !== true
+      ) {
+
+        await state.systemUsersPromise;
+
+      } else {
+
+        state.systemUsersPromise =
+          systemRunServer(
+            "systemGetUsers",
+            token
+          )
+            .then(
+              result => {
+
+                const rows =
+                  Array.isArray(result)
+                    ? result
+                    : Array.isArray(result?.users)
+                      ? result.users
+                      : [];
+
+
+                state.systemUsers =
+                  rows
+                    .map(normalizeUser)
+                    .filter(Boolean);
+
+
+                state.systemUsersLoaded =
+                  true;
+
+
+                return state.systemUsers;
+
+              }
+            )
+            .finally(
+              () => {
+                state.systemUsersPromise = null;
+              }
+            );
+
+
+        await state.systemUsersPromise;
+
+      }
+
+
+      if (
+        !isCurrentInstance()
+      ) {
+        return;
+      }
+
+
+      renderSystemUsers(
+        state.systemUsers
+      );
+
+      updateSystemCreateUserButton();
+
+    } catch (error) {
+
+      state.systemUsersLoaded =
+        false;
+
+      renderTableMessage(
+        table,
+        6,
+        "Benutzer konnten nicht geladen werden."
+      );
+
+      showSystemError(
+        error?.message ||
+          "Die Benutzer konnten nicht geladen werden."
+      );
+
+    }
+
+  }
+
+
+  function renderSystemUsers(
+    users
+  ) {
+
+    const table =
+      document.getElementById(
+        "usersTable"
+      );
+
+
+    if (!table) {
+      return;
+    }
+
+
+    if (!canViewSystemUsers()) {
+
+      renderTableMessage(
+        table,
+        6,
+        "Keine Berechtigung zum Einsehen der Benutzerverwaltung."
+      );
+
+      return;
+
+    }
+
+
+    if (
+      !Array.isArray(users) ||
+      !users.length
+    ) {
+
+      renderTableMessage(
+        table,
+        6,
+        "Keine Benutzer vorhanden."
+      );
+
+      return;
+
+    }
+
+
+    const canManage =
+      canManageSystemUsers();
+
+
+    table.innerHTML =
+      users
+        .map(
+          rawUser => {
+
+            const user =
+              normalizeUser(rawUser) || {};
+
+            const username =
+              user.username || "";
+
+            const name =
+              user.name || "";
+
+            const rank =
+              getUserRankName(user);
+
+            let statusClass =
+              "inactive";
+
+            let statusText =
+              "Inaktiv";
+
+
+            if (!user.approved) {
+
+              statusClass =
+                "pending";
+
+              statusText =
+                "Ausstehend";
+
+            } else if (user.active) {
+
+              statusClass =
+                "active";
+
+              statusText =
+                "Aktiv";
+
+            }
+
+
+            const accountActions =
+              canManage &&
+              !user.approved
+                ? `
+                    <button
+                      type="button"
+                      class="system-button system-action-button"
+                      data-system-action="approve-user"
+                      data-user-id="${escapeHtml(user.id)}"
+                    >
+                      Freigeben
+                    </button>
+                  `
+                : "";
+
+
+            const editAction =
+              canManage
+                ? `
+                    <button
+                      type="button"
+                      class="system-button system-action-button"
+                      data-system-action="edit-user"
+                      data-user-id="${escapeHtml(user.id)}"
+                    >
+                      Bearbeiten
+                    </button>
+                  `
+                : `
+                    <span class="system-normal">
+                      Nur-Lesezugriff
+                    </span>
+                  `;
+
+
+            return `
+              <tr>
+                <td>${escapeHtml(username)}</td>
+                <td>${escapeHtml(name)}</td>
+                <td>${escapeHtml(rank)}</td>
+                <td>
+                  <span class="system-status ${statusClass}">
+                    ${statusText}
+                  </span>
+                </td>
+                <td>
+                  ${
+                    user.master
+                      ? `<span class="system-master">Master</span>`
+                      : `<span class="system-normal">Standard</span>`
+                  }
+                </td>
+                <td>
+                  <div class="system-user-actions">
+                    ${accountActions}
+                    ${editAction}
+                  </div>
+                </td>
+              </tr>
+            `;
+
+          }
+        )
+        .join("");
+
+
+    bindUsersTableEvents(table);
+
+  }
+
+
+  function bindUsersTableEvents(table) {
+
+    if (!table) {
+      return;
+    }
+
+
+    if (
+      table.dataset.eventsBound ===
+      "true"
+    ) {
+      return;
+    }
+
+
+    table.dataset.eventsBound =
+      "true";
+
+
+    table.addEventListener(
+      "click",
+      event => {
+
+        const button =
+          event.target.closest(
+            "[data-system-action]"
+          );
+
+
+        if (!button) {
+          return;
+        }
+
+
+        const action =
+          button.dataset.systemAction;
+
+        const userId =
+          button.dataset.userId;
+
+
+        if (
+          action === "edit-user"
+        ) {
+
+          openEditUserModalById(
+            userId
+          );
+
+          return;
+
+        }
+
+
+        if (
+          action === "approve-user"
+        ) {
+
+          openApproveUserModalById(
+            userId
+          );
+
+        }
+
+      }
+    );
+
+  }
+
+
+  function openCreateUserModal() {
+
+    if (!canManageSystemUsers()) {
+
+      showSystemError(
+        "Du besitzt keine Berechtigung zum Erstellen von Benutzern."
+      );
+
+      return;
+
+    }
+
+
+    ensureSystemRanksLoaded()
+      .then(
+        () => {
+
+          if (!isCurrentInstance()) {
+            return;
+          }
+
+
+          openSystemModal(
+
+            "Benutzer erstellen",
+
+            "Erstelle einen neuen Benutzer für das MDT.",
+
+            `
+              <div class="system-form">
+
+                <div class="system-form-grid">
+
+                  <div class="system-form-group">
+                    <label class="system-form-label">Benutzername</label>
+                    <input
+                      id="createUserUsername"
+                      class="system-form-input"
+                      type="text"
+                      autocomplete="off"
+                      placeholder="z. B. james.evers"
+                    >
+                  </div>
+
+                  <div class="system-form-group">
+                    <label class="system-form-label">Name</label>
+                    <input
+                      id="createUserName"
+                      class="system-form-input"
+                      type="text"
+                      autocomplete="off"
+                      placeholder="Vor- und Nachname"
+                    >
+                  </div>
+
+                  <div class="system-form-group">
+                    <label class="system-form-label">Passwort</label>
+                    <input
+                      id="createUserPassword"
+                      class="system-form-input"
+                      type="password"
+                      autocomplete="new-password"
+                      placeholder="Passwort"
+                    >
+                  </div>
+
+                  <div class="system-form-group">
+                    <label class="system-form-label">Rang</label>
+
+                    <div
+                      class="system-custom-select"
+                      id="createUserRankCustomSelect"
+                    >
+                      <button
+                        type="button"
+                        class="system-custom-select-trigger"
+                        onclick="toggleCreateUserRankDropdown(event)"
+                      >
+                        <span id="createUserRankSelectedLabel">
+                          Rang auswählen...
+                        </span>
+                        <span class="system-custom-select-chevron">⌄</span>
+                      </button>
+
+                      <div
+                        class="system-custom-select-menu"
+                        id="createUserRankDropdown"
+                      ></div>
+                    </div>
+
+                    <select
+                      id="createUserRank"
+                      class="system-select-hidden" data-fib-select-native-only
+                      aria-hidden="true"
+                      tabindex="-1"
+                    ></select>
+                  </div>
+
+                </div>
+
+                <label class="system-form-checkbox">
+                  <input id="createUserActive" type="checkbox" checked>
+                  <span>Benutzer aktivieren</span>
+                </label>
+
+                <label class="system-form-checkbox">
+                  <input
+                    id="createUserMaster"
+                    type="checkbox"
+                    ${canManageSystemMaster() ? "" : "disabled"}
+                  >
+                  <span>Master-Berechtigung vergeben</span>
+                </label>
+
+              </div>
+            `,
+
+            "Benutzer erstellen",
+
+            createUserFromModal
+
+          );
+
+
+          populateCreateUserRankDropdown();
+
+        }
+      )
+      .catch(
+        error => {
+
+          showSystemError(
+            error?.message ||
+              "Die Ränge konnten nicht geladen werden."
+          );
+
+        }
+      );
+
+  }
+
+
+  async function createUserFromModal() {
+
+    if (!canManageSystemUsers()) {
+
+      showSystemError(
+        "Du besitzt keine Berechtigung zum Erstellen von Benutzern."
+      );
+
+      return false;
+
+    }
+
+
+    const username =
+      document.getElementById("createUserUsername")?.value.trim() || "";
+
+    const name =
+      document.getElementById("createUserName")?.value.trim() || "";
+
+    const password =
+      document.getElementById("createUserPassword")?.value || "";
+
+    const rank =
+      document.getElementById("createUserRank")?.value || "";
+
+    const active =
+      document.getElementById("createUserActive")?.checked === true;
+
+    const master =
+      canManageSystemMaster() &&
+      document.getElementById("createUserMaster")?.checked === true;
+
+
+    if (!username) {
+      showSystemError("Bitte einen Benutzernamen eingeben.");
+      return false;
+    }
+
+    if (!name) {
+      showSystemError("Bitte einen Namen eingeben.");
+      return false;
+    }
+
+    if (!password) {
+      showSystemError("Bitte ein Passwort eingeben.");
+      return false;
+    }
+
+    if (!rank) {
+      showSystemError("Bitte einen Rang auswählen.");
+      return false;
+    }
+
+
+    const token =
+      getSystemSessionToken();
+
+
+    if (!token) {
+      showSystemError("Keine aktive Sitzung vorhanden.");
+      return false;
+    }
+
+
+    try {
+
+      const result =
+        await systemRunServer(
+          "systemCreateUser",
+          token,
+          {
+            username,
+            password,
+            name,
+            rank,
+            active,
+            master
+          }
+        );
+
+
+      const normalized =
+        result?.user
+          ? normalizeUser(result.user)
+          : null;
+
+
+      if (normalized?.id) {
+
+        state.systemUsers.unshift(
+          normalized
+        );
+
+      } else {
+
+        await loadSystemUsers({
+          force: true
+        });
+
+      }
+
+
+      state.systemUsersLoaded =
+        true;
+
+
+      closeSystemModal();
+
+      renderSystemUsers(
+        state.systemUsers
+      );
+
+      showSystemSuccess(
+        result?.message ||
+          "Der Benutzer wurde erfolgreich erstellt."
+      );
+
+      return true;
+
+    } catch (error) {
+
+      showSystemError(
+        error?.message ||
+          "Der Benutzer konnte nicht erstellt werden."
+      );
+
+      return false;
+
+    }
+
+  }
+
+
+  function openEditUserModal(
+    user
+  ) {
+
+    if (!canManageSystemUsers()) {
+
+      showSystemError(
+        "Du besitzt keine Berechtigung zum Bearbeiten von Benutzern."
+      );
+
+      return;
+
+    }
+
+
+    const normalized =
+      normalizeUser(user);
+
+
+    if (!normalized?.id) {
+
+      showSystemError(
+        "Der Benutzer konnte nicht gelesen werden."
+      );
+
+      return;
+
+    }
+
+
+    openEditUserModalData(
+      normalized
+    );
+
+  }
+
+
+  function openEditUserModalById(
+    id
+  ) {
+
+    if (!canManageSystemUsers()) {
+
+      showSystemError(
+        "Du besitzt keine Berechtigung zum Bearbeiten von Benutzern."
+      );
+
+      return;
+
+    }
+
+
+    const user =
+      getUserById(id);
+
+
+    if (!user) {
+
+      showSystemError(
+        "Der Benutzer wurde nicht im lokalen Datensatz gefunden."
+      );
+
+      return;
+
+    }
+
+
+    openEditUserModalData(user);
+
+  }
+
+
+  function openEditUserModalData(
+    user
+  ) {
+
+    ensureSystemRanksLoaded()
+      .then(
+        () => {
+
+          if (!isCurrentInstance()) {
+            return;
+          }
+
+
+          const rankId =
+            getUserRankId(user);
+
+
+          openSystemModal(
+
+            "Benutzer bearbeiten",
+
+            "Bearbeite die Zugangsdaten und Berechtigungen des Benutzers.",
+
+            `
+              <div class="system-form">
+                <div class="system-form-grid">
+
+                  <div class="system-form-group">
+                    <label class="system-form-label">Benutzername</label>
+                    <input
+                      id="editUserUsername"
+                      class="system-form-input"
+                      type="text"
+                      autocomplete="off"
+                      value="${escapeHtml(user.username)}"
+                    >
+                  </div>
+
+                  <div class="system-form-group">
+                    <label class="system-form-label">Name</label>
+                    <input
+                      id="editUserName"
+                      class="system-form-input"
+                      type="text"
+                      autocomplete="off"
+                      value="${escapeHtml(user.name)}"
+                    >
+                  </div>
+
+                  <div class="system-form-group">
+                    <label class="system-form-label">Neues Passwort</label>
+                    <input
+                      id="editUserPassword"
+                      class="system-form-input"
+                      type="password"
+                      autocomplete="new-password"
+                      placeholder="Leer lassen = unverändert"
+                    >
+                  </div>
+
+                  <div class="system-form-group">
+                    <label class="system-form-label">Rang</label>
+
+                    <div
+                      class="system-custom-select"
+                      id="editUserRankCustomSelect"
+                    >
+                      <button
+                        type="button"
+                        class="system-custom-select-trigger"
+                        onclick="toggleEditUserRankDropdown(event)"
+                      >
+                        <span id="editUserRankSelectedLabel">Rang auswählen...</span>
+                        <span class="system-custom-select-chevron">⌄</span>
+                      </button>
+
+                      <div
+                        class="system-custom-select-menu"
+                        id="editUserRankDropdown"
+                      ></div>
+                    </div>
+
+                    <select
+                      id="editUserRank"
+                      class="system-select-hidden" data-fib-select-native-only
+                      aria-hidden="true"
+                      tabindex="-1"
+                    ></select>
+                  </div>
+
+                </div>
+
+                <label class="system-form-checkbox">
+                  <input
+                    id="editUserActive"
+                    type="checkbox"
+                    ${user.active ? "checked" : ""}
+                  >
+                  <span>Benutzer aktiv</span>
+                </label>
+
+                <label class="system-form-checkbox">
+                  <input
+                    id="editUserMaster"
+                    type="checkbox"
+                    ${user.master ? "checked" : ""}
+                    ${canManageSystemMaster() ? "" : "disabled"}
+                  >
+                  <span>Master-Berechtigung</span>
+                </label>
+
+              </div>
+            `,
+
+            "Änderungen speichern",
+
+            () =>
+              updateUserFromModal(
+                user.id
+              )
+
+          );
+
+
+          populateEditUserRankDropdown(
+            rankId
+          );
+
+        }
+      )
+      .catch(
+        error => {
+
+          showSystemError(
+            error?.message ||
+              "Die Ränge konnten nicht geladen werden."
+          );
+
+        }
+      );
+
+  }
+
+
+  async function updateUserFromModal(
+    id
+  ) {
+
+    if (!canManageSystemUsers()) {
+
+      showSystemError(
+        "Du besitzt keine Berechtigung zum Bearbeiten von Benutzern."
+      );
+
+      return false;
+
+    }
+
+
+    const normalizedId =
+      String(id || "").trim();
+
+    const username =
+      document.getElementById("editUserUsername")?.value.trim() || "";
+
+    const name =
+      document.getElementById("editUserName")?.value.trim() || "";
+
+    const password =
+      document.getElementById("editUserPassword")?.value || "";
+
+    const rank =
+      document.getElementById("editUserRank")?.value || "";
+
+    const active =
+      document.getElementById("editUserActive")?.checked === true;
+
+    const master =
+      canManageSystemMaster() &&
+      document.getElementById("editUserMaster")?.checked === true;
+
+
+    if (!normalizedId) {
+      showSystemError("Die Benutzer-ID konnte nicht ermittelt werden.");
+      return false;
+    }
+
+    if (!username) {
+      showSystemError("Bitte einen Benutzernamen eingeben.");
+      return false;
+    }
+
+    if (!name) {
+      showSystemError("Bitte einen Namen eingeben.");
+      return false;
+    }
+
+    if (!rank) {
+      showSystemError("Bitte einen Rang auswählen.");
+      return false;
+    }
+
+
+    const token =
+      getSystemSessionToken();
+
+
+    if (!token) {
+      showSystemError("Keine aktive Sitzung vorhanden.");
+      return false;
+    }
+
+
+    const data = {
+      username,
+      name,
+      rank,
+      active,
+      master
+    };
+
+
+    if (password) {
+      data.password = password;
+    }
+
+
+    try {
+
+      const result =
+        await systemRunServer(
+          "systemUpdateUser",
+          token,
+          normalizedId,
+          data
+        );
+
+
+      const index =
+        state.systemUsers.findIndex(
+          user =>
+            String(user.id) ===
+            normalizedId
+        );
+
+
+      const updated =
+        result?.user
+          ? normalizeUser(result.user)
+          : null;
+
+
+      if (updated) {
+
+        if (index >= 0) {
+          state.systemUsers[index] = updated;
+        } else {
+          state.systemUsers.push(updated);
+        }
+
+      } else if (index >= 0) {
+
+        state.systemUsers[index] = {
+          ...state.systemUsers[index],
+          username,
+          name,
+          rank,
+          active,
+          master
+        };
+
+      } else {
+
+        await loadSystemUsers({
+          force: true
+        });
+
+      }
+
+
+      state.systemUsersLoaded =
+        true;
+
+      closeSystemModal();
+
+      renderSystemUsers(
+        state.systemUsers
+      );
+
+      showSystemSuccess(
+        result?.message ||
+          "Der Benutzer wurde erfolgreich aktualisiert."
+      );
+
+      return true;
+
+    } catch (error) {
+
+      showSystemError(
+        error?.message ||
+          "Der Benutzer konnte nicht aktualisiert werden."
+      );
+
+      return false;
+
+    }
+
+  }
+
+
+  function openApproveUserModalById(
+    userId
+  ) {
+
+    if (!canManageSystemUsers()) {
+
+      showSystemError(
+        "Du besitzt keine Berechtigung zum Freigeben von Benutzern."
+      );
+
+      return;
+
+    }
+
+
+    const user =
+      getUserById(userId);
+
+
+    if (!user) {
+      showSystemError(
+        "Der beantragte Benutzer wurde nicht gefunden."
+      );
+      return;
+    }
+
+
+    if (user.approved) {
+      showSystemError(
+        "Dieser Account wurde bereits freigegeben."
+      );
+      return;
+    }
+
+
+    ensureSystemRanksLoaded()
+      .then(
+        () => {
+
+          if (!isCurrentInstance()) {
+            return;
+          }
+
+          openApproveUserModal(
+            user
+          );
+
+        }
+      )
+      .catch(
+        error => {
+          showSystemError(
+            error?.message ||
+              "Die Ränge konnten nicht geladen werden."
+          );
+        }
+      );
+
+  }
+
+
+  function openApproveUserModal(
+    user
+  ) {
+
+    if (!canManageSystemUsers()) {
+
+      showSystemError(
+        "Du besitzt keine Berechtigung zum Freigeben von Benutzern."
+      );
+
+      return;
+
+    }
+
+
+    openSystemModal(
+
+      "Account freigeben",
+
+      "Vergib einen Rang und schalte den beantragten Account frei.",
+
+      `
+        <div class="system-form">
+          <div class="system-form-grid">
+
+            <div class="system-form-group">
+              <label class="system-form-label">Benutzername</label>
+              <input
+                class="system-form-input"
+                type="text"
+                value="${escapeHtml(user.username)}"
+                disabled
+              >
+            </div>
+
+            <div class="system-form-group">
+              <label class="system-form-label">Name</label>
+              <input
+                class="system-form-input"
+                type="text"
+                value="${escapeHtml(user.name)}"
+                disabled
+              >
+            </div>
+
+            <div class="system-form-group full">
+              <label class="system-form-label">Dienstgrad</label>
+
+              <div
+                class="system-custom-select"
+                id="approveUserRankCustomSelect"
+              >
+                <button
+                  type="button"
+                  class="system-custom-select-trigger"
+                  onclick="toggleApproveUserRankDropdown(event)"
+                >
+                  <span id="approveUserRankSelectedLabel">Rang auswählen...</span>
+                  <span class="system-custom-select-chevron">⌄</span>
+                </button>
+
+                <div
+                  class="system-custom-select-menu"
+                  id="approveUserRankDropdown"
+                ></div>
+              </div>
+
+              <select
+                id="approveUserRank"
+                class="system-select-hidden" data-fib-select-native-only
+                aria-hidden="true"
+                tabindex="-1"
+              ></select>
+
+              <div class="system-form-hint">
+                Nach der Freigabe wird der Account aktiviert.
+              </div>
+            </div>
+
+          </div>
+        </div>
+      `,
+
+      "Account freigeben",
+
+      () =>
+        approveUserFromModal(
+          user.id
+        )
+
+    );
+
+
+    populateApproveUserRankDropdown();
+
+  }
+
+
+  function toggleApproveUserRankDropdown(
+    event
+  ) {
+
+    toggleDropdown(
+      "approveUserRankCustomSelect",
+      event
+    );
+
+  }
+
+
+  function populateApproveUserRankDropdown(
+    selectedRankId = ""
+  ) {
+
+    populateRankDropdown({
+      selectId: "approveUserRank",
+      menuId: "approveUserRankDropdown",
+      labelId: "approveUserRankSelectedLabel",
+      wrapperId: "approveUserRankCustomSelect",
+      selectedRankId,
+      onlyActive: true,
+      onSelect: function(rankId, label) {
+        selectRankDropdownValue(
+          {
+            selectId: "approveUserRank",
+            menuId: "approveUserRankDropdown",
+            labelId: "approveUserRankSelectedLabel",
+            wrapperId: "approveUserRankCustomSelect"
+          },
+          rankId,
+          label
+        );
+      }
+    });
+
+  }
+
+
+  function selectApproveUserRank(
+    rankId,
+    rankLabel
+  ) {
+
+    selectRankDropdownValue(
+      {
+        selectId: "approveUserRank",
+        menuId: "approveUserRankDropdown",
+        labelId: "approveUserRankSelectedLabel",
+        wrapperId: "approveUserRankCustomSelect"
+      },
+      rankId,
+      rankLabel
+    );
+
+  }
+
+
+  async function approveUserFromModal(
+    userId
+  ) {
+
+    if (!canManageSystemUsers()) {
+      showSystemError(
+        "Du besitzt keine Berechtigung zum Freigeben von Benutzern."
+      );
+      return false;
+    }
+
+
+    const rank =
+      document.getElementById("approveUserRank")?.value || "";
+
+
+    if (!rank) {
+      showSystemError("Bitte einen Rang auswählen.");
+      return false;
+    }
+
+
+    const token =
+      getSystemSessionToken();
+
+
+    if (!token) {
+      showSystemError("Keine aktive Sitzung vorhanden.");
+      return false;
+    }
+
+
+    try {
+
+      const result =
+        await systemRunServer(
+          "systemApproveUser",
+          token,
+          String(userId),
+          rank
+        );
+
+
+      const normalizedId =
+        String(userId);
+
+      const index =
+        state.systemUsers.findIndex(
+          user => String(user.id) === normalizedId
+        );
+
+      const approvedUser =
+        result?.user
+          ? normalizeUser(result.user)
+          : null;
+
+
+      if (approvedUser && index >= 0) {
+        state.systemUsers[index] = approvedUser;
+
+      } else if (index >= 0) {
+
+        state.systemUsers[index] = {
+          ...state.systemUsers[index],
+          rank,
+          approved: true,
+          active: true
+        };
+
+      } else {
+
+        await loadSystemUsers({
+          force: true
+        });
+
+      }
+
+
+      state.systemUsersLoaded =
+        true;
+
+      closeSystemModal();
+
+      renderSystemUsers(
+        state.systemUsers
+      );
+
+      showSystemSuccess(
+        result?.message ||
+          "Der Account wurde freigegeben und aktiviert."
+      );
+
+      return true;
+
+    } catch (error) {
+
+      showSystemError(
+        error?.message ||
+          "Der Account konnte nicht freigegeben werden."
+      );
+
+      return false;
+
+    }
+
+  }
+
+
+  /* =========================================================
+     RANKS
+     ========================================================= */
+
+  function loadSystemRanks() {
+
+    const table =
+      document.getElementById(
+        "ranksTable"
+      );
+
+
+    if (!table) {
+
+      return;
+
+    }
+
+
+    table.innerHTML = `
+      <tr>
+        <td
+          colspan="5"
+          class="system-empty"
+        >
+          Ränge werden geladen...
+        </td>
+      </tr>
+    `;
+
+
+    const token =
+      getSystemSessionToken();
+
+
+    if (!token) {
+
+      table.innerHTML = `
+        <tr>
+          <td
+            colspan="5"
+            class="system-empty"
+          >
+            Keine aktive Sitzung.
+          </td>
+        </tr>
+      `;
+
+
+      showSystemError(
+        "Keine aktive Sitzung."
+      );
+
+      return;
+
+    }
+
+
+    CloudApi.run
+
+      .withSuccessHandler(
+        ranks => {
+
+          state.systemRanks =
+            Array.isArray(
+              ranks
+            )
+              ? ranks
+              : [];
+
+
+          state.systemRanksLoaded =
+            true;
+
+
+          renderSystemRanks(
+            state.systemRanks
+          );
+
+        }
+      )
+
+      .withFailureHandler(
+        error => {
+
+          state.systemRanksLoaded =
+            false;
+
+
+          table.innerHTML = `
+            <tr>
+              <td
+                colspan="5"
+                class="system-empty"
+              >
+                Ränge konnten nicht geladen werden.
+              </td>
+            </tr>
+          `;
+
+
+          showSystemError(
+            error?.message ||
+              "Die Ränge konnten nicht geladen werden."
+          );
+
+        }
+      )
+
+      .systemGetAllRanks(
+        token
+      );
+
+  }
+
+
+  function renderSystemRanks(
+    ranks
+  ) {
+
+    const table =
+      document.getElementById(
+        "ranksTable"
+      );
+
+
+    if (!table) {
+
+      return;
+
+    }
+
+
+    if (
+      !Array.isArray(ranks) ||
+      !ranks.length
+    ) {
+
+      table.innerHTML = `
+        <tr>
+          <td
+            colspan="5"
+            class="system-empty"
+          >
+            Keine Ränge vorhanden.
+          </td>
+        </tr>
+      `;
+
+
+      return;
+
+    }
+
+
+    table.innerHTML =
+      ranks
+
+        .map(
+          rank => {
+
+            const id =
+              getRankId(
+                rank
+              );
+
+
+            const name =
+              getRankName(
+                rank
+              );
+
+
+            const shortName =
+              getRankShortName(
+                rank
+              );
+
+
+            const level =
+              getRankLevel(
+                rank
+              );
+
+
+            const active =
+              getRankActive(
+                rank
+              );
+
+
+            /*
+             * JSON wird URL-kodiert in das Attribut geschrieben.
+             *
+             * Dadurch sind Anführungszeichen und Sonderzeichen
+             * innerhalb eines Rangs wesentlich robuster.
+             */
+            const encodedRank =
+              encodeURIComponent(
+                JSON.stringify(rank)
+              );
+
+
+            return `
+              <tr>
+
+                <td>
+                  ${escapeHtml(name)}
+                </td>
+
+
+                <td>
+
+                  ${
+                    shortName
+
+                      ? `
+                        <span
+                          class="system-rank-shortname"
+                        >
+                          ${escapeHtml(shortName)}
+                        </span>
+                      `
+
+                      : `
+                        <span class="system-table-muted">
+                          —
+                        </span>
+                      `
+                  }
+
+                </td>
+
+
+                <td>
+
+                  ${
+                    level !== ""
+
+                      ? escapeHtml(level)
+
+                      : `
+                        <span class="system-table-muted">
+                          —
+                        </span>
+                      `
+                  }
+
+                </td>
+
+
+                <td>
+
+                  <span
+                    class="system-status ${
+                      active
+                        ? "active"
+                        : "inactive"
+                    }"
+                  >
+
+                    ${
+                      active
+                        ? "Aktiv"
+                        : "Inaktiv"
+                    }
+
+                  </span>
+
+                </td>
+
+
+                <td>
+
+                  <button
+                    type="button"
+                    class="system-button system-action-button"
+                    data-rank="${encodedRank}"
+                    onclick="openEditRankModal(JSON.parse(decodeURIComponent(this.dataset.rank)))"
+                  >
+                    Bearbeiten
+                  </button>
+
+                </td>
+
+              </tr>
+            `;
+
+          }
+        )
+
+        .join("");
+
+  }
+
+
+  /* =========================================================
+     CREATE RANK
+     ========================================================= */
+
+  function openCreateRankModal() {
+
+    openSystemModal(
+
+      "Rang erstellen",
+
+      "Erstelle einen neuen Dienstgrad.",
+
+      `
+        <div class="system-form">
+
+          <div class="system-form-grid">
+
+            <div class="system-form-group">
+
+              <label class="system-form-label">
+                Rangname
+              </label>
+
+              <input
+                id="createRankName"
+                class="system-form-input"
+                type="text"
+                autocomplete="off"
+                placeholder="z. B. Police Officer II"
+              >
+
+            </div>
+
+
+            <div class="system-form-group">
+
+              <label class="system-form-label">
+                Kürzel
+              </label>
+
+              <input
+                id="createRankShortName"
+                class="system-form-input"
+                type="text"
+                autocomplete="off"
+                maxlength="30"
+                placeholder="z. B. SA"
+              >
+
+            </div>
+
+
+            <div class="system-form-group">
+
+              <label class="system-form-label">
+                Level
+              </label>
+
+              <input
+                id="createRankLevel"
+                class="system-form-input"
+                type="number"
+                min="0"
+                step="1"
+                placeholder="z. B. 10"
+              >
+
+            </div>
+
+
+            <div class="system-form-group">
+
+              <label class="system-form-label">
+                Status
+              </label>
+
+              <label class="system-form-checkbox">
+
+                <input
+                  id="createRankActive"
+                  type="checkbox"
+                  checked
+                >
+
+                <span>
+                  Rang aktiv
+                </span>
+
+              </label>
+
+            </div>
+
+          </div>
+
+        </div>
+      `,
+
+      "Rang erstellen",
+
+      () =>
+        createRankFromModal()
+
+    );
+
+  }
+
+
+function createRankFromModal() {
+
+  const nameInput =
+    document.getElementById(
+      "createRankName"
+    );
+
+
+  const shortNameInput =
+    document.getElementById(
+      "createRankShortName"
+    );
+
+
+  const levelInput =
+    document.getElementById(
+      "createRankLevel"
+    );
+
+
+  const activeInput =
+    document.getElementById(
+      "createRankActive"
+    );
+
+
+  if (!nameInput) {
+
+    console.error(
+      "[LSPD MDT] createRankName wurde nicht gefunden."
+    );
+
+
+    showSystemError(
+      "Das Rangformular konnte nicht gelesen werden."
+    );
+
+
+    return false;
+
+  }
+
+
+  const name =
+    String(
+      nameInput.value || ""
+    ).trim();
+
+
+  const shortName =
+    String(
+      shortNameInput?.value || ""
+    ).trim();
+
+
+  const levelRaw =
+    String(
+      levelInput?.value || ""
+    ).trim();
+
+
+  const active =
+    activeInput?.checked === true;
+
+
+  if (!name) {
+
+    showSystemError(
+      "Bitte einen Rangnamen eingeben."
+    );
+
+
+    return false;
+
+  }
+
+
+  if (!shortName) {
+
+    showSystemError(
+      "Bitte ein Rangkürzel eingeben."
+    );
+
+
+    return false;
+
+  }
+
+
+  if (
+    levelRaw === ""
+  ) {
+
+    showSystemError(
+      "Bitte ein Level eingeben."
+    );
+
+
+    return false;
+
+  }
+
+
+  const level =
+    Number(
+      levelRaw
+    );
+
+
+  if (
+    !Number.isInteger(level) ||
+    level < 0
+  ) {
+
+    showSystemError(
+      "Das Level muss eine ganze Zahl ab 0 sein."
+    );
+
+
+    return false;
+
+  }
+
+
+  const token =
+    getSystemSessionToken();
+
+
+  if (!token) {
+
+    showSystemError(
+      "Keine aktive Sitzung vorhanden."
+    );
+
+
+    return false;
+
+  }
+
+
+  const data = {
+
+    Name:
+      name,
+
+    ShortName:
+      shortName,
+
+    Level:
+      level,
+
+    Active:
+      active
+
+  };
+
+
+  console.log(
+    "[LSPD MDT] CREATE RANK DATA:",
+    data
+  );
+
+
+  CloudApi.run
+
+    .withSuccessHandler(
+      function(result) {
+
+        console.log(
+          "[LSPD MDT] CREATE RANK SUCCESS:",
+          result
+        );
+
+
+        /*
+         * Serverantwort sofort in den lokalen
+         * State übernehmen.
+         */
+        if (
+          result &&
+          result.rank &&
+          Array.isArray(
+            state.systemRanks
+          )
+        ) {
+
+          state.systemRanks.push(
+            result.rank
+          );
+
+
+          renderSystemRanks(
+            state.systemRanks
+          );
+
+        }
+
+
+        /*
+         * Cache ungültig machen.
+         */
+        state.systemRanksLoaded =
+          false;
+
+
+        /*
+         * Modal schließen.
+         */
+        closeSystemModal();
+
+
+        showSystemSuccess(
+          result?.message ||
+            "Der Rang wurde erfolgreich erstellt."
+        );
+
+
+        /*
+         * Anschließend nochmals frisch
+         * vom Server laden.
+         */
+        loadSystemRanks();
+
+      }
+    )
+
+    .withFailureHandler(
+      function(error) {
+
+        console.error(
+          "[LSPD MDT] CREATE RANK FEHLER:",
+          error
+        );
+
+
+        console.error(
+          "[LSPD MDT] Message:",
+          error?.message
+        );
+
+
+        console.error(
+          "[LSPD MDT] Details:",
+          error?.details
+        );
+
+
+        console.error(
+          "[LSPD MDT] Stack:",
+          error?.stack
+        );
+
+
+        /*
+         * Modal offen lassen und Button
+         * wieder freigeben.
+         */
+        resetSystemModalAfterFailure();
+
+
+        showSystemError(
+          error?.message ||
+            error?.details ||
+            "Der Rang konnte nicht erstellt werden."
+        );
+
+      }
+    )
+
+    /*
+     * NEUER, EINDEUTIGER SERVER-ENDPOINT
+     */
+    .systemCreateRank(
+      token,
+      data
+    );
+
+
+  return true;
+
+}
+
+
+  /* =========================================================
+     EDIT RANK
+     ========================================================= */
+
+  function openEditRankModal(
+    rank
+  ) {
+
+    const id =
+      getRankId(
+        rank
+      );
+
+
+    const name =
+      getRankName(
+        rank
+      );
+
+
+    const shortName =
+      getRankShortName(
+        rank
+      );
+
+
+    const level =
+      getRankLevel(
+        rank
+      );
+
+
+    const active =
+      getRankActive(
+        rank
+      );
+
+
+    if (!id) {
+
+      showSystemError(
+        "Die Rang-ID konnte nicht ermittelt werden."
+      );
+
+      return;
+
+    }
+
+
+    openSystemModal(
+
+      "Rang bearbeiten",
+
+      "Bearbeite die Eigenschaften des Dienstgrades.",
+
+      `
+        <div class="system-form">
+
+          <div class="system-form-grid">
+
+            <div class="system-form-group">
+
+              <label class="system-form-label">
+                Rangname
+              </label>
+
+              <input
+                id="editRankName"
+                class="system-form-input"
+                type="text"
+                autocomplete="off"
+                value="${escapeHtml(name)}"
+              >
+
+            </div>
+
+
+            <div class="system-form-group">
+
+              <label class="system-form-label">
+                Kürzel
+              </label>
+
+              <input
+                id="editRankShortName"
+                class="system-form-input"
+                type="text"
+                autocomplete="off"
+                maxlength="30"
+                value="${escapeHtml(shortName)}"
+              >
+
+            </div>
+
+
+            <div class="system-form-group">
+
+              <label class="system-form-label">
+                Level
+              </label>
+
+              <input
+                id="editRankLevel"
+                class="system-form-input"
+                type="number"
+                min="0"
+                step="1"
+                value="${escapeHtml(level)}"
+              >
+
+            </div>
+
+
+            <div class="system-form-group">
+
+              <label class="system-form-label">
+                Status
+              </label>
+
+              <label class="system-form-checkbox">
+
+                <input
+                  id="editRankActive"
+                  type="checkbox"
+                  ${active ? "checked" : ""}
+                >
+
+                <span>
+                  Rang aktiv
+                </span>
+
+              </label>
+
+            </div>
+
+          </div>
+
+        </div>
+      `,
+
+      "Änderungen speichern",
+
+      () =>
+        updateRankFromModal(
+          id
+        )
+
+    );
+
+  }
+
+
+  /*
+   * NEU:
+   *
+   * Diese Funktion besitzt keine Abhängigkeit vom
+   * vorherigen Rang oder vom vorherigen Modal.
+   */
+  function updateRankFromModal(
+    id
+  ) {
+
+    const normalizedId =
+      String(
+        id || ""
+      ).trim();
+
+
+    const nameInput =
+      document.getElementById(
+        "editRankName"
+      );
+
+
+    const shortNameInput =
+      document.getElementById(
+        "editRankShortName"
+      );
+
+
+    const levelInput =
+      document.getElementById(
+        "editRankLevel"
+      );
+
+
+    const activeInput =
+      document.getElementById(
+        "editRankActive"
+      );
+
+
+    console.log(
+      "[LSPD MDT] updateRankFromModal aufgerufen:",
+      {
+        id:
+          normalizedId
+      }
+    );
+
+
+    if (!nameInput) {
+
+      console.error(
+        "[LSPD MDT] editRankName wurde nicht gefunden."
+      );
+
+
+      showSystemError(
+        "Das Rangformular konnte nicht gelesen werden."
+      );
+
+
+      return false;
+
+    }
+
+
+    const name =
+      String(
+        nameInput.value || ""
+      ).trim();
+
+
+    const shortName =
+      String(
+        shortNameInput?.value || ""
+      ).trim();
+
+
+    const levelRaw =
+      String(
+        levelInput?.value || ""
+      ).trim();
+
+
+    const active =
+      activeInput?.checked === true;
+
+
+    if (!name) {
+
+      showSystemError(
+        "Bitte einen Rangnamen eingeben."
+      );
+
+
+      return false;
+
+    }
+
+
+    if (!shortName) {
+
+      showSystemError(
+        "Bitte ein Rangkürzel eingeben."
+      );
+
+
+      return false;
+
+    }
+
+
+    if (levelRaw === "") {
+
+      showSystemError(
+        "Bitte ein Level eingeben."
+      );
+
+
+      return false;
+
+    }
+
+
+    const level =
+      Number(
+        levelRaw
+      );
+
+
+    if (
+      !Number.isInteger(level) ||
+      level < 0
+    ) {
+
+      showSystemError(
+        "Das Level muss eine ganze Zahl ab 0 sein."
+      );
+
+
+      return false;
+
+    }
+
+
+    if (!normalizedId) {
+
+      console.error(
+        "[LSPD MDT] Ungültige Rang-ID:",
+        id
+      );
+
+
+      showSystemError(
+        "Der Rang besitzt keine gültige ID."
+      );
+
+
+      return false;
+
+    }
+
+
+    const token =
+      getSystemSessionToken();
+
+
+    if (!token) {
+
+      showSystemError(
+        "Keine aktive Sitzung vorhanden."
+      );
+
+
+      return false;
+
+    }
+
+
+    /*
+     * Nur die kanonischen Felder senden.
+     */
+    const data = {
+
+      ID:
+        normalizedId,
+
+      Name:
+        name,
+
+      ShortName:
+        shortName,
+
+      Level:
+        level,
+
+      Active:
+        active
+
+    };
+
+
+    console.group(
+      "[LSPD MDT] UPDATE RANK"
+    );
+
+
+    console.log(
+      "Rank ID:",
+      normalizedId
+    );
+
+
+    console.log(
+      "Token vorhanden:",
+      !!token
+    );
+
+
+    console.log(
+      "Daten:",
+      data
+    );
+
+
+    console.groupEnd();
+
+
+    CloudApi.run
+
+      .withSuccessHandler(
+        function(result) {
+
+          console.log(
+            "[LSPD MDT] Rang erfolgreich aktualisiert:",
+            result
+          );
+
+
+          /*
+           * Serverantwort direkt im lokalen Zustand übernehmen.
+           */
+          if (
+            result &&
+            result.rank &&
+            Array.isArray(
+              state.systemRanks
+            )
+          ) {
+
+            const updatedRank =
+              result.rank;
+
+
+            const updatedId =
+              getRankId(
+                updatedRank
+              );
+
+
+            state.systemRanks =
+              state.systemRanks.map(
+                existingRank => {
+
+                  if (
+                    getRankId(
+                      existingRank
+                    ) ===
+                    updatedId
+                  ) {
+
+                    return {
+
+                      ...existingRank,
+
+                      ID:
+                        updatedRank.ID,
+
+                      Name:
+                        updatedRank.Name,
+
+                      ShortName:
+                        updatedRank.ShortName,
+
+                      Level:
+                        updatedRank.Level,
+
+                      Active:
+                        updatedRank.Active
+
+                    };
+
+                  }
+
+
+                  return existingRank;
+
+                }
+              );
+
+
+            renderSystemRanks(
+              state.systemRanks
+            );
+
+          }
+
+
+          /*
+           * Danach Serverzustand erneut laden.
+           */
+          state.systemRanksLoaded =
+            false;
+
+
+          closeSystemModal();
+
+
+          showSystemSuccess(
+            result?.message ||
+              "Der Rang wurde erfolgreich aktualisiert."
+          );
+
+
+          loadSystemRanks();
+
+        }
+      )
+
+      .withFailureHandler(
+        function(error) {
+
+          console.error(
+            "[LSPD MDT] UPDATE RANK FEHLER:"
+          );
+
+
+          console.error(
+            "Error:",
+            error
+          );
+
+
+          console.error(
+            "Message:",
+            error?.message
+          );
+
+
+          console.error(
+            "Details:",
+            error?.details
+          );
+
+
+          console.error(
+            "Stack:",
+            error?.stack
+          );
+
+
+          /*
+           * Modal bleibt offen.
+           *
+           * Der gleiche Speichervorgang kann danach
+           * erneut gestartet werden.
+           */
+          resetSystemModalAfterFailure();
+
+
+          showSystemError(
+            error?.message ||
+              error?.details ||
+              "Der Rang konnte nicht aktualisiert werden."
+          );
+
+        }
+      )
+
+      .systemUpdateRank(
+        token,
+        normalizedId,
+        data
+      );
+
+
+    /*
+     * true = Serveraktion wurde gestartet.
+     */
+    return true;
+
+  }
+
+
+  /* =========================================================
+     PERMISSIONS
+     ========================================================= */
+
+  function loadSystemPermissions() {
+
+    const table =
+      document.getElementById(
+        "permissionsTable"
+      );
+
+
+    if (!table) {
+
+      return;
+
+    }
+
+
+    table.innerHTML = `
+      <tr>
+        <td
+          colspan="4"
+          class="system-empty"
+        >
+          Berechtigungen werden geladen...
+        </td>
+      </tr>
+    `;
+
+
+    const token =
+      getSystemSessionToken();
+
+
+    if (!token) {
+
+      table.innerHTML = `
+        <tr>
+          <td
+            colspan="4"
+            class="system-empty"
+          >
+            Keine aktive Sitzung.
+          </td>
+        </tr>
+      `;
+
+
+      showSystemError(
+        "Keine aktive Sitzung."
+      );
+
+      return;
+
+    }
+
+
+    CloudApi.run
+
+      .withSuccessHandler(
+        permissions => {
+
+          state.systemPermissions =
+            Array.isArray(
+              permissions
+            )
+              ? permissions
+              : [];
+
+
+          state.systemPermissionsLoaded =
+            true;
+
+
+          renderSystemPermissions(
+            state.systemPermissions
+          );
+
+        }
+      )
+
+      .withFailureHandler(
+        error => {
+
+          state.systemPermissionsLoaded =
+            false;
+
+
+          table.innerHTML = `
+            <tr>
+              <td
+                colspan="4"
+                class="system-empty"
+              >
+                Berechtigungen konnten nicht geladen werden.
+              </td>
+            </tr>
+          `;
+
+
+          showSystemError(
+            error?.message ||
+              "Die Berechtigungen konnten nicht geladen werden."
+          );
+
+        }
+      )
+
+      .systemGetPermissions(
+        token
+      );
+
+  }
+
+
+  function renderSystemPermissions(
+    permissions
+  ) {
+
+    const table =
+      document.getElementById(
+        "permissionsTable"
+      );
+
+
+    if (!table) {
+
+      return;
+
+    }
+
+
+    if (
+      !Array.isArray(permissions) ||
+      !permissions.length
+    ) {
+
+      table.innerHTML = `
+        <tr>
+          <td
+            colspan="4"
+            class="system-empty"
+          >
+            Keine Berechtigungen vorhanden.
+          </td>
+        </tr>
+      `;
+
+
+      return;
+
+    }
+
+
+    table.innerHTML =
+      permissions
+
+        .map(
+          permission => {
+
+            const name =
+              permission.Name ??
+              permission.name ??
+              "";
+
+
+            const key =
+              permission.Key ??
+              permission.key ??
+              permission.Permission ??
+              permission.permission ??
+              "";
+
+
+            const category =
+              permission.Category ??
+              permission.category ??
+              "Allgemein";
+
+
+            return `
+              <tr>
+
+                <td>
+                  ${escapeHtml(name)}
+                </td>
+
+                <td>
+                  ${escapeHtml(key)}
+                </td>
+
+                <td>
+                  ${escapeHtml(category)}
+                </td>
+
+                <td>
+
+                  <button
+                    type="button"
+                    class="system-button system-action-button"
+                    onclick='openEditPermissionModal(${JSON.stringify(permission).replace(/'/g, "&#39;")})'
+                  >
+                    Bearbeiten
+                  </button>
+
+                </td>
+
+              </tr>
+            `;
+
+          }
+        )
+
+        .join("");
+
+  }
+
+
+  /* =========================================================
+     CREATE PERMISSION
+     ========================================================= */
+
+  function openCreatePermissionModal() {
+
+    openSystemModal(
+
+      "Berechtigung erstellen",
+
+      "Erstelle einen neuen Berechtigungsschlüssel.",
+
+      `
+        <div class="system-form">
+
+          <div class="system-form-grid">
+
+            <div class="system-form-group">
+
+              <label class="system-form-label">
+                Name
+              </label>
+
+              <input
+                id="createPermissionName"
+                class="system-form-input"
+                type="text"
+                placeholder="z. B. Haftbefehle verwalten"
+              >
+
+            </div>
+
+
+            <div class="system-form-group">
+
+              <label class="system-form-label">
+                Schlüssel
+              </label>
+
+              <input
+                id="createPermissionKey"
+                class="system-form-input"
+                type="text"
+                placeholder="z. B. warrants.manage"
+              >
+
+            </div>
+
+
+            <div class="system-form-group full">
+
+              <label class="system-form-label">
+                Kategorie
+              </label>
+
+              <input
+                id="createPermissionCategory"
+                class="system-form-input"
+                type="text"
+                placeholder="z. B. Haftbefehle"
+              >
+
+            </div>
+
+          </div>
+
+        </div>
+      `,
+
+      "Berechtigung erstellen",
+
+      () =>
+        createPermissionFromModal()
+
+    );
+
+  }
+
+
+  function createPermissionFromModal() {
+
+    const name =
+      document
+        .getElementById(
+          "createPermissionName"
+        )
+        ?.value
+        .trim() ||
+      "";
+
+
+    const key =
+      document
+        .getElementById(
+          "createPermissionKey"
+        )
+        ?.value
+        .trim() ||
+      "";
+
+
+    const category =
+      document
+        .getElementById(
+          "createPermissionCategory"
+        )
+        ?.value
+        .trim() ||
+      "";
+
+
+    if (
+      !name ||
+      !key
+    ) {
+
+      showSystemError(
+        "Name und Schlüssel müssen ausgefüllt werden."
+      );
+
+
+      return false;
+
+    }
+
+
+    const token =
+      getSystemSessionToken();
+
+
+    if (!token) {
+
+      showSystemError(
+        "Keine aktive Sitzung vorhanden."
+      );
+
+
+      return false;
+
+    }
+
+
+    CloudApi.run
+
+      .withSuccessHandler(
+        () => {
+
+          closeSystemModal();
+
+
+          state.systemPermissionsLoaded =
+            false;
+
+
+          showSystemSuccess(
+            "Die Berechtigung wurde erfolgreich erstellt."
+          );
+
+
+          loadSystemPermissions();
+
+        }
+      )
+
+      .withFailureHandler(
+        error => {
+
+          resetSystemModalAfterFailure();
+
+
+          showSystemError(
+            error?.message ||
+              "Die Berechtigung konnte nicht erstellt werden."
+          );
+
+        }
+      )
+
+      .systemCreatePermission(
+
+        token,
+
+        {
+          Name:
+            name,
+
+          Key:
+            key,
+
+          Category:
+            category
+        }
+
+      );
+
+
+    return true;
+
+  }
+
+
+  /* =========================================================
+     EDIT PERMISSION
+     ========================================================= */
+
+  function openEditPermissionModal(
+    permission
+  ) {
+
+    const id =
+      permission.ID ??
+      permission.id ??
+      "";
+
+
+    const name =
+      permission.Name ??
+      permission.name ??
+      "";
+
+
+    const key =
+      permission.Key ??
+      permission.key ??
+      permission.Permission ??
+      permission.permission ??
+      "";
+
+
+    const category =
+      permission.Category ??
+      permission.category ??
+      "";
+
+
+    openSystemModal(
+
+      "Berechtigung bearbeiten",
+
+      "Bearbeite den Berechtigungsschlüssel.",
+
+      `
+        <div class="system-form">
+
+          <div class="system-form-grid">
+
+            <div class="system-form-group">
+
+              <label class="system-form-label">
+                Name
+              </label>
+
+              <input
+                id="editPermissionName"
+                class="system-form-input"
+                type="text"
+                value="${escapeHtml(name)}"
+              >
+
+            </div>
+
+
+            <div class="system-form-group">
+
+              <label class="system-form-label">
+                Schlüssel
+              </label>
+
+              <input
+                id="editPermissionKey"
+                class="system-form-input"
+                type="text"
+                value="${escapeHtml(key)}"
+              >
+
+            </div>
+
+
+            <div class="system-form-group full">
+
+              <label class="system-form-label">
+                Kategorie
+              </label>
+
+              <input
+                id="editPermissionCategory"
+                class="system-form-input"
+                type="text"
+                value="${escapeHtml(category)}"
+              >
+
+            </div>
+
+          </div>
+
+        </div>
+      `,
+
+      "Änderungen speichern",
+
+      () =>
+        updatePermissionFromModal(
+          id
+        )
+
+    );
+
+  }
+
+
+  function updatePermissionFromModal(
+    id
+  ) {
+
+    const name =
+      document
+        .getElementById(
+          "editPermissionName"
+        )
+        ?.value
+        .trim() ||
+      "";
+
+
+    const key =
+      document
+        .getElementById(
+          "editPermissionKey"
+        )
+        ?.value
+        .trim() ||
+      "";
+
+
+    const category =
+      document
+        .getElementById(
+          "editPermissionCategory"
+        )
+        ?.value
+        .trim() ||
+      "";
+
+
+    if (
+      !name ||
+      !key
+    ) {
+
+      showSystemError(
+        "Name und Schlüssel müssen ausgefüllt werden."
+      );
+
+
+      return false;
+
+    }
+
+
+    const token =
+      getSystemSessionToken();
+
+
+    if (!token) {
+
+      showSystemError(
+        "Keine aktive Sitzung vorhanden."
+      );
+
+
+      return false;
+
+    }
+
+
+    if (
+      typeof CloudApi === "undefined" || !CloudApi.run
+    ) {
+
+      showSystemError(
+        "Die Serververbindung ist nicht verfügbar."
+      );
+
+
+      return false;
+
+    }
+
+
+    CloudApi.run
+
+      .withSuccessHandler(
+        () => {
+
+          closeSystemModal();
+
+
+          state.systemPermissionsLoaded =
+            false;
+
+
+          showSystemSuccess(
+            "Die Berechtigung wurde erfolgreich aktualisiert."
+          );
+
+
+          loadSystemPermissions();
+
+        }
+      )
+
+      .withFailureHandler(
+        error => {
+
+          resetSystemModalAfterFailure();
+
+
+          showSystemError(
+            error?.message ||
+              "Die Berechtigung konnte nicht aktualisiert werden."
+          );
+
+        }
+      )
+
+      .systemUpdatePermission(
+
+        token,
+
+        id,
+
+        {
+          Name:
+            name,
+
+          Key:
+            key,
+
+          Category:
+            category
+        }
+
+      );
+
+
+    return true;
+
+  }
+
+
+  /* =========================================================
+     RANK PERMISSIONS
+     ========================================================= */
+
+  function loadRankPermissionData() {
+
+    Promise.all([
+
+      ensureSystemRanksLoaded(),
+
+      ensureSystemPermissionsLoaded()
+
+    ])
+
+      .then(
+        () => {
+
+          populatePermissionRankDropdown();
+
+
+          const nativeSelect =
+            document.getElementById(
+              "permissionRankSelect"
+            );
+
+
+          if (
+            nativeSelect &&
+            nativeSelect.value
+          ) {
+
+            loadRankPermissionEditor();
+
+          }
+
+        }
+      )
+
+      .catch(
+        () => {}
+      );
+
+  }
+
+
+  function ensureSystemPermissionsLoaded() {
+
+    if (
+      state.systemPermissionsLoaded
+    ) {
+
+      return Promise.resolve(
+        state.systemPermissions
+      );
+
+    }
+
+
+    return new Promise(
+      (
+        resolve,
+        reject
+      ) => {
+
+        const token =
+          getSystemSessionToken();
+
+
+        if (!token) {
+
+          const error =
+            new Error(
+              "Keine aktive Sitzung."
+            );
+
+
+          showSystemError(
+            error.message
+          );
+
+
+          reject(
+            error
+          );
+
+          return;
+
+        }
+
+
+        CloudApi.run
+
+          .withSuccessHandler(
+            permissions => {
+
+              state.systemPermissions =
+                Array.isArray(
+                  permissions
+                )
+                  ? permissions
+                  : [];
+
+
+              state.systemPermissionsLoaded =
+                true;
+
+
+              resolve(
+                state.systemPermissions
+              );
+
+            }
+          )
+
+          .withFailureHandler(
+            error => {
+
+              state.systemPermissionsLoaded =
+                false;
+
+
+              showSystemError(
+                error?.message ||
+                  "Die Berechtigungen konnten nicht geladen werden."
+              );
+
+
+              reject(
+                error
+              );
+
+            }
+          )
+
+          .systemGetPermissions(
+            token
+          );
+
+      }
+    );
+
+  }
+
+
+  function loadRankPermissionEditor() {
+
+    const select =
+      document.getElementById(
+        "permissionRankSelect"
+      );
+
+
+    const editor =
+      document.getElementById(
+        "rankPermissionEditor"
+      );
+
+
+    if (
+      !select ||
+      !editor
+    ) {
+
+      return;
+
+    }
+
+
+    const rankId =
+      select.value;
+
+
+    if (!rankId) {
+
+      editor.innerHTML = `
+
+        <div class="rank-permission-title">
+          Rang auswählen
+        </div>
+
+        <div class="rank-permission-description">
+          Wähle links einen Rang aus, um dessen Berechtigungen zu verwalten.
+        </div>
+
+      `;
+
+
+      return;
+
+    }
+
+
+    editor.innerHTML = `
+
+      <div class="rank-permission-title">
+        Berechtigungen werden geladen...
+      </div>
+
+      <div class="rank-permission-description">
+        Die Berechtigungen des ausgewählten Rangs werden geladen.
+      </div>
+
+    `;
+
+
+    const token =
+      getSystemSessionToken();
+
+
+    if (!token) {
+
+      showSystemError(
+        "Keine aktive Sitzung."
+      );
+
+      return;
+
+    }
+
+
+    CloudApi.run
+
+      .withSuccessHandler(
+        selectedPermissions => {
+
+          renderRankPermissionEditor(
+            rankId,
+            selectedPermissions
+          );
+
+        }
+      )
+
+      .withFailureHandler(
+        error => {
+
+          editor.innerHTML = `
+
+            <div class="rank-permission-title">
+              Fehler
+            </div>
+
+            <div class="rank-permission-description">
+              Die Berechtigungen konnten nicht geladen werden.
+            </div>
+
+          `;
+
+
+          showSystemError(
+            error?.message ||
+              "Die Rangberechtigungen konnten nicht geladen werden."
+          );
+
+        }
+      )
+
+      .systemGetRankPermissions(
+        token,
+        rankId
+      );
+
+  }
+
+
+  function renderRankPermissionEditor(
+    rankId,
+    selectedPermissions
+  ) {
+
+    const editor =
+      document.getElementById(
+        "rankPermissionEditor"
+      );
+
+
+    if (!editor) {
+
+      return;
+
+    }
+
+
+    const selectedSet =
+      new Set(
+
+        Array.isArray(
+          selectedPermissions
+        )
+
+          ? selectedPermissions.map(
+              value =>
+                String(value)
+            )
+
+          : []
+
+      );
+
+
+    const grouped = {};
+
+
+    state.systemPermissions.forEach(
+      permission => {
+
+        const id =
+          String(
+
+            permission.ID ??
+            permission.id ??
+            permission.Key ??
+            permission.key ??
+            ""
+
+          );
+
+
+        const name =
+          permission.Name ??
+          permission.name ??
+          permission.Key ??
+          permission.key ??
+          id;
+
+
+        const key =
+          permission.Key ??
+          permission.key ??
+          id;
+
+
+        const category =
+          permission.Category ??
+          permission.category ??
+          "Allgemein";
+
+
+        if (
+          !grouped[category]
+        ) {
+
+          grouped[category] =
+            [];
+
+        }
+
+
+        grouped[category].push({
+
+          id,
+
+          name,
+
+          key
+
+        });
+
+      }
+    );
+
+
+    const categories =
+      Object.keys(
+        grouped
+      );
+
+
+    if (!categories.length) {
+
+      editor.innerHTML = `
+
+        <div class="rank-permission-title">
+          Keine Berechtigungen
+        </div>
+
+        <div class="rank-permission-description">
+          Es wurden noch keine Berechtigungen angelegt.
+        </div>
+
+      `;
+
+
+      return;
+
+    }
+
+
+    let html =
+      "";
+
+
+    html += `
+
+      <div class="rank-permission-header">
+
+        <div class="rank-permission-title">
+          Rangberechtigungen
+        </div>
+
+        <div class="rank-permission-description">
+          Weise dem ausgewählten Rang die gewünschten Berechtigungen zu.
+        </div>
+
+      </div>
+
+    `;
+
+
+    categories.forEach(
+      category => {
+
+        html += `
+
+          <div class="permission-category">
+
+            <div class="permission-category-title">
+              ${escapeHtml(category)}
+            </div>
+
+            <div class="permission-list">
+
+        `;
+
+
+        grouped[category].forEach(
+          permission => {
+
+            const checked =
+              selectedSet.has(
+                String(
+                  permission.id
+                )
+              ) ||
+
+              selectedSet.has(
+                String(
+                  permission.key
+                )
+              );
+
+
+            html += `
+
+              <label class="permission-item">
+
+                <div class="permission-item-content">
+
+                  <div class="permission-item-name">
+                    ${escapeHtml(
+                      permission.name
+                    )}
+                  </div>
+
+                  <div class="permission-item-key">
+                    ${escapeHtml(
+                      permission.key
+                    )}
+                  </div>
+
+                </div>
+
+
+                <input
+                  type="checkbox"
+                  class="rank-permission-checkbox"
+                  value="${escapeHtml(
+                    permission.id
+                  )}"
+                  data-permission-key="${escapeHtml(
+                    permission.key
+                  )}"
+                  ${checked ? "checked" : ""}
+                >
+
+              </label>
+
+            `;
+
+          }
+        );
+
+
+        html += `
+
+            </div>
+
+          </div>
+
+        `;
+
+      }
+    );
+
+
+    html += `
+
+      <div class="rank-permission-save">
+
+        <button
+          type="button"
+          class="system-button primary"
+          onclick="saveRankPermissions()"
+        >
+          Änderungen speichern
+        </button>
+
+      </div>
+
+    `;
+
+
+    editor.innerHTML =
+      html;
+
+  }
+
+
+  function saveRankPermissions() {
+
+    const select =
+      document.getElementById(
+        "permissionRankSelect"
+      );
+
+
+    if (
+      !select ||
+      !select.value
+    ) {
+
+      showSystemError(
+        "Bitte zuerst einen Rang auswählen."
+      );
+
+      return;
+
+    }
+
+
+    const rankId =
+      select.value;
+
+
+    const selected =
+      Array.from(
+
+        document.querySelectorAll(
+          ".rank-permission-checkbox:checked"
+        )
+
+      )
+        .map(
+          checkbox =>
+            checkbox.value
+        );
+
+
+    const token =
+      getSystemSessionToken();
+
+
+    if (!token) {
+
+      showSystemError(
+        "Keine aktive Sitzung vorhanden."
+      );
+
+      return;
+
+    }
+
+
+    CloudApi.run
+
+      .withSuccessHandler(
+        () => {
+
+          showSystemSuccess(
+            "Die Rangberechtigungen wurden gespeichert."
+          );
+
+        }
+      )
+
+      .withFailureHandler(
+        error => {
+
+          showSystemError(
+            error?.message ||
+              "Die Rangberechtigungen konnten nicht gespeichert werden."
+          );
+
+        }
+      )
+
+      .systemSetRankPermissions(
+
+        token,
+
+        rankId,
+
+        selected
+
+      );
+
+  }
+
+
+  /* =========================================================
+     DOCUMENT EVENTS
+     ========================================================= */
+
+  if (
+    !state.documentEventsBound
+  ) {
+
+    state.documentEventsBound =
+      true;
+
+
+    document.addEventListener(
+      "click",
+      function (
+        event
+      ) {
+
+        if (
+          !event.target.closest(
+            ".system-custom-select"
+          )
+        ) {
+
+          closeAllSystemDropdowns();
+
+        }
+
+      }
+    );
+
+
+    document.addEventListener(
+      "keydown",
+      function (
+        event
+      ) {
+
+        if (
+          event.key !==
+          "Escape"
+        ) {
+
+          return;
+
+        }
+
+
+        closeAllSystemDropdowns();
+
+
+        const overlay =
+          document.getElementById(
+            "systemModalOverlay"
+          );
+
+
+        if (
+          overlay &&
+          overlay.classList.contains(
+            "active"
+          )
+        ) {
+
+          closeSystemModal();
+
+        }
+
+      }
+    );
+
+
+    document.addEventListener(
+      "click",
+      function (
+        event
+      ) {
+
+        const overlay =
+          document.getElementById(
+            "systemModalOverlay"
+          );
+
+
+        if (
+          overlay &&
+          event.target ===
+            overlay
+        ) {
+
+          closeSystemModal();
+
+        }
+
+      }
+    );
+
+  }
+
+
+  /* =========================================================
+     GLOBALE FUNKTIONEN
+     ========================================================= */
+
+  window.openSystemTab =
+    openSystemTab;
+
+  window.toggleSystemRankDropdown =
+    toggleSystemRankDropdown;
+
+  window.toggleCreateUserRankDropdown =
+    toggleCreateUserRankDropdown;
+
+  window.toggleEditUserRankDropdown =
+    toggleEditUserRankDropdown;
+
+  window.openCreateUserModal =
+    openCreateUserModal;
+
+  window.openEditUserModal =
+    openEditUserModal;
+
+  window.openEditUserModalById =
+    openEditUserModalById;
+
+  window.openApproveUserModalById =
+    openApproveUserModalById;
+
+  window.openApproveUserModal =
+    openApproveUserModal;
+
+  window.toggleApproveUserRankDropdown =
+    toggleApproveUserRankDropdown;
+
+  window.selectApproveUserRank =
+    selectApproveUserRank;
+
+  window.openCreateRankModal =
+    openCreateRankModal;
+
+  window.openEditRankModal =
+    openEditRankModal;
+
+  window.openCreatePermissionModal =
+    openCreatePermissionModal;
+
+  window.openEditPermissionModal =
+    openEditPermissionModal;
+
+  window.closeSystemModal =
+    closeSystemModal;
+
+  window.confirmSystemModal =
+    confirmSystemModal;
+
+  window.saveRankPermissions =
+    saveRankPermissions;
+
+
+  /* =========================================================
+     INITIALIZATION
+     ========================================================= */
+
+  window.addEventListener("fib-mdt:refresh-request", function () {
+    const section = document.getElementById("systemSectionUsers");
+    const modal = document.getElementById("fibGlobalModalOverlay");
+    if (section && section.offsetParent !== null && !(modal && modal.classList.contains("open"))) loadSystemUsers();
+  });
+  window.addEventListener("fib-mdt:data-changed", function (event) {
+    const section = document.getElementById("systemSectionUsers");
+    const modal = document.getElementById("fibGlobalModalOverlay");
+    if (section && section.offsetParent !== null && !(modal && modal.classList.contains("open")) && /User|Rank|Permission|System/i.test(String(event.detail && event.detail.method || ""))) loadSystemUsers();
+  });
+
+  ensureSessionState();
+  updateSystemCreateUserButton();
+
+
+  if (
+    typeof currentPage !==
+      "undefined" &&
+    currentPage === "system"
+  ) {
+
+    loadSystemUsers();
+
+  }
+
+})();
+</script>

@@ -4,10 +4,10 @@
   "type": "module",
   "scripts": {
     "dev": "wrangler pages dev public",
-    "deploy": "wrangler pages deploy public --project-name=lspd-mdt"
+    "deploy": "wrangler pages deploy public --project-name=fib-mdt"
   },
   "devDependencies": {
     "wrangler": "^4.0.0"
   },
-  "version": "0.9.5"
+  "version": "0.9.4"
 }

@@ -1,16 +1,242 @@
-<main class="mdt-workspace mdt-workspace--calendar" data-mdt-page="calendar" data-lspd-module="calendar">
-<section class="mdt-module" id="mdt-module-calendar">
- <h2>Kalender</h2><div class="sub">Termine und dienstliche Ereignisse verwalten.</div>
- <div class="toolbar"><input id="calendar-search" placeholder="Einträge durchsuchen…" aria-label="Einträge durchsuchen"><button class="secondary" id="calendar-reload">Aktualisieren</button><button id="calendar-new">+ Neuer Eintrag</button></div>
- <div class="message" id="calendar-message" role="status">Daten werden geladen …</div>
- <div class="form" id="calendar-form" style="display:none">
-  <input id="calendar-title" placeholder="Titel / Termin" maxlength="180">
-  <select id="calendar-status"><option value="scheduled">Scheduled</option><option value="active">Aktiv</option><option value="pending">Ausstehend</option><option value="approved">Genehmigt</option><option value="rejected">Abgelehnt</option><option value="closed">Abgeschlossen</option><option value="scheduled">Geplant</option></select>
-  <input id="calendar-date" type="datetime-local" aria-label="Datum und Uhrzeit">
-  <textarea id="calendar-description" placeholder="Beschreibung / Details"></textarea>
-  <div class="actions"><button id="calendar-save">Speichern</button><button class="secondary" id="calendar-cancel">Abbrechen</button></div>
- </div>
- <div class="items" id="calendar-items"></div>
+<style>
+.lspd-module-page{max-width:1240px;margin:0 auto;padding:26px 28px 42px;color:#17263b}
+.lspd-module-head{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;margin-bottom:20px}
+.lspd-module-kicker{font-size:10px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:#8a6b2d;margin-bottom:7px}
+.lspd-module-head h2{font-size:25px;line-height:1.2;margin:0;color:#12233b;font-weight:800}
+.lspd-module-subtitle{color:#64748b;font-size:13px;margin-top:7px}
+.lspd-module-actions{display:flex;gap:8px;flex-wrap:wrap}
+.lspd-btn{border:1px solid #d5deea;border-radius:8px;background:#fff;color:#1c304c;padding:9px 13px;font-family:inherit;font-size:12px;font-weight:600;line-height:1.2;cursor:pointer;transition:.15s}
+.lspd-btn:hover{border-color:#9e803f;background:#fbfaf6}
+.lspd-btn.primary{background:#17345b;color:#fff;border-color:#17345b}
+.lspd-btn.primary:hover{background:#214773}
+.lspd-btn.danger{color:#a33131;border-color:#e9caca;background:#fff}
+.lspd-btn.subtle{background:#f4f7fb}
+.lspd-module-message{padding:10px 12px;border:1px solid #dce4ee;border-radius:8px;background:#f7f9fc;color:#506078;font-size:12px;margin:0 0 16px}
+.lspd-module-grid{display:grid;grid-template-columns:1fr;gap:20px}
+.lspd-module-section{background:#fff;border:1px solid #dce3ec;border-radius:12px;box-shadow:0 5px 18px rgba(25,44,70,.045);overflow:hidden}
+.lspd-module-section-head{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:15px 18px;border-bottom:1px solid #e7ecf2;background:#f8fafc}
+.lspd-module-section-head h3{font-size:15px;margin:0;color:#172b46}
+.lspd-module-section-head p{font-size:11px;color:#718096;margin:4px 0 0}
+.lspd-module-count{border-radius:20px;background:#eaf0f7;color:#405775;font-size:11px;font-weight:700;padding:4px 9px}
+.lspd-module-list{display:grid;gap:0}
+.lspd-module-entry{padding:16px 18px;border-bottom:1px solid #edf1f5}
+.lspd-module-entry:last-child{border-bottom:0}
+.lspd-module-entry-top{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}
+.lspd-module-entry h4{margin:0;color:#1a2d48;font-size:14px;font-weight:750}
+.lspd-module-meta{display:flex;gap:8px;flex-wrap:wrap;color:#738197;font-size:11px;margin-top:6px}
+.lspd-module-tag{display:inline-flex;align-items:center;border-radius:20px;padding:3px 8px;background:#eef3f8;color:#47617f;font-size:10px;font-weight:700}
+.lspd-module-tag.gold{background:#f7f0df;color:#866526}
+.lspd-module-entry-body{margin-top:10px;color:#43536a;font-size:12px;line-height:1.65;overflow-wrap:anywhere}.lspd-module-entry-body h1{font-size:1.4em;color:#1a2d48;margin:.8em 0 .35em}.lspd-module-entry-body h2{font-size:1.2em;color:#1a2d48;margin:.7em 0 .3em}.lspd-module-entry-body h3{font-size:1.05em;color:#1a2d48;margin:.6em 0 .25em}.lspd-module-entry-body p{margin:.35em 0}.lspd-module-entry-body ul{padding-left:20px;margin:.4em 0}
+.lspd-module-entry-actions{display:flex;gap:6px;flex-wrap:wrap}
+.lspd-module-empty{padding:25px 18px;text-align:center;color:#8793a4;font-size:12px}
+.lspd-editor{display:none;padding:17px 18px;background:#fbfcfe;border-bottom:1px solid #e5ebf2}
+.lspd-editor.is-open{display:block}
+.lspd-editor-grid{display:grid;grid-template-columns:1.4fr 1fr;gap:10px}
+.lspd-editor input,.lspd-editor select,.lspd-editor textarea{width:100%;min-width:0;border:1px solid #ccd6e2;border-radius:7px;background:#fff;color:#1b2d45;padding:10px 11px;font-family:inherit;font-size:12px;outline:none}
+.lspd-editor input:focus,.lspd-editor select:focus,.lspd-editor textarea:focus{border-color:#8a713b;box-shadow:0 0 0 3px rgba(177,145,75,.12)}
+.lspd-editor textarea{min-height:94px;resize:vertical;grid-column:1/-1}
+.lspd-editor-actions{display:flex;gap:8px;grid-column:1/-1;align-items:center}
+.lspd-editor-hint{font-size:10px;color:#8490a0;grid-column:1/-1}
+.lspd-confirm{display:none;align-items:center;gap:8px;margin-top:9px;padding:8px 10px;background:#fff8f0;border:1px solid #efd9bd;border-radius:7px;color:#765323;font-size:11px}
+.lspd-confirm.is-open{display:flex}
+
+.lspd-calendar-wrap{padding:12px 14px 16px;overflow-x:auto}
+.lspd-calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(90px,1fr));min-width:630px;border-top:1px solid #e4eaf1;border-left:1px solid #e4eaf1}
+.lspd-calendar-weekday{padding:8px 6px;background:#f1f5f9;color:#66758a;text-align:center;font-size:10px;font-weight:800;letter-spacing:.05em;border-right:1px solid #e4eaf1;border-bottom:1px solid #e4eaf1}
+.lspd-calendar-day{min-height:92px;padding:7px 6px;border-right:1px solid #e4eaf1;border-bottom:1px solid #e4eaf1;background:#fff}
+.lspd-calendar-day.is-outside{background:#f8fafc;color:#a0aab8}
+.lspd-calendar-day.is-today{background:#fffdf7;box-shadow:inset 0 0 0 1px #c6a45c}
+.lspd-calendar-day-number{font-size:10px;font-weight:800;color:#718096;margin-bottom:5px}
+.lspd-calendar-day.is-today .lspd-calendar-day-number{color:#8b6827}
+.lspd-calendar-event{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin:3px 0;padding:3px 5px;border-radius:4px;background:#eaf0f7;color:#2f4b6d;font-size:9px;font-weight:700}
+.lspd-calendar-more{font-size:9px;color:#7d8999;margin-top:4px}
+@media(max-width:720px){.lspd-module-page{padding:18px 14px 30px}.lspd-module-head{display:block}.lspd-module-actions{margin-top:14px}.lspd-editor-grid{grid-template-columns:1fr}.lspd-editor textarea,.lspd-editor-actions,.lspd-editor-hint{grid-column:1}.lspd-module-entry-top{display:block}.lspd-module-entry-actions{margin-top:10px}}
+</style>
+<section class="lspd-module-page" id="lspdCalendarPage">
+  <header class="lspd-module-head">
+    <div><div class="lspd-module-kicker">Department Operations</div><h2>Departmentkalender</h2><div class="lspd-module-subtitle">Alle dienstlichen Termine und gesondert geführte Dienstplanänderungen an einem Ort.</div></div>
+    <div class="lspd-module-actions"><button class="lspd-btn subtle" id="calReload">Aktualisieren</button><button class="lspd-btn primary" id="calNewEvent">+ Termin eintragen</button><button class="lspd-btn" id="calNewChange">+ Dienstplanänderung</button></div>
+  </header>
+  <div class="lspd-module-message" id="calMessage" role="status">Kalenderdaten werden geladen …</div>
+  <section class="lspd-module-section">
+    <div class="lspd-module-section-head"><div><h3 id="calMonthTitle">Monatsübersicht</h3><p>Alle datierten Departmenttermine in der Monatsansicht</p></div><div class="lspd-module-actions"><button class="lspd-btn" id="calMonthPrev" aria-label="Vorheriger Monat">‹</button><button class="lspd-btn subtle" id="calMonthToday">Heute</button><button class="lspd-btn" id="calMonthNext" aria-label="Nächster Monat">›</button></div></div>
+    <div class="lspd-calendar-wrap"><div class="lspd-calendar-grid" id="calMonthGrid"></div></div>
+  </section>
+  <section class="lspd-module-section">
+    <div class="lspd-module-section-head"><div><h3>Reguläre Termine</h3><p>Besprechungen, Schulungen, Veranstaltungen und sonstige Departmenttermine</p></div><span class="lspd-module-count" id="calEventCount">0 Termine</span></div>
+    <div class="lspd-editor" id="calEventEditor">
+      <div class="lspd-editor-grid">
+        <input id="calEventTitle" maxlength="180" placeholder="Titel des Termins">
+        <select id="calEventStatus"><option value="planned">Geplant</option><option value="confirmed">Bestätigt</option><option value="completed">Abgeschlossen</option><option value="cancelled">Abgesagt</option></select>
+        <input id="calEventDate" type="datetime-local" aria-label="Terminzeitpunkt">
+        <textarea id="calEventDescription" placeholder="Beschreibung und weitere Informationen …"></textarea>
+        <div class="lspd-editor-hint">Formatierung möglich: **Fett**, *Kursiv*, __Unterstrichen__, Überschriften mit # sowie Aufzählungen mit -.</div>
+        <div class="lspd-editor-actions"><button class="lspd-btn primary" id="calEventSave">Termin speichern</button><button class="lspd-btn" id="calEventCancel">Abbrechen</button></div>
+      </div>
+    </div>
+    <div class="lspd-module-list" id="calEvents"><div class="lspd-module-empty">Einträge werden geladen …</div></div>
+  </section>
+  <section class="lspd-module-section">
+    <div class="lspd-module-section-head"><div><h3>Dienstplanänderungen</h3><p>Temporäre Änderungen an Dienstzeiten, Besetzungen und Dienstabläufen</p></div><span class="lspd-module-count" id="calChangeCount">0 Änderungen</span></div>
+    <div class="lspd-editor" id="calChangeEditor">
+      <div class="lspd-editor-grid">
+        <input id="calChangeTitle" maxlength="180" placeholder="Bezeichnung der Dienstplanänderung">
+        <select id="calChangeStatus"><option value="active">Aktiv</option><option value="planned">Angekündigt</option><option value="completed">Erledigt</option></select>
+        <input id="calChangeDate" type="datetime-local" aria-label="Gültig ab">
+        <textarea id="calChangeDescription" placeholder="Welche Dienstplanänderung gilt, für wen und in welchem Zeitraum?"></textarea>
+        <div class="lspd-editor-hint">Dienstplanänderungen werden automatisch wöchentlich in der Nacht auf Montag entfernt. Reguläre Termine bleiben bestehen.</div>
+        <div class="lspd-editor-actions"><button class="lspd-btn primary" id="calChangeSave">Änderung speichern</button><button class="lspd-btn" id="calChangeCancel">Abbrechen</button></div>
+      </div>
+    </div>
+    <div class="lspd-module-list" id="calChanges"><div class="lspd-module-empty">Einträge werden geladen …</div></div>
+  </section>
 </section>
-<script src="/js/pages/calendar.js?v=3.76" defer></script>
-</main>
+<script>
+(function () {
+  "use strict";
+  var root = document.getElementById("lspdCalendarPage");
+  if (!root || root.dataset.ready === "1") return;
+  root.dataset.ready = "1";
+  var rows = [], canManage = false, editing = { event: null, change: null }, pendingDelete = null, monthCursor = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+  var $ = function (id) { return document.getElementById(id); };
+  var token = function () { return sessionStorage.getItem("fib_mdt_session") || sessionStorage.getItem("lspd_mdt_session") || ""; };
+  var call = function (method) {
+    var args = Array.prototype.slice.call(arguments, 1);
+    return new Promise(function (resolve, reject) {
+      var runner = CloudApi.run;
+      runner.withSuccessHandler(resolve).withFailureHandler(reject)[method](token(), ...args);
+    });
+  };
+  var esc = function (v) { return String(v == null ? "" : v).replace(/[&<>"']/g, function (c) { return ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" })[c]; }); };
+  var message = function (value) { $("calMessage").textContent = value; };
+  var isChange = function (r) { return r && r.metadata && r.metadata.entry_type === "schedule_change"; };
+  var formatDate = function (value) { if (!value) return "Ohne Zeitangabe"; var d = new Date(value); return Number.isNaN(d.getTime()) ? "Ohne Zeitangabe" : d.toLocaleString("de-DE", {dateStyle:"medium",timeStyle:"short"}); };
+  var statusLabel = function (value) { return ({planned:"Geplant",confirmed:"Bestätigt",completed:"Abgeschlossen",cancelled:"Abgesagt",active:"Aktiv"})[value] || value || "—"; };
+  var rich = function (value) { return window.MDTRichText ? window.MDTRichText.render(value) : "<p>" + esc(value).replace(/\n/g,"<br>") + "</p>"; };
+
+  function sorted(list) {
+    return list.slice().sort(function (a,b) {
+      var ad = Date.parse(a.eventDate || a.created_at || 0) || 0, bd = Date.parse(b.eventDate || b.created_at || 0) || 0;
+      if (!ad && !bd) return String(b.created_at||"").localeCompare(String(a.created_at||""));
+      if (!ad) return 1; if (!bd) return -1; return ad - bd;
+    });
+  }
+  function card(row, type) {
+    var id = esc(row.id), date = formatDate(row.event_date), label = statusLabel(row.status);
+    return '<article class="lspd-module-entry" data-entry="' + id + '">' +
+      '<div class="lspd-module-entry-top"><div><h4>' + esc(row.title || "Ohne Titel") + '</h4><div class="lspd-module-meta"><span>' + esc(date) + '</span><span class="lspd-module-tag ' + (type === "change" ? "gold" : "") + '">' + esc(label) + '</span><span>Erstellt von ' + esc(row.created_by_name || "Unbekannt") + '</span></div></div>' +
+      (canManage ? '<div class="lspd-module-entry-actions"><button class="lspd-btn subtle" data-edit="' + id + '" data-type="' + type + '">Bearbeiten</button><button class="lspd-btn danger" data-delete="' + id + '" data-type="' + type + '">Löschen</button></div>' : '') + '</div>' +
+      '<div class="lspd-module-entry-body mdt-rich-content">' + rich(row.description || "") + '</div>' +
+      '<div class="lspd-confirm" data-confirm="' + id + '"><span>Eintrag wirklich löschen?</span><button class="lspd-btn danger" data-confirm-yes="' + id + '" data-type="' + type + '">Ja, löschen</button><button class="lspd-btn" data-confirm-no="' + id + '">Abbrechen</button></div></article>';
+  }
+  function dateKey(date) { return date.getFullYear() + "-" + String(date.getMonth()+1).padStart(2,"0") + "-" + String(date.getDate()).padStart(2,"0"); }
+  function renderMonth(events) {
+    var year = monthCursor.getFullYear(), month = monthCursor.getMonth();
+    $("calMonthTitle").textContent = monthCursor.toLocaleDateString("de-DE",{month:"long",year:"numeric"});
+    var first = new Date(year,month,1), offset = (first.getDay()+6)%7, start = new Date(year,month,1-offset);
+    var weekdays = ["Mo","Di","Mi","Do","Fr","Sa","So"];
+    var html = weekdays.map(function(day){return '<div class="lspd-calendar-weekday">'+day+'</div>';}).join("");
+    var today = dateKey(new Date()), dated = {};
+    events.forEach(function(r){if(!r.event_date)return;var d=new Date(r.event_date);if(Number.isNaN(d.getTime()))return;var key=dateKey(d);(dated[key]||(dated[key]=[])).push(r);});
+    for(var n=0;n<42;n++){
+      var day = new Date(start.getFullYear(),start.getMonth(),start.getDate()+n), key=dateKey(day), items=dated[key]||[];
+      html += '<div class="lspd-calendar-day '+(day.getMonth()!==month?'is-outside ':'')+(key===today?'is-today':'')+'"><div class="lspd-calendar-day-number">'+day.getDate()+'</div>'+
+        items.slice(0,3).map(function(r){return '<span class="lspd-calendar-event" title="'+esc(r.title||"Termin")+'">'+esc(r.title||"Termin")+'</span>';}).join("")+
+        (items.length>3?'<div class="lspd-calendar-more">+'+(items.length-3)+' weitere</div>':'')+'</div>';
+    }
+    $("calMonthGrid").innerHTML=html;
+  }
+  function render() {
+    var events = sorted(rows.filter(function (r) { return !isChange(r); }));
+    renderMonth(events);
+    var changes = sorted(rows.filter(isChange));
+    $("calEventCount").textContent = events.length + (events.length === 1 ? " Termin" : " Termine");
+    $("calChangeCount").textContent = changes.length + (changes.length === 1 ? " Änderung" : " Änderungen");
+    $("calEvents").innerHTML = events.length ? events.map(function (r) { return card(r,"event"); }).join("") : '<div class="lspd-module-empty">Derzeit sind keine Termine eingetragen.</div>';
+    $("calChanges").innerHTML = changes.length ? changes.map(function (r) { return card(r,"change"); }).join("") : '<div class="lspd-module-empty">Derzeit sind keine Dienstplanänderungen eingetragen.</div>';
+  }
+  async function load() {
+    message("Kalenderdaten werden geladen …");
+    try {
+      var permissionState = await call("getMyPermissions");
+      var permissionList = permissionState && Array.isArray(permissionState.permissions) ? permissionState.permissions : [];
+      canManage = !!(permissionState && permissionState.master) || permissionList.indexOf("*") >= 0 || permissionList.indexOf("calendar.manage") >= 0;
+      $("calNewEvent").hidden = !canManage;
+      $("calNewChange").hidden = !canManage;
+      var result = await call("getModuleItems","calendar");
+      rows = Array.isArray(result) ? result : [];
+      message(rows.length + " Kalendereinträge geladen.");
+      render();
+    } catch (error) {
+      message(error && error.message ? error.message : "Kalenderdaten konnten nicht geladen werden.");
+      $("calEvents").innerHTML = '<div class="lspd-module-empty">Der Kalender ist derzeit nicht erreichbar. Bitte Berechtigungen und Verbindung prüfen.</div>';
+      $("calChanges").innerHTML = "";
+    }
+  }
+  function toLocal(value) {
+    if (!value) return "";
+    var d = new Date(value);
+    return Number.isNaN(d.getTime()) ? "" : new Date(d.getTime() - d.getTimezoneOffset()*60000).toISOString().slice(0,16);
+  }
+  function openEditor(type, row) {
+    if (!canManage) return;
+    editing[type] = row ? row.id : null;
+    var prefix = type === "event" ? "calEvent" : "calChange";
+    var panel = type === "event" ? $("calEventEditor") : $("calChangeEditor");
+    panel.classList.add("is-open");
+    $(prefix+"Title").value = row ? row.title || "" : "";
+    $(prefix+"Description").value = row ? row.description || "" : "";
+    $(prefix+"Status").value = row ? row.status || (type === "event" ? "planned" : "active") : (type === "event" ? "planned" : "active");
+    $(prefix+"Date").value = row ? toLocal(row.event_date) : "";
+    $(prefix+"Title").focus();
+  }
+  function closeEditor(type) {
+    var prefix = type === "event" ? "calEvent" : "calChange";
+    (type === "event" ? $("calEventEditor") : $("calChangeEditor")).classList.remove("is-open");
+    editing[type] = null;
+    ["Title","Description","Date"].forEach(function (field) { $(prefix+field).value = ""; });
+    $(prefix+"Status").selectedIndex = 0;
+  }
+  async function save(type) {
+    var prefix = type === "event" ? "calEvent" : "calChange";
+    var title = $(prefix+"Title").value.trim();
+    if (!title) { message("Bitte einen Titel eingeben."); $(prefix+"Title").focus(); return; }
+    var old = rows.find(function (r) { return String(r.id) === String(editing[type]); });
+    var data = {
+      title: title,
+      description: $(prefix+"Description").value.trim(),
+      status: $(prefix+"Status").value,
+      eventDate: $(prefix+"Date").value ? new Date($(prefix+"Date").value).toISOString() : null,
+      metadata: Object.assign({}, old && old.metadata || {}, { application: "lspd", entry_type: type === "event" ? "event" : "schedule_change" })
+    };
+    var button = $(prefix+"Save"); button.disabled = true;
+    try {
+      if (editing[type]) await call("updateModuleItem","calendar",editing[type],data);
+      else await call("createModuleItem","calendar",data);
+      closeEditor(type); message(type === "event" ? "Termin gespeichert." : "Dienstplanänderung gespeichert."); await load();
+    } catch (error) { message(error && error.message ? error.message : "Speichern fehlgeschlagen."); }
+    finally { button.disabled = false; }
+  }
+
+  $("calNewEvent").addEventListener("click",function(){openEditor("event");});
+  $("calNewChange").addEventListener("click",function(){openEditor("change");});
+  $("calEventSave").addEventListener("click",function(){save("event");});
+  $("calChangeSave").addEventListener("click",function(){save("change");});
+  $("calEventCancel").addEventListener("click",function(){closeEditor("event");});
+  $("calChangeCancel").addEventListener("click",function(){closeEditor("change");});
+  $("calReload").addEventListener("click",load);
+  $("calMonthPrev").addEventListener("click",function(){monthCursor=new Date(monthCursor.getFullYear(),monthCursor.getMonth()-1,1);render();});
+  $("calMonthNext").addEventListener("click",function(){monthCursor=new Date(monthCursor.getFullYear(),monthCursor.getMonth()+1,1);render();});
+  $("calMonthToday").addEventListener("click",function(){monthCursor=new Date(new Date().getFullYear(),new Date().getMonth(),1);render();});
+  root.addEventListener("click",async function(event){
+    var edit=event.target.closest("[data-edit]"), del=event.target.closest("[data-delete]"), yes=event.target.closest("[data-confirm-yes]"), no=event.target.closest("[data-confirm-no]");
+    if(edit){var row=rows.find(function(r){return String(r.id)===edit.dataset.edit;});if(row)openEditor(edit.dataset.type,row);return;}
+    if(del){var box=del.closest(".lspd-module-entry").querySelector(".lspd-confirm");box.classList.add("is-open");return;}
+    if(no){var n=no.closest(".lspd-confirm");if(n)n.classList.remove("is-open");return;}
+    if(yes){yes.disabled=true;try{await call("deleteModuleItem","calendar",yes.dataset.confirmYes);message("Eintrag gelöscht.");await load();}catch(error){message(error&&error.message?error.message:"Löschen fehlgeschlagen.");}finally{yes.disabled=false;}}
+  });
+  window.addEventListener("fib-mdt:refresh-request",function(){if(root.isConnected&&!$("calEventEditor").classList.contains("is-open")&&!$("calChangeEditor").classList.contains("is-open"))load();});
+  window.addEventListener("fib-mdt:data-changed",function(){if(root.isConnected)load();});
+  load();
+})();
+</script>

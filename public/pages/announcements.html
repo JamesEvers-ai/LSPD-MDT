@@ -1,16 +1,199 @@
-<main class="mdt-workspace mdt-workspace--announcements" data-mdt-page="announcements" data-lspd-module="announcements">
-<section class="mdt-module" id="mdt-module-announcements">
- <h2>Bekanntmachungen</h2><div class="sub">Bekanntmachungen veröffentlichen und verwalten.</div>
- <div class="toolbar"><input id="announcements-search" placeholder="Einträge durchsuchen…" aria-label="Einträge durchsuchen"><button class="secondary" id="announcements-reload">Aktualisieren</button><button id="announcements-new">+ Neuer Eintrag</button></div>
- <div class="message" id="announcements-message" role="status">Daten werden geladen …</div>
- <div class="form" id="announcements-form" style="display:none">
-  <input id="announcements-title" placeholder="Titel / Ankündigung" maxlength="180">
-  <select id="announcements-status"><option value="active">Active</option><option value="active">Aktiv</option><option value="pending">Ausstehend</option><option value="approved">Genehmigt</option><option value="rejected">Abgelehnt</option><option value="closed">Abgeschlossen</option><option value="scheduled">Geplant</option></select>
-  <input id="announcements-date" type="datetime-local" aria-label="Datum und Uhrzeit">
-  <textarea id="announcements-description" placeholder="Beschreibung / Details"></textarea>
-  <div class="actions"><button id="announcements-save">Speichern</button><button class="secondary" id="announcements-cancel">Abbrechen</button></div>
- </div>
- <div class="items" id="announcements-items"></div>
+<style>
+.lspd-module-page{max-width:1240px;margin:0 auto;padding:26px 28px 42px;color:#17263b}
+.lspd-module-head{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;margin-bottom:20px}
+.lspd-module-kicker{font-size:10px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:#8a6b2d;margin-bottom:7px}
+.lspd-module-head h2{font-size:25px;line-height:1.2;margin:0;color:#12233b;font-weight:800}
+.lspd-module-subtitle{color:#64748b;font-size:13px;margin-top:7px}
+.lspd-btn{border:1px solid #d5deea;border-radius:8px;background:#fff;color:#1c304c;padding:9px 13px;font-family:inherit;font-size:12px;font-weight:600;line-height:1.2;cursor:pointer;transition:.15s}
+.lspd-btn:hover{border-color:#9e803f;background:#fbfaf6}
+.lspd-btn.primary{background:#17345b;color:#fff;border-color:#17345b}
+.lspd-btn.primary:hover{background:#214773}
+.lspd-btn.danger{color:#a33131;border-color:#e9caca;background:#fff}
+.lspd-btn.subtle{background:#f4f7fb}
+.lspd-module-actions{display:flex;gap:8px;flex-wrap:wrap}
+.lspd-module-message{padding:10px 12px;border:1px solid #dce4ee;border-radius:8px;background:#f7f9fc;color:#506078;font-size:12px;margin:0 0 16px}
+.lspd-announcements-layout{display:grid;grid-template-columns:minmax(0,1fr);gap:16px}
+.lspd-announcement-editor{display:none;background:#fff;border:1px solid #dce3ec;border-radius:12px;box-shadow:0 5px 18px rgba(25,44,70,.045);padding:18px}
+.lspd-announcement-editor.is-open{display:block}
+.lspd-editor-grid{display:grid;grid-template-columns:1.5fr 1fr 1fr;gap:10px}
+.lspd-editor-grid input,.lspd-editor-grid select,.lspd-editor-grid textarea{width:100%;min-width:0;border:1px solid #ccd6e2;border-radius:7px;background:#fff;color:#1b2d45;padding:10px 11px;font-family:inherit;font-size:12px;outline:none}
+.lspd-editor-grid input:focus,.lspd-editor-grid select:focus,.lspd-editor-grid textarea:focus{border-color:#8a713b;box-shadow:0 0 0 3px rgba(177,145,75,.12)}
+.lspd-editor-grid textarea{min-height:150px;resize:vertical;grid-column:1/-1}
+.lspd-editor-label{display:block;font-size:10px;font-weight:750;letter-spacing:.04em;color:#64748b;margin:0 0 5px}
+.lspd-editor-field{min-width:0}
+.lspd-editor-toolbar{display:flex;gap:5px;flex-wrap:wrap;margin-top:9px}
+.lspd-editor-toolbar button{min-width:32px;padding:6px 8px;border:1px solid #d7e0e9;border-radius:6px;background:#f7f9fc;color:#2a405d;font-family:inherit;font-size:11px;font-weight:700;cursor:pointer}
+.lspd-editor-toolbar button:hover{background:#edf2f8;border-color:#9baec3}
+.lspd-editor-help{font-size:10px;color:#8390a1;margin:8px 0 0;line-height:1.5}
+.lspd-editor-preview{margin-top:12px;border:1px solid #e0e7ef;border-radius:8px;background:#fbfcfe;padding:12px 14px}
+.lspd-editor-preview-title{font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:#8995a5;font-weight:800;margin-bottom:8px}
+.lspd-editor-actions{display:flex;gap:8px;align-items:center;margin-top:14px}
+.lspd-announcement-list{display:grid;gap:11px}
+.lspd-announcement-card{background:#fff;border:1px solid #dce3ec;border-radius:11px;padding:16px 18px;box-shadow:0 4px 14px rgba(25,44,70,.035)}
+.lspd-announcement-card.is-important{border-left:4px solid #b18b43}
+.lspd-announcement-top{display:flex;justify-content:space-between;gap:14px;align-items:flex-start}
+.lspd-announcement-title{font-size:15px;font-weight:800;color:#172b46;margin:0}
+.lspd-announcement-meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:7px;color:#7a8798;font-size:10px}
+.lspd-announcement-tag{border-radius:20px;padding:3px 8px;background:#eef3f8;color:#47617f;font-size:10px;font-weight:750}
+.lspd-announcement-tag.important{background:#f7f0df;color:#866526}
+.lspd-announcement-body{margin-top:12px;color:#43536a;font-size:12px;line-height:1.65;overflow-wrap:anywhere}
+.lspd-announcement-actions{display:flex;gap:6px;flex-wrap:wrap}
+.lspd-confirm{display:none;align-items:center;gap:8px;margin-top:10px;padding:8px 10px;background:#fff8f0;border:1px solid #efd9bd;border-radius:7px;color:#765323;font-size:11px}.lspd-confirm.is-open{display:flex}
+.lspd-announcement-empty{padding:30px 18px;text-align:center;color:#8793a4;background:#fff;border:1px dashed #d6dee8;border-radius:10px;font-size:12px}
+.lspd-rich-content h1,.mdt-rich-content h1{font-size:1.45em;margin:1em 0 .45em;color:#1a2d48}
+.lspd-rich-content h2,.mdt-rich-content h2{font-size:1.25em;margin:.9em 0 .4em;color:#1a2d48}
+.lspd-rich-content h3,.mdt-rich-content h3{font-size:1.08em;margin:.8em 0 .35em;color:#1a2d48}
+.lspd-rich-content p,.mdt-rich-content p{margin:.45em 0}
+.lspd-rich-content ul,.mdt-rich-content ul{padding-left:20px;margin:.45em 0}
+.lspd-rich-content li,.mdt-rich-content li{margin:.2em 0}
+.mdt-rich-table-wrap{max-width:100%;overflow-x:auto;margin:10px 0}
+.mdt-rich-table{border-collapse:collapse;width:100%;font-size:11px}
+.mdt-rich-table th,.mdt-rich-table td{border:1px solid #dce3ec;padding:7px 9px;text-align:left;vertical-align:top}
+.mdt-rich-table th{background:#f1f5f9;color:#243a56;font-weight:750}
+.mdt-rich-empty{color:#8793a4;font-style:italic}
+@media(max-width:760px){.lspd-module-page{padding:18px 14px 30px}.lspd-module-head{display:block}.lspd-module-actions{margin-top:14px}.lspd-editor-grid{grid-template-columns:1fr}.lspd-editor-grid textarea{grid-column:1}.lspd-announcement-top{display:block}.lspd-announcement-actions{margin-top:10px}}
+</style>
+<section class="lspd-module-page" id="lspdAnnouncementsPage">
+  <header class="lspd-module-head">
+    <div><div class="lspd-module-kicker">Department Communications</div><h2>Departmentbekanntmachungen</h2><div class="lspd-module-subtitle">Verbindliche Informationen, organisatorische Hinweise und wichtige Mitteilungen des Los Santos Police Departments.</div></div>
+    <div class="lspd-module-actions"><button class="lspd-btn subtle" id="annReload">Aktualisieren</button><button class="lspd-btn primary" id="annNew">+ Bekanntmachung erstellen</button></div>
+  </header>
+  <div class="lspd-module-message" id="annMessage" role="status">Bekanntmachungen werden geladen …</div>
+  <section class="lspd-announcement-editor" id="annEditor">
+    <div class="lspd-editor-grid">
+      <div class="lspd-editor-field"><label class="lspd-editor-label" for="annTitle">Überschrift</label><input id="annTitle" maxlength="180" placeholder="Titel der Bekanntmachung"></div>
+      <div class="lspd-editor-field"><label class="lspd-editor-label" for="annStatus">Veröffentlichungsstatus</label><select id="annStatus"><option value="active">Veröffentlicht</option><option value="draft">Entwurf</option><option value="archived">Archiviert</option></select></div>
+      <div class="lspd-editor-field"><label class="lspd-editor-label" for="annPriority">Wichtigkeit</label><select id="annPriority"><option value="normal">Regulär</option><option value="important">Wichtig – hervorheben</option></select></div>
+      <div class="lspd-editor-field"><label class="lspd-editor-label" for="annDate">Gültig ab / Veröffentlichungszeitpunkt</label><input id="annDate" type="datetime-local"></div>
+      <div class="lspd-editor-field"><label class="lspd-editor-label" for="annDescription">Inhalt</label><textarea id="annDescription" data-mdt-editor placeholder="Inhalt der Bekanntmachung …"></textarea>
+        <div class="lspd-editor-toolbar" aria-label="Textformatierung">
+          <button type="button" data-mdt-format="bold" data-target="annDescription" title="Fett"><strong>B</strong></button>
+          <button type="button" data-mdt-format="italic" data-target="annDescription" title="Kursiv"><em>I</em></button>
+          <button type="button" data-mdt-format="underline" data-target="annDescription" title="Unterstrichen"><u>U</u></button>
+          <button type="button" data-mdt-format="h1" data-target="annDescription" title="Überschrift 1">H1</button>
+          <button type="button" data-mdt-format="h2" data-target="annDescription" title="Überschrift 2">H2</button>
+          <button type="button" data-mdt-format="h3" data-target="annDescription" title="Überschrift 3">H3</button>
+          <button type="button" data-mdt-format="list" data-target="annDescription" title="Aufzählung">• Liste</button>
+          <button type="button" data-mdt-format="table" data-target="annDescription" title="Tabelle">Tabelle</button>
+        </div>
+        <p class="lspd-editor-help">Unterstützt: **Fett**, *Kursiv*, __Unterstrichen__, # / ## / ### für Überschriften, - für Aufzählungen sowie Markdown-Tabellen mit | und ---.</p>
+      </div>
+    </div>
+    <div class="lspd-editor-preview"><div class="lspd-editor-preview-title">Live-Vorschau</div><div id="annPreview" class="lspd-rich-content"><p class="mdt-rich-empty">Die Vorschau erscheint hier.</p></div></div>
+    <div class="lspd-editor-actions"><button class="lspd-btn primary" id="annSave">Bekanntmachung speichern</button><button class="lspd-btn" id="annCancel">Abbrechen</button></div>
+  </section>
+  <div class="lspd-announcement-list" id="annList"><div class="lspd-announcement-empty">Einträge werden geladen …</div></div>
 </section>
-<script src="/js/pages/announcements.js?v=3.76" defer></script>
-</main>
+<script>
+(function () {
+  "use strict";
+  var root = document.getElementById("lspdAnnouncementsPage");
+  if (!root || root.dataset.ready === "1") return;
+  root.dataset.ready = "1";
+  var rows = [], canManage = false, editing = null;
+  var $ = function (id) { return document.getElementById(id); };
+  var token = function () { return sessionStorage.getItem("fib_mdt_session") || sessionStorage.getItem("lspd_mdt_session") || ""; };
+  var call = function (method) {
+    var args = Array.prototype.slice.call(arguments, 1);
+    return new Promise(function (resolve, reject) {
+      var runner = CloudApi.run;
+      runner.withSuccessHandler(resolve).withFailureHandler(reject)[method](token(), ...args);
+    });
+  };
+  var esc = function (v) { return String(v == null ? "" : v).replace(/[&<>"']/g, function (c) { return ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" })[c]; }); };
+  var renderRich = function (value) { return window.MDTRichText ? window.MDTRichText.render(value) : "<p>" + esc(value).replace(/\n/g,"<br>") + "</p>"; };
+  var message = function (value) { $("annMessage").textContent = value; };
+  var date = function (value) { if (!value) return "Ohne Zeitangabe"; var d = new Date(value); return Number.isNaN(d.getTime()) ? "Ohne Zeitangabe" : d.toLocaleString("de-DE",{dateStyle:"medium",timeStyle:"short"}); };
+  if (window.MDTRichText) window.MDTRichText.attachToolbar(root);
+
+  function render() {
+    var visible = rows.slice().sort(function(a,b){return String(b.created_at||"").localeCompare(String(a.created_at||""));});
+    $("annList").innerHTML = visible.length ? visible.map(function (r) {
+      var important = r.metadata && r.metadata.priority === "important";
+      var status = ({active:"Veröffentlicht",draft:"Entwurf",archived:"Archiviert"})[r.status] || r.status || "—";
+      return '<article class="lspd-announcement-card ' + (important ? "is-important" : "") + '" data-ann-id="' + esc(r.id) + '">' +
+        '<div class="lspd-announcement-top"><div><h3 class="lspd-announcement-title">' + esc(r.title || "Ohne Titel") + '</h3><div class="lspd-announcement-meta"><span>' + esc(date(r.eventDate || r.created_at)) + '</span><span class="lspd-announcement-tag">' + esc(status) + '</span>' + (important ? '<span class="lspd-announcement-tag important">Wichtige Mitteilung</span>' : '') + '<span>Veröffentlicht von ' + esc(r.created_by_name || "Unbekannt") + '</span></div></div>' +
+        (canManage ? '<div class="lspd-announcement-actions"><button class="lspd-btn subtle" data-ann-edit="' + esc(r.id) + '">Bearbeiten</button><button class="lspd-btn danger" data-ann-delete="' + esc(r.id) + '">Löschen</button></div>' : '') + '</div>' +
+        '<div class="lspd-announcement-body mdt-rich-content">' + renderRich(r.description || "") + '</div>' +
+        '<div class="lspd-confirm" data-ann-confirm="' + esc(r.id) + '"><span>Bekanntmachung wirklich löschen?</span><button class="lspd-btn danger" data-ann-confirm-yes="' + esc(r.id) + '">Ja, löschen</button><button class="lspd-btn" data-ann-confirm-no="' + esc(r.id) + '">Abbrechen</button></div></article>';
+    }).join("") : '<div class="lspd-announcement-empty">Es sind noch keine Bekanntmachungen vorhanden.</div>';
+  }
+  async function load() {
+    message("Bekanntmachungen werden geladen …");
+    try {
+      var permissionState = await call("getMyPermissions");
+      var permissionList = permissionState && Array.isArray(permissionState.permissions) ? permissionState.permissions : [];
+      canManage = !!(permissionState && permissionState.master) || permissionList.indexOf("*") >= 0 || permissionList.indexOf("announcements.manage") >= 0;
+      $("annNew").hidden = !canManage;
+      var result = await call("getModuleItems","announcements");
+      rows = Array.isArray(result) ? result : [];
+      message(rows.length + " Bekanntmachungen geladen.");
+      render();
+    } catch (error) {
+      message(error && error.message ? error.message : "Bekanntmachungen konnten nicht geladen werden.");
+      $("annList").innerHTML = '<div class="lspd-announcement-empty">Die Bekanntmachungen sind derzeit nicht erreichbar. Bitte Berechtigungen und Verbindung prüfen.</div>';
+    }
+  }
+  function localDate(value) {
+    if (!value) return "";
+    var d = new Date(value);
+    return Number.isNaN(d.getTime()) ? "" : new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,16);
+  }
+  function open(row) {
+    if (!canManage) return;
+    editing = row ? row.id : null;
+    $("annEditor").classList.add("is-open");
+    $("annTitle").value = row ? row.title || "" : "";
+    $("annDescription").value = row ? row.description || "" : "";
+    $("annStatus").value = row ? row.status || "active" : "active";
+    $("annPriority").value = row && row.metadata && row.metadata.priority === "important" ? "important" : "normal";
+    $("annDate").value = row ? localDate(row.eventDate) : "";
+    preview();
+    $("annTitle").focus();
+  }
+  function close() {
+    $("annEditor").classList.remove("is-open");
+    editing = null;
+    $("annTitle").value = ""; $("annDescription").value = ""; $("annDate").value = "";
+    $("annStatus").value = "active"; $("annPriority").value = "normal";
+    preview();
+  }
+  function preview() {
+    $("annPreview").innerHTML = renderRich($("annDescription").value || "");
+  }
+  async function save() {
+    var title = $("annTitle").value.trim();
+    if (!title) { message("Bitte eine Überschrift eingeben."); $("annTitle").focus(); return; }
+    var old = rows.find(function(r){return String(r.id)===String(editing);});
+    var data = {
+      title: title,
+      description: $("annDescription").value,
+      status: $("annStatus").value,
+      eventDate: $("annDate").value ? new Date($("annDate").value).toISOString() : null,
+      metadata: Object.assign({}, old && old.metadata || {}, { application:"lspd", entry_type:"department_announcement", priority:$("annPriority").value })
+    };
+    $("annSave").disabled = true;
+    try {
+      if (editing) await call("updateModuleItem","announcements",editing,data);
+      else await call("createModuleItem","announcements",data);
+      close(); message("Bekanntmachung gespeichert."); await load();
+    } catch (error) { message(error && error.message ? error.message : "Speichern fehlgeschlagen."); }
+    finally { $("annSave").disabled = false; }
+  }
+  $("annNew").addEventListener("click",function(){open();});
+  $("annCancel").addEventListener("click",close);
+  $("annSave").addEventListener("click",save);
+  $("annReload").addEventListener("click",load);
+  $("annDescription").addEventListener("input",preview);
+  root.addEventListener("click",async function(event){
+    var edit=event.target.closest("[data-ann-edit]"), del=event.target.closest("[data-ann-delete]"), yes=event.target.closest("[data-ann-confirm-yes]"), no=event.target.closest("[data-ann-confirm-no]");
+    if(edit){var row=rows.find(function(r){return String(r.id)===edit.dataset.annEdit;});if(row)open(row);return;}
+    if(del){del.closest(".lspd-announcement-card").querySelector(".lspd-confirm").classList.add("is-open");return;}
+    if(no){no.closest(".lspd-confirm").classList.remove("is-open");return;}
+    if(yes){yes.disabled=true;try{await call("deleteModuleItem","announcements",yes.dataset.annConfirmYes);message("Bekanntmachung gelöscht.");await load();}catch(error){message(error&&error.message?error.message:"Löschen fehlgeschlagen.");}finally{yes.disabled=false;}}
+  });
+  window.addEventListener("fib-mdt:refresh-request",function(){if(root.isConnected&&!$("annEditor").classList.contains("is-open"))load();});
+  window.addEventListener("fib-mdt:data-changed",function(){if(root.isConnected)load();});
+  load();
+})();
+</script>

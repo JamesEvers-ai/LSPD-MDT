@@ -47,8 +47,6 @@ values
  ('P_LSPD_RECORDS_MANAGE','records.manage','Akten verwalten','Akten verwalten','Akten und Berichte erstellen und bearbeiten','Akten'),
  ('P_LSPD_WARRANTS_VIEW','warrants.view','Haftbefehle ansehen','Haftbefehle ansehen','Haftbefehle lesen','Haftbefehle'),
  ('P_LSPD_WANTED_VIEW','wanted.view','Fahndungen ansehen','Fahndungen ansehen','Fahndungen lesen','Fahndung'),
- ('P_LSPD_CLASS_VIEW','classification.view','Klassifizierungen ansehen','Klassifizierungen ansehen','Klassifizierungen lesen','Klassifizierungen'),
- ('P_LSPD_CLASS_MANAGE','classification.manage','Klassifizierungen verwalten','Klassifizierungen verwalten','Klassifizierungen bearbeiten und entscheiden','Klassifizierungen'),
  ('P_LSPD_SYSTEM_VIEW','system.view','Systemverwaltung ansehen','Systemverwaltung ansehen','Systeminformationen lesen','System'),
  ('P_LSPD_SYSTEM_MANAGE','system.manage','Systemverwaltung verwalten','Systemverwaltung verwalten','Benutzer, Dienstgrade und Berechtigungen verwalten','System'),
  ('P_LSPD_LOGS_VIEW','logs.view','Systemprotokolle ansehen','Systemprotokolle ansehen','Protokollierte Aktionen lesen','System')
