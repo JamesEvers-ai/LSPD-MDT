@@ -566,3 +566,156 @@ html body #pageContainer :is(button.lspd-btn.subtle,.lspd-btn.subtle,
 html body #pageContainer :is(button, .btn, .button):disabled{
   opacity:.55!important;cursor:not-allowed!important;
 }
+
+
+/* Phase 3.77 — consistent full-width page canvas and correctly contrasted page headers. */
+html body #pageContainer > :is(.dashboard,.dashboard-page,.agents-page,.patrols-page,.fines-page,
+.ifines-page,.lawyers-page,.records-page,.wanted-page,.warrants-page,.system-page,
+.vehicle-catalog-page,.classification-page,.mdt-module,.logs-page,.gangs-page,
+.bonuses-page,.calendar-page,.announcements-page,.vacations-page){
+  display:block!important;width:100%!important;max-width:none!important;min-width:0!important;
+  margin:0!important;box-sizing:border-box!important;
+}
+html body #pageContainer :is(.dashboard,.dashboard-page,.agents-page,.patrols-page,.fines-page,
+.ifines-page,.lawyers-page,.records-page,.wanted-page,.warrants-page,.system-page,
+.vehicle-catalog-page,.classification-page,.mdt-module,.logs-page,.gangs-page,
+.bonuses-page,.calendar-page,.announcements-page,.vacations-page) :is(.page-inner,.page-body,.page-content,.content-inner,.workspace,.workspace-inner){
+  width:100%!important;max-width:none!important;min-width:0!important;
+}
+html body #pageContainer :is(.patrols-header,.agents-page-header,.lawyers-header,.system-header){
+  display:flex!important;align-items:center!important;justify-content:space-between!important;
+  width:100%!important;max-width:none!important;min-height:104px!important;
+  padding:20px 28px!important;margin:0 0 18px!important;gap:20px!important;
+  color:#fff!important;background:linear-gradient(105deg,#102847 0%,#1d5687 100%)!important;
+  border:1px solid #17395f!important;border-left:4px solid #e2c52b!important;
+  border-radius:10px!important;box-shadow:0 6px 18px rgba(16,40,71,.13)!important;
+}
+html body #pageContainer :is(.patrols-header,.agents-page-header,.lawyers-header,.system-header) *{
+  color:#fff!important;
+}
+html body #pageContainer :is(.patrols-header,.agents-page-header,.lawyers-header,.system-header) :is(p,.subtitle,.sub,.description,.hint,.meta,.muted){
+  color:#e0ebf5!important;opacity:1!important;
+}
+html body #pageContainer :is(.patrols-header,.agents-page-header,.lawyers-header,.system-header) :is(.patrols-eyebrow,.agents-page-count,.lawyers-eyebrow){
+  color:#f1d96c!important;opacity:1!important;
+}
+html body #pageContainer :is(.patrols-header,.agents-page-header,.lawyers-header,.system-header) :is(h1,h2,h3,.patrols-title,.agents-page-title,.lawyers-title){
+  color:#fff!important;font-weight:800!important;
+}
+html body #pageContainer .system-page .system-header h1{color:#fff!important}
+html body #pageContainer .system-page .system-header p{color:#e0ebf5!important}
+html body #pageContainer :is(.patrols-page,.agents-page,.lawyers-page,.system-page){
+  padding-left:22px!important;padding-right:22px!important;
+}
+html body #pageContainer :is(.patrols-page,.agents-page,.lawyers-page,.system-page) > *{
+  max-width:none!important;
+}
+html body #pageContainer .lawyers-page .lawyers-header{align-items:center!important}
+html body #pageContainer .lawyers-page .lawyers-header-left{
+  display:flex!important;flex-direction:column!important;justify-content:center!important;
+}
+html body #pageContainer .lawyers-page .lawyers-title{line-height:1.2!important}
+html body #pageContainer .lawyers-page .lawyers-subtitle{line-height:1.45!important}
+
+/* Sidebar preference: collapsed at rest, automatically expanded while hovered/focused. */
+.sidebar.is-collapsed,.sidebar.is-collapsed:hover{
+  width:72px!important;min-width:72px!important;overflow-x:hidden!important;
+  transition:width .18s ease,min-width .18s ease!important;
+}
+.sidebar.is-collapsed:hover,.sidebar.is-collapsed:focus-within{
+  width:252px!important;min-width:252px!important;overflow:visible!important;
+}
+.sidebar.is-collapsed:hover + .main,.sidebar.is-collapsed:focus-within + .main{
+  padding-left:252px!important;
+}
+.sidebar.is-collapsed + .main{padding-left:72px!important}
+.sidebar.is-collapsed:hover .brand-text,.sidebar.is-collapsed:focus-within .brand-text,
+.sidebar.is-collapsed:hover .nav-label,.sidebar.is-collapsed:focus-within .nav-label,
+.sidebar.is-collapsed:hover .nav-section-title,.sidebar.is-collapsed:focus-within .nav-section-title,
+.sidebar.is-collapsed:hover .user-info,.sidebar.is-collapsed:focus-within .user-info{
+  display:block!important;opacity:1!important;visibility:visible!important;
+}
+.sidebar.is-collapsed:hover .sidebar-header,.sidebar.is-collapsed:focus-within .sidebar-header{
+  justify-content:flex-start!important;padding:14px 18px!important;
+}
+.sidebar.is-collapsed:hover .sidebar-nav,.sidebar.is-collapsed:focus-within .sidebar-nav{
+  padding:17px 11px!important;
+}
+.sidebar.is-collapsed:hover .nav-item,.sidebar.is-collapsed:focus-within .nav-item{
+  justify-content:flex-start!important;padding:0 12px!important;
+}
+.sidebar.is-collapsed:hover .nav-icon,.sidebar.is-collapsed:focus-within .nav-icon{
+  width:auto!important;min-width:20px!important;
+}
+.sidebar.is-collapsed:hover .user-card,.sidebar.is-collapsed:focus-within .user-card{
+  justify-content:flex-start!important;padding:0 8px!important;
+}
+.sidebar.is-collapsed:hover .user-avatar,.sidebar.is-collapsed:focus-within .user-avatar{
+  width:38px!important;height:38px!important;min-width:38px!important;
+}
+.sidebar .sidebar-collapse-toggle{display:none!important}
+
+/* Warrant entries are individual rounded case tiles, not a bare unboxed list. */
+html body #pageContainer .warrants-page .warrants-list{
+  display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:12px!important;
+  padding:0!important;overflow:visible!important;border:0!important;border-radius:0!important;
+  background:transparent!important;box-shadow:none!important;
+}
+html body #pageContainer .warrants-page .warrant-card{
+  display:flex!important;flex-direction:column!important;gap:0!important;
+  width:100%!important;min-width:0!important;padding:0!important;overflow:hidden!important;
+  background:#fff!important;color:#1a2d42!important;
+  border:1px solid #d5dfeb!important;border-radius:12px!important;
+  box-shadow:0 5px 18px rgba(16,40,71,.07)!important;
+  transition:box-shadow .16s ease,border-color .16s ease,transform .16s ease!important;
+}
+html body #pageContainer .warrants-page .warrant-card:hover{
+  border-color:#b7c9dc!important;box-shadow:0 9px 24px rgba(16,40,71,.11)!important;
+  transform:translateY(-1px)!important;
+}
+html body #pageContainer .warrants-page .warrant-card-top{
+  display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;
+  gap:16px!important;padding:18px 20px!important;
+  background:#fff!important;border-bottom:1px solid #e3eaf1!important;
+}
+html body #pageContainer .warrants-page .warrant-field{min-width:0!important}
+html body #pageContainer .warrants-page .warrant-field-label,
+html body #pageContainer .warrants-page .warrant-detail-label{
+  color:#718399!important;font-size:9px!important;font-weight:800!important;
+  letter-spacing:.07em!important;text-transform:uppercase!important;margin-bottom:6px!important;
+}
+html body #pageContainer .warrants-page :is(.warrant-number,.warrant-field-value,.warrant-defendant,.warrant-crime,.warrant-processor-value,.warrant-detail-value,.warrant-crime-details){
+  color:#1a2d42!important;font-size:12px!important;font-weight:650!important;line-height:1.45!important;
+  overflow-wrap:anywhere!important;
+}
+html body #pageContainer .warrants-page .warrant-number{color:#17395f!important;font-size:14px!important;font-weight:850!important}
+html body #pageContainer .warrants-page .warrant-processor{margin-top:10px!important}
+html body #pageContainer .warrants-page .warrant-priority{
+  display:inline-flex!important;align-items:center!important;justify-content:center!important;
+  width:max-content!important;max-width:100%!important;padding:5px 9px!important;
+  border-radius:999px!important;font-size:10px!important;font-weight:800!important;
+}
+html body #pageContainer .warrants-page .warrant-card-details{
+  display:grid!important;grid-template-columns:minmax(160px,.65fr) minmax(0,2fr)!important;
+  gap:18px!important;padding:14px 20px 17px!important;background:#f7f9fc!important;
+}
+html body #pageContainer .warrants-page .warrant-crime-details-row{
+  display:flex!important;align-items:center!important;gap:10px!important;min-width:0!important;
+}
+html body #pageContainer .warrants-page .warrant-crime-details{min-width:0!important;flex:1!important}
+html body #pageContainer .warrants-page .warrant-copy-button{
+  display:inline-flex!important;align-items:center!important;justify-content:center!important;
+  flex:0 0 34px!important;width:34px!important;height:34px!important;
+  color:#17395f!important;background:#eaf2f9!important;border:1px solid #cbdced!important;
+  border-radius:7px!important;
+}
+@media(max-width:1050px){
+ html body #pageContainer .warrants-page .warrant-card-top{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+}
+@media(max-width:620px){
+ html body #pageContainer .warrants-page .warrant-card-top,
+ html body #pageContainer .warrants-page .warrant-card-details{grid-template-columns:minmax(0,1fr)!important}
+ html body #pageContainer :is(.patrols-header,.agents-page-header,.lawyers-header,.system-header){
+   align-items:flex-start!important;flex-direction:column!important;padding:18px 20px!important;
+ }
+}

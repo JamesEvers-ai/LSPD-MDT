@@ -8247,33 +8247,25 @@ const NAVIGATION = [
 
 
 <script>
-/* Phase 3.74: explicit collapsible navigation, preserving hover-free collapsed state. */
+/* Phase 3.77: collapsed sidebar expands on hover; no toggle button. */
 (function(){
   function initLspdSidebar(){
     const sidebar=document.querySelector('.sidebar');
-    if(!sidebar||sidebar.dataset.collapseReady==='1')return;
-    sidebar.dataset.collapseReady='1';
-    const btn=document.createElement('button');
-    btn.type='button';btn.className='sidebar-collapse-toggle';
-    btn.setAttribute('aria-label','Seitenleiste einklappen');btn.title='Seitenleiste einklappen';
-    btn.textContent='‹';sidebar.appendChild(btn);
+    if(!sidebar || sidebar.dataset.hoverCollapseReady==='1') return;
+    sidebar.dataset.hoverCollapseReady='1';
     const collapsed=localStorage.getItem('lspd_sidebar_collapsed')==='1';
     sidebar.classList.toggle('is-collapsed',collapsed);
-    function apply(value){
-      sidebar.classList.toggle('is-collapsed',value);
-      localStorage.setItem('lspd_sidebar_collapsed',value?'1':'0');
-      btn.textContent=value?'›':'‹';
-      btn.title=value?'Seitenleiste ausklappen':'Seitenleiste einklappen';
-      btn.setAttribute('aria-label',btn.title);
-    }
-    apply(collapsed);
-    btn.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();apply(!sidebar.classList.contains('is-collapsed'));});
-    sidebar.addEventListener('mouseenter',()=>{if(sidebar.classList.contains('is-collapsed'))sidebar.classList.remove('hover-expanded')});
+    sidebar.querySelectorAll('.sidebar-collapse-toggle').forEach(el=>el.remove());
+    // Hover expansion is CSS-driven so the main content moves in sync without changing the saved preference.
+    sidebar.addEventListener('keydown',event=>{
+      if(event.key==='Escape' && sidebar.classList.contains('is-collapsed')) sidebar.blur();
+    });
   }
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initLspdSidebar);else initLspdSidebar();
-  const observer=new MutationObserver(initLspdSidebar);observer.observe(document.documentElement,{childList:true,subtree:true});
-})();
-</script>
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',initLspdSidebar);
+  else initLspdSidebar();
+  const observer=new MutationObserver(initLspdSidebar);
+  observer.observe(document.documentElement,{childList:true,subtree:true});
+})();</script>
 
 </body>
 
