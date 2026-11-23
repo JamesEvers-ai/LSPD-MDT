@@ -489,3 +489,80 @@ html body #pageContainer .warrants-page :is(.warrants-stat-label,.warrants-stat-
 .sidebar.is-collapsed .sidebar-user{padding:10px 8px!important}
 .sidebar.is-collapsed .user-card{height:48px!important;justify-content:center!important}
 .sidebar.is-collapsed .user-avatar{width:38px!important;height:38px!important;min-width:38px!important}
+
+
+/* Phase 3.76 — final spacing, alignment and semantic button consistency */
+html body #pageContainer :is(.lspd-module-head,.mdt-module-head,.lspd-page-heading,.vc-head){
+  padding-left:34px!important;
+}
+html body #pageContainer :is(.lspd-module-head,.mdt-module-head,.lspd-page-heading,.vc-head) :is(h1,h2,h3,.title,.heading){
+  margin-left:2px!important;
+}
+html body #pageContainer .lawyers-page .lawyers-section-header{
+  display:flex!important;align-items:center!important;min-height:44px!important;
+  padding:0 8px 0 14px!important;margin:0 0 10px!important;
+}
+html body #pageContainer .lawyers-page .lawyers-section-title{
+  display:flex!important;align-items:center!important;min-height:32px!important;
+  line-height:1.25!important;margin:0!important;color:#17395f!important;
+  padding:0!important;transform:none!important;
+}
+html body #pageContainer .lawyers-page .lawyers-section-title::before{
+  align-self:center!important;background:#28679b!important;
+}
+html body #pageContainer .lawyers-page .lawyers-section-count{
+  display:inline-flex!important;align-items:center!important;justify-content:center!important;
+  color:#204e7b!important;background:#eaf2f9!important;border:1px solid #cbdced!important;
+  line-height:1!important;vertical-align:middle!important;
+}
+html body #pageContainer .lawyers-page .lawyers-card{
+  background:#fff!important;border:1px solid #d5dfeb!important;
+  box-shadow:0 4px 14px rgba(16,40,71,.06)!important;
+}
+html body #pageContainer .lawyers-page .lawyers-stat{
+  background:#f7f9fc!important;border:1px solid #d5dfeb!important;
+}
+html body #pageContainer .lawyers-page .lawyers-stat-value{color:#17395f!important}
+html body #pageContainer .lawyers-page .lawyers-stat-label{color:#657991!important}
+html body #pageContainer .lawyers-page .lawyers-table thead th{
+  background:#eaf0f6!important;color:#29445f!important;
+}
+html body #pageContainer .lawyers-page .lawyers-table tbody td{
+  background:#fff!important;color:#40566e!important;
+}
+html body #pageContainer .lawyers-page .lawyers-header{
+  align-items:center!important;
+}
+html body #pageContainer .lawyers-page .lawyers-title{color:#17395f!important}
+html body #pageContainer .lawyers-page .lawyers-eyebrow{color:#28679b!important}
+html body #pageContainer .lawyers-page .lawyers-subtitle{color:#657991!important}
+
+/* Buttons use semantic classes, never an accidental white default. */
+html body #pageContainer :is(button.lspd-btn,.lspd-btn){
+  background:#f4f7fb!important;color:#29445f!important;border:1px solid #cbd6e2!important;
+}
+html body #pageContainer :is(button.lspd-btn.primary,.lspd-btn.primary,
+ button.lspd-primary-btn,.lspd-primary-btn,
+ button.lawyers-btn.primary,.lawyers-btn.primary,
+ button.fines-refresh-button,.fines-refresh-button,
+ button.warrants-refresh-button,.warrants-refresh-button){
+  background:#17395f!important;color:#fff!important;border:1px solid #17395f!important;
+}
+html body #pageContainer :is(button.lspd-btn.primary,.lspd-btn.primary,
+ button.lspd-primary-btn,.lspd-primary-btn,
+ button.lawyers-btn.primary,.lawyers-btn.primary,
+ button.fines-refresh-button,.fines-refresh-button,
+ button.warrants-refresh-button,.warrants-refresh-button):hover{
+  background:#204e7b!important;color:#fff!important;border-color:#204e7b!important;
+}
+html body #pageContainer :is(button.lspd-btn.danger,.lspd-btn.danger,
+ button.danger,.danger,.lawyers-btn.danger){
+  background:#fff0f1!important;color:#a8323c!important;border:1px solid #efc6ca!important;
+}
+html body #pageContainer :is(button.lspd-btn.subtle,.lspd-btn.subtle,
+ button.secondary,.secondary,.lawyers-btn:not(.primary):not(.danger)){
+  background:#edf2f7!important;color:#40566e!important;border:1px solid #d5dfeb!important;
+}
+html body #pageContainer :is(button, .btn, .button):disabled{
+  opacity:.55!important;cursor:not-allowed!important;
+}
