@@ -135,3 +135,74 @@ button{cursor:pointer}
 .record-share-public-box .mdt-rich-table th{background:rgba(255,255,255,.08);color:#f1f5f9}
 .record-share-public-box .mdt-rich-table td{color:rgba(255,255,255,.78)}
 .mdt-rich-empty{color:#8491a2;font-style:italic}
+
+
+/* Phase 3.74 — LSPD light-theme normalization and responsive shell */
+:root{--lspd-bg:#edf2f7;--lspd-surface:#fff;--lspd-text:#1a2d42}
+html,body,#app,.main,.main-content,#pageContainer,#pageContent{background:#edf2f7!important;color:#1a2d42!important}
+.sidebar{width:252px!important;transition:width .2s ease!important}
+.sidebar:hover{width:252px!important}
+.sidebar.is-collapsed{width:72px!important}
+.sidebar.is-collapsed .brand-text,.sidebar.is-collapsed .nav-label,.sidebar.is-collapsed .nav-section-title,.sidebar.is-collapsed .user-info,.sidebar.is-collapsed .logout-button{display:none!important}
+.sidebar.is-collapsed .sidebar-header{justify-content:center;padding:10px!important}
+.sidebar.is-collapsed .brand-icon{width:46px!important;height:46px!important;min-width:46px!important}
+.sidebar.is-collapsed .sidebar-nav{padding:14px 9px!important}
+.sidebar.is-collapsed .nav-item{justify-content:center!important;padding:0!important}
+.sidebar.is-collapsed .nav-icon{width:auto!important;min-width:0!important;margin:0!important;font-size:19px!important}
+.sidebar.is-collapsed .sidebar-user{padding:10px 8px!important}
+.sidebar.is-collapsed .user-card{justify-content:center!important;padding:0!important}
+.sidebar.is-collapsed .user-avatar{margin:0!important}
+.sidebar.is-collapsed .logout-button{display:none!important}
+.sidebar-collapse-toggle{position:absolute;right:9px;top:9px;width:27px;height:27px;border:1px solid rgba(255,255,255,.24);border-radius:6px;background:rgba(255,255,255,.1);color:#fff;z-index:4}
+.sidebar.is-collapsed .sidebar-collapse-toggle{right:22px;top:67px}
+.page-content,.page-container,.main-content{min-height:0!important;height:auto!important;overflow:visible!important;padding-bottom:42px!important}
+#pageContainer,#pageContent{padding-bottom:48px!important}
+.page-wrapper,.page-content-inner{min-height:0!important;overflow:visible!important}
+.modal,.modal-content,.modal-dialog,.mdt-modal,.central-modal{background:#fff!important;color:#1a2d42!important;border-color:#d5dfeb!important}
+.modal-header,.modal-title,.modal-body,.modal-footer,.modal label,.modal p,.modal span,.modal small,.modal strong{color:inherit}
+.modal input,.modal select,.modal textarea,.central-modal input,.central-modal select,.central-modal textarea{background:#fff!important;color:#1a2d42!important;border-color:#cbd7e3!important}
+input,select,textarea{color:#1a2d42}
+.patrols-page,.fines-page,.lawyers-page,.warrants-page,.wanted-page,.records-page,.agents-page,.ifines-page,.system-page,.dashboard-page{color:#1a2d42!important}
+.patrols-page,.fines-page,.lawyers-page,.warrants-page,.wanted-page,.records-page,.agents-page,.ifines-page,.system-page{padding-bottom:56px!important}
+.patrols-page *,.fines-page *,.lawyers-page *,.warrants-page *,.wanted-page *,.records-page *,.agents-page *,.ifines-page *,.system-page *{scroll-margin-bottom:28px}
+.patrols-header,.agents-page-header,.records-header,.warrants-header,.wanted-header,.lawyers-header,.system-header,.fines-header,.ifines-top,.dashboard-header,.calendar-header,.announcements-header{
+ background:linear-gradient(105deg,#12385f,#1d5687)!important;color:#fff!important;border:1px solid #17466f!important;border-left:4px solid #e2c52b!important;border-radius:10px!important;padding:16px 20px!important;box-shadow:0 5px 16px rgba(16,40,71,.12)!important
+}
+.patrols-header *, .agents-page-header *, .records-header *, .warrants-header *, .wanted-header *, .lawyers-header *, .system-header *, .fines-header *, .ifines-top *, .dashboard-header *, .calendar-header *, .announcements-header *{color:#fff!important}
+.patrols-eyebrow,.agents-page-subtitle,.records-description,.warrants-subtitle,.wanted-subtitle,.lawyers-subtitle{color:#d8e7f5!important}
+.patrols-page,.patrols-page .patrols-board,.patrols-page .patrols-toolbar,.patrols-page .patrol-filter,.patrols-page .patrols-filter{background:#edf2f7!important}
+.patrols-page input,.patrols-page select,.patrols-page textarea{background:#fff!important;color:#1a2d42!important}
+.patrol-filter,.patrols-filter,.patrols-page .filter-panel{padding:8px 12px!important;min-height:0!important;gap:8px!important}
+.patrol-filter input,.patrols-filter input,.patrols-page .filter-panel input{height:34px!important}
+.ifines-page .fines-tabs button,.ifines-page .fines-tab,.ifines-page [role=tab]{color:#fff!important}
+.ifines-page .fines-tabs button.active,.ifines-page .fines-tab.active,.ifines-page [role=tab][aria-selected=true]{background:#fff!important;color:#17395f!important}
+.fines-page,.fines-page .fines-content,.patrols-page,.patrols-page .patrols-content{background:#edf2f7!important}
+.lawyers-page{background:#edf2f7!important;color:#1a2d42!important}
+.lawyers-page .lawyers-search,.lawyers-page input,.lawyers-page .lawyers-search input{background:#fff!important;color:#1a2d42!important}
+.lawyers-page .lawyers-section{margin-left:8px!important;margin-right:8px!important}
+.lawyers-page .lawyers-section-header{padding-left:20px!important}
+.lawyers-page .lawyers-table-wrap{overflow-x:auto!important;padding-left:6px!important}
+.lawyers-page table{min-width:680px}
+.agents-page,.agents-page .agents-list,.agents-page .agents-list-header{color:#1a2d42!important}
+.agents-page .agents-list-header-cell,.agents-page .agents-list-row,.agents-page .agents-list-row *{color:#1a2d42!important}
+.warrants-page .warrant-card,.warrants-page .warrant-card *{color:#1a2d42}
+.warrants-page .warrant-card{background:#fff!important;border:1px solid #d5dfeb!important;border-radius:10px!important;box-shadow:0 3px 12px rgba(16,40,71,.06)!important;padding:16px!important}
+.warrants-page .warrant-card-top{border-bottom:1px solid #d5dfeb!important;padding-bottom:10px!important}
+.warrants-page .warrant-priority{font-weight:800!important}
+.records-page .records-header,.wanted-page .wanted-header,.warrants-page .warrants-header{margin-bottom:4px}
+.dashboard-stat-icon,.dashboard-card-header-icon{display:flex!important;align-items:center!important;justify-content:center!important;color:#fff!important;font-size:20px!important;line-height:1!important}
+.dashboard-stat-icon:empty:before,.dashboard-card-header-icon:empty:before{content:"📊";display:block}
+.dashboard-stat-icon{background:#1d5687!important}
+.dashboard-stat-value,.dashboard-stat-label,.dashboard-card-header,.dashboard-card-body{color:#1a2d42!important}
+.dashboard-page .dashboard-stat,.dashboard-page .dashboard-card{background:#fff!important;color:#1a2d42!important}
+@media(max-width:760px){.sidebar{width:72px!important}.sidebar:not(.is-collapsed){width:72px!important}.page-content{padding-bottom:60px!important}.lawyers-page .lawyers-section{margin-left:0!important;margin-right:0!important}}
+
+/* Additional page banners and table alignment */
+.dashboard-welcome{background:linear-gradient(105deg,#12385f,#1d5687)!important;color:#fff!important;border-left:4px solid #e2c52b!important}
+.dashboard-welcome *{color:#fff!important}
+.dashboard-welcome .dashboard-welcome-subtitle{color:#d8e7f5!important}
+.system-header{background:linear-gradient(105deg,#12385f,#1d5687)!important;color:#fff!important}
+.lawyers-section-header{padding-left:22px!important}
+.lawyers-table-wrap,.lawyers-table-container{padding-left:7px!important;overflow-x:auto!important}
+.warrants-page .warrants-stat-card{background:#fff!important;color:#1a2d42!important;border:1px solid #d5dfeb!important}
+.warrants-page .warrants-stat-label,.warrants-page .warrants-stat-value{color:#1a2d42!important}
