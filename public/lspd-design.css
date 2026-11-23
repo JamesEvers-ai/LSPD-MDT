@@ -719,3 +719,219 @@ html body #pageContainer .warrants-page .warrant-copy-button{
    align-items:flex-start!important;flex-direction:column!important;padding:18px 20px!important;
  }
 }
+
+
+/* ============================================================
+   PHASE 3.78 — ZENTRALES LSPD DESIGN-SYSTEM
+   Ein gemeinsamer Seitenkopf, eine Typografie und ein Canvas.
+   Alle Seitenköpfe verwenden dieselben Design-Tokens.
+============================================================ */
+:root {
+  --lspd-font-family: Inter, "Segoe UI", Arial, sans-serif;
+  --lspd-banner-bg: linear-gradient(108deg, #102847 0%, #1d5687 100%);
+  --lspd-banner-text: #ffffff;
+  --lspd-banner-muted: #e0ebf5;
+  --lspd-banner-accent: #f1d96c;
+  --lspd-banner-border: #17395f;
+  --lspd-banner-height: 104px;
+  --lspd-page-gutter: 24px;
+  --lspd-page-bottom: 76px;
+}
+
+html, body, button, input, select, textarea {
+  font-family: var(--lspd-font-family) !important;
+}
+#pageContainer, #pageContainer .content {
+  width: 100% !important;
+  max-width: none !important;
+  min-width: 0 !important;
+}
+#pageContainer .content {
+  overflow-x: hidden !important;
+}
+#pageContainer .content > * {
+  min-width: 0 !important;
+}
+
+/* Exakt ein gemeinsamer Stil für sämtliche Seiten-Kopfbereiche. */
+html body #pageContainer :is(
+  .patrols-header,
+  .agents-page-header,
+  .records-header,
+  .warrants-header,
+  .wanted-header,
+  .lawyers-header,
+  .system-header,
+  .fines-sticky-top,
+  .ifines-top,
+  .dashboard-welcome,
+  .calendar-header,
+  .announcements-header,
+  .gang-head,
+  .bonuses-header,
+  .vacations-header,
+  .logs-header,
+  .lspd-module-head,
+  .mdt-module-head,
+  .lspd-page-heading,
+  .vc-head
+) {
+  box-sizing: border-box !important;
+  width: 100% !important;
+  max-width: none !important;
+  min-height: var(--lspd-banner-height) !important;
+  margin: 0 0 18px !important;
+  padding: 20px 28px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 20px !important;
+  color: var(--lspd-banner-text) !important;
+  background: var(--lspd-banner-bg) !important;
+  border: 1px solid var(--lspd-banner-border) !important;
+  border-left: 4px solid var(--lspd-gold) !important;
+  border-radius: 10px !important;
+  box-shadow: 0 6px 18px rgba(16,40,71,.13) !important;
+  backdrop-filter: none !important;
+}
+
+/* Nur Text im Banner erhält Bannerfarben; Aktionsbuttons behalten ihre
+   semantischen Buttonfarben und werden nicht pauschal weiß überschrieben. */
+html body #pageContainer :is(
+  .patrols-header,.agents-page-header,.records-header,.warrants-header,
+  .wanted-header,.lawyers-header,.system-header,.fines-sticky-top,
+  .ifines-top,.dashboard-welcome,.calendar-header,.announcements-header,
+  .gang-head,.bonuses-header,.vacations-header,.logs-header,
+  .lspd-module-head,.mdt-module-head,.lspd-page-heading,.vc-head
+) :is(h1,h2,h3,h4,.title,.heading,.patrols-title,.agents-page-title,
+     .records-title,.warrants-title,.wanted-title,.lawyers-title,
+     .system-title,.fines-title,.ifines-title,.vc-title) {
+  color: var(--lspd-banner-text) !important;
+  font-family: var(--lspd-font-family) !important;
+  font-weight: 800 !important;
+  line-height: 1.2 !important;
+}
+html body #pageContainer :is(
+  .patrols-header,.agents-page-header,.records-header,.warrants-header,
+  .wanted-header,.lawyers-header,.system-header,.fines-sticky-top,
+  .ifines-top,.dashboard-welcome,.calendar-header,.announcements-header,
+  .gang-head,.bonuses-header,.vacations-header,.logs-header,
+  .lspd-module-head,.mdt-module-head,.lspd-page-heading,.vc-head
+) :is(p,.subtitle,.sub,.description,.hint,.meta,.muted,
+     .patrols-subtitle,.agents-page-subtitle,.records-description,
+     .warrants-subtitle,.wanted-subtitle,.lawyers-subtitle,
+     .lspd-module-subtitle,.vc-subtitle) {
+  color: var(--lspd-banner-muted) !important;
+  opacity: 1 !important;
+  font-family: var(--lspd-font-family) !important;
+  line-height: 1.5 !important;
+}
+html body #pageContainer :is(
+  .patrols-header,.agents-page-header,.records-header,.warrants-header,
+  .wanted-header,.lawyers-header,.system-header,.fines-sticky-top,
+  .ifines-top,.dashboard-welcome,.calendar-header,.announcements-header,
+  .gang-head,.bonuses-header,.vacations-header,.logs-header,
+  .lspd-module-head,.mdt-module-head,.lspd-page-heading,.vc-head
+) :is(.eyebrow,.page-eyebrow,.kicker,.patrols-eyebrow,
+     .agents-page-count,.lawyers-eyebrow,.records-eyebrow,
+     .fines-eyebrow,.ifines-eyebrow) {
+  color: var(--lspd-banner-accent) !important;
+  opacity: 1 !important;
+  font-family: var(--lspd-font-family) !important;
+  font-weight: 800 !important;
+  letter-spacing: .12em !important;
+}
+
+/* Einheitliche volle Seitenbreite statt wechselnder Maximalbreiten. */
+html body #pageContainer :is(
+  .dashboard,.dashboard-page,.agents-page,.patrols-page,.fines-page,
+  .ifines-page,.lawyers-page,.records-page,.wanted-page,.warrants-page,
+  .system-page,.vehicle-catalog-page,.classification-page,.mdt-module,
+  .logs-page,.gangs-page,.bonuses-page,.calendar-page,
+  .announcements-page,.vacations-page,.lspd-module-page
+) {
+  display: block !important;
+  width: 100% !important;
+  max-width: none !important;
+  min-width: 0 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  box-sizing: border-box !important;
+}
+html body #pageContainer :is(
+  .dashboard,.dashboard-page,.agents-page,.patrols-page,.fines-page,
+  .ifines-page,.lawyers-page,.records-page,.wanted-page,.warrants-page,
+  .system-page,.vehicle-catalog-page,.classification-page,.mdt-module,
+  .logs-page,.gangs-page,.bonuses-page,.calendar-page,
+  .announcements-page,.vacations-page,.lspd-module-page
+) :is(.page-inner,.page-body,.page-content,.content-inner,.workspace,.workspace-inner) {
+  width: 100% !important;
+  max-width: none !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+}
+html body #pageContainer .mdt-module,
+html body #pageContainer .lspd-module-page {
+  max-width: none !important;
+  width: 100% !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  padding-left: var(--lspd-page-gutter) !important;
+  padding-right: var(--lspd-page-gutter) !important;
+  padding-bottom: var(--lspd-page-bottom) !important;
+}
+html body #pageContainer :is(
+  .dashboard,.dashboard-page,.agents-page,.patrols-page,.fines-page,
+  .ifines-page,.lawyers-page,.records-page,.wanted-page,.warrants-page,
+  .system-page,.vehicle-catalog-page,.classification-page,.logs-page,
+  .gangs-page,.bonuses-page,.calendar-page,.announcements-page,.vacations-page
+) {
+  padding-bottom: var(--lspd-page-bottom) !important;
+}
+
+/* Leitstelle: auch der initiale Ladezustand ist Teil des hellen LSPD-Designs. */
+html body #pageContainer .patrols-page .patrol-loading-state {
+  background: #ffffff !important;
+  color: var(--lspd-text) !important;
+  border: 1px solid var(--lspd-line) !important;
+  border-radius: 10px !important;
+  box-shadow: var(--lspd-shadow) !important;
+}
+html body #pageContainer .patrols-page .patrol-loading-spinner {
+  border-color: #dce6ef !important;
+  border-top-color: var(--lspd-blue-600) !important;
+  border-right-color: var(--lspd-gold) !important;
+}
+html body #pageContainer .patrols-page .patrol-loading-text {
+  color: var(--lspd-navy-900) !important;
+  font-family: var(--lspd-font-family) !important;
+  font-weight: 700 !important;
+}
+html body #pageContainer .patrols-page .patrol-loading-subtext {
+  color: var(--lspd-muted) !important;
+  font-family: var(--lspd-font-family) !important;
+}
+
+/* Einheitliche Schrift in den Inhaltsbereichen und Formularen. */
+html body #pageContainer .content :is(
+  .dashboard,.agents-page,.patrols-page,.fines-page,.ifines-page,
+  .lawyers-page,.records-page,.wanted-page,.warrants-page,.system-page,
+  .vehicle-catalog-page,.classification-page,.mdt-module,.logs-page,
+  .gangs-page,.bonuses-page,.calendar-page,.announcements-page,.vacations-page
+) {
+  font-family: var(--lspd-font-family) !important;
+}
+@media (max-width: 760px) {
+  html body #pageContainer :is(
+    .patrols-header,.agents-page-header,.records-header,.warrants-header,
+    .wanted-header,.lawyers-header,.system-header,.fines-sticky-top,
+    .ifines-top,.dashboard-welcome,.calendar-header,.announcements-header,
+    .gang-head,.bonuses-header,.vacations-header,.logs-header,
+    .lspd-module-head,.mdt-module-head,.lspd-page-heading,.vc-head
+  ) {
+    align-items: flex-start !important;
+    flex-direction: column !important;
+    min-height: 0 !important;
+    padding: 18px 20px !important;
+  }
+}
