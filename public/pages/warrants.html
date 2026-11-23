@@ -1290,8 +1290,16 @@ function renderWarrants() {
   }
 
 
-  const warrants =
-    state.filtered;
+  const priorityRank = priority => {
+    const key = getWarrantPriorityClass_(priority);
+    return key === "priority-sehr-hoch" ? 0
+      : key === "priority-hoch" ? 1
+      : key === "priority-normal" ? 2
+      : 3;
+  };
+  const warrants = (state.filtered || []).slice().sort((a, b) =>
+    priorityRank(a.priority) - priorityRank(b.priority)
+  );
 
 
   if (count) {
@@ -1373,25 +1381,15 @@ function createWarrantCard(
     );
 
 
+  const priorityClass = isUndergetaucht
+    ? "priority-untergetaucht"
+    : getWarrantPriorityClass_(priority);
+
   const displayedPriority =
-    isUndergetaucht
-
-      ? "Untergetaucht"
-
-      : (
-          priority ||
-          "Normal"
-        );
-
-
-  const priorityClass =
-    isUndergetaucht
-
-      ? "priority-untergetaucht"
-
-      : getWarrantPriorityClass_(
-          priority
-        );
+    priorityClass === "priority-sehr-hoch" ? "Sehr hoch"
+    : priorityClass === "priority-hoch" ? "Hoch"
+    : priorityClass === "priority-untergetaucht" ? "Untergetaucht"
+    : "Normal";
 
 
   card.innerHTML = `
@@ -1626,52 +1624,13 @@ function createWarrantCard(
    PRIORITÄTSKLASSE
    ========================================================= */
 
-function getWarrantPriorityClass_(
-  priority
-) {
-
-  const value =
-    String(
-      priority || ""
-    )
-      .trim()
-      .toLowerCase();
-
-
-  if (
-    value.includes("hoch") ||
-    value.includes("dringend") ||
-    value.includes("kritisch")
-  ) {
-
-    return "priority-hoch";
-
-  }
-
-
-  if (
-    value.includes("mittel")
-  ) {
-
-    return "priority-mittel";
-
-  }
-
-
-  if (
-    value.includes("niedrig") ||
-    value.includes("gering")
-  ) {
-
-    return "priority-niedrig";
-
-  }
-
-
+function getWarrantPriorityClass_(priority) {
+  const value = String(priority || "").trim().toLowerCase();
+  if (value.includes("untergetaucht")) return "priority-untergetaucht";
+  if (value.includes("sehr hoch") || value.includes("kritisch") || value.includes("höchste") || value.includes("very high")) return "priority-sehr-hoch";
+  if (value.includes("hoch") || value.includes("dringend")) return "priority-hoch";
   return "priority-normal";
-
 }
-
 
 /* =========================================================
    UNTERGETAUCHT

@@ -5,8 +5,8 @@
  * then creates a short-lived temporary Apps Script session for legacy functions
  * that still use requireSession_().
  *
- * Script Property (optional if using default site): FIB_MDT_API_BASE_URL
- * Default: https://fib-mdt.pages.dev
+ * Script Property (optional if using default site): LSPD_MDT_API_BASE_URL
+ * Default: https://lspd-mdt.pages.dev
  */
 function doPost(e) {
   var temporaryToken = "";
@@ -25,7 +25,7 @@ function doPost(e) {
       throw new Error("Nicht freigegebene API-Methode: " + method);
     }
 
-    var baseUrl = String(properties.getProperty("FIB_MDT_API_BASE_URL") || "https://fib-mdt.pages.dev").replace(/\/+$/, "");
+    var baseUrl = String(properties.getProperty("LSPD_MDT_API_BASE_URL") || "https://lspd-mdt.pages.dev").replace(/\/+$/, "");
     var sessionInfo = fibBridgePostJson_(baseUrl + "/api/auth/session-info", { args: [originalToken], token: originalToken });
     if (!sessionInfo || sessionInfo.success !== true || !sessionInfo.user || !sessionInfo.user.id) {
       throw new Error((sessionInfo && sessionInfo.message) || "MDT-Sitzung ungültig oder abgelaufen.");

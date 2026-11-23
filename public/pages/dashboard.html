@@ -637,6 +637,27 @@
     );
   }
 
+  function loadDashboardWarrantCount(token, runner, requestId) {
+    if (!runner || typeof runner.getWarrantStatistics !== "function") return;
+    try {
+      runner.withSuccessHandler(function (data) {
+        if (!isCurrentInstance() || requestId !== state.statisticsRequestId) return;
+        let count = null;
+        if (Array.isArray(data)) count = data.length;
+        else if (data && typeof data === "object") {
+          count = data.warrants ?? data.totalWarrants ?? data.activeWarrants ?? data.total ?? data.count;
+        }
+        if (count !== null && count !== undefined) {
+          setDashboardStat("dashboardWarrantCount", count);
+        }
+      }).withFailureHandler(function (error) {
+        console.warn("[LSPD MDT] Haftbefehlszahl wird separat nicht geladen:", error);
+      }).getWarrantStatistics(token);
+    } catch (error) {
+      console.warn("[LSPD MDT] Separater Haftbefehlsabruf nicht verfügbar:", error);
+    }
+  }
+
   function loadDashboardStatistics() {
     const token = getDashboardSessionToken();
 
@@ -647,9 +668,22 @@
     const requestId = ++state.statisticsRequestId;
     const runner = CloudApi.run;
 
+    // Show the last successful local snapshot immediately; refresh in background.
+    try {
+      const cached = JSON.parse(sessionStorage.getItem("lspd_dashboard_stats_v1") || "null");
+      if (cached && cached.data && Date.now() - Number(cached.savedAt || 0) < 5 * 60 * 1000) {
+        renderDashboardStatistics(cached.data);
+      }
+    } catch (_) {}
+
+    const cacheKey = "lspd_dashboard_stats_v1";
     const success = function (data) {
       if (!isCurrentInstance() || requestId !== state.statisticsRequestId) return;
       renderDashboardStatistics(data);
+      try {
+        sessionStorage.setItem(cacheKey, JSON.stringify({ savedAt: Date.now(), data: data }));
+      } catch (_) {}
+      loadDashboardWarrantCount(token, runner, requestId);
     };
 
     const failure = function (error) {

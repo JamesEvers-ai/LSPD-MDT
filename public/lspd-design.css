@@ -137,72 +137,355 @@ button{cursor:pointer}
 .mdt-rich-empty{color:#8491a2;font-style:italic}
 
 
-/* Phase 3.74 — LSPD light-theme normalization and responsive shell */
-:root{--lspd-bg:#edf2f7;--lspd-surface:#fff;--lspd-text:#1a2d42}
-html,body,#app,.main,.main-content,#pageContainer,#pageContent{background:#edf2f7!important;color:#1a2d42!important}
-.sidebar{width:252px!important;transition:width .2s ease!important}
-.sidebar:hover{width:252px!important}
-.sidebar.is-collapsed{width:72px!important}
-.sidebar.is-collapsed .brand-text,.sidebar.is-collapsed .nav-label,.sidebar.is-collapsed .nav-section-title,.sidebar.is-collapsed .user-info,.sidebar.is-collapsed .logout-button{display:none!important}
-.sidebar.is-collapsed .sidebar-header{justify-content:center;padding:10px!important}
-.sidebar.is-collapsed .brand-icon{width:46px!important;height:46px!important;min-width:46px!important}
-.sidebar.is-collapsed .sidebar-nav{padding:14px 9px!important}
-.sidebar.is-collapsed .nav-item{justify-content:center!important;padding:0!important}
-.sidebar.is-collapsed .nav-icon{width:auto!important;min-width:0!important;margin:0!important;font-size:19px!important}
-.sidebar.is-collapsed .sidebar-user{padding:10px 8px!important}
-.sidebar.is-collapsed .user-card{justify-content:center!important;padding:0!important}
-.sidebar.is-collapsed .user-avatar{margin:0!important}
-.sidebar.is-collapsed .logout-button{display:none!important}
-.sidebar-collapse-toggle{position:absolute;right:9px;top:9px;width:27px;height:27px;border:1px solid rgba(255,255,255,.24);border-radius:6px;background:rgba(255,255,255,.1);color:#fff;z-index:4}
-.sidebar.is-collapsed .sidebar-collapse-toggle{right:22px;top:67px}
-.page-content,.page-container,.main-content{min-height:0!important;height:auto!important;overflow:visible!important;padding-bottom:42px!important}
-#pageContainer,#pageContent{padding-bottom:48px!important}
-.page-wrapper,.page-content-inner{min-height:0!important;overflow:visible!important}
-.modal,.modal-content,.modal-dialog,.mdt-modal,.central-modal{background:#fff!important;color:#1a2d42!important;border-color:#d5dfeb!important}
-.modal-header,.modal-title,.modal-body,.modal-footer,.modal label,.modal p,.modal span,.modal small,.modal strong{color:inherit}
-.modal input,.modal select,.modal textarea,.central-modal input,.central-modal select,.central-modal textarea{background:#fff!important;color:#1a2d42!important;border-color:#cbd7e3!important}
-input,select,textarea{color:#1a2d42}
-.patrols-page,.fines-page,.lawyers-page,.warrants-page,.wanted-page,.records-page,.agents-page,.ifines-page,.system-page,.dashboard-page{color:#1a2d42!important}
-.patrols-page,.fines-page,.lawyers-page,.warrants-page,.wanted-page,.records-page,.agents-page,.ifines-page,.system-page{padding-bottom:56px!important}
-.patrols-page *,.fines-page *,.lawyers-page *,.warrants-page *,.wanted-page *,.records-page *,.agents-page *,.ifines-page *,.system-page *{scroll-margin-bottom:28px}
-.patrols-header,.agents-page-header,.records-header,.warrants-header,.wanted-header,.lawyers-header,.system-header,.fines-header,.ifines-top,.dashboard-header,.calendar-header,.announcements-header{
- background:linear-gradient(105deg,#12385f,#1d5687)!important;color:#fff!important;border:1px solid #17466f!important;border-left:4px solid #e2c52b!important;border-radius:10px!important;padding:16px 20px!important;box-shadow:0 5px 16px rgba(16,40,71,.12)!important
+/* ============================================================
+   PHASE 3.75 — LSPD-only visual correction
+   Remove legacy FIB palette leakage from loading, modal and page states.
+   ============================================================ */
+:root{
+ --lspd-navy-950:#0b1d33;--lspd-navy-900:#102847;--lspd-navy-800:#17395f;
+ --lspd-blue-700:#204e7b;--lspd-blue-600:#28679b;--lspd-blue-100:#eaf2f9;
+ --lspd-bg:#edf2f7;--lspd-surface:#fff;--lspd-text:#1a2d42;
+ --lspd-text-2:#40566e;--lspd-muted:#718399;--lspd-line:#d5dfeb;
 }
-.patrols-header *, .agents-page-header *, .records-header *, .warrants-header *, .wanted-header *, .lawyers-header *, .system-header *, .fines-header *, .ifines-top *, .dashboard-header *, .calendar-header *, .announcements-header *{color:#fff!important}
-.patrols-eyebrow,.agents-page-subtitle,.records-description,.warrants-subtitle,.wanted-subtitle,.lawyers-subtitle{color:#d8e7f5!important}
-.patrols-page,.patrols-page .patrols-board,.patrols-page .patrols-toolbar,.patrols-page .patrol-filter,.patrols-page .patrols-filter{background:#edf2f7!important}
-.patrols-page input,.patrols-page select,.patrols-page textarea{background:#fff!important;color:#1a2d42!important}
-.patrol-filter,.patrols-filter,.patrols-page .filter-panel{padding:8px 12px!important;min-height:0!important;gap:8px!important}
-.patrol-filter input,.patrols-filter input,.patrols-page .filter-panel input{height:34px!important}
-.ifines-page .fines-tabs button,.ifines-page .fines-tab,.ifines-page [role=tab]{color:#fff!important}
-.ifines-page .fines-tabs button.active,.ifines-page .fines-tab.active,.ifines-page [role=tab][aria-selected=true]{background:#fff!important;color:#17395f!important}
-.fines-page,.fines-page .fines-content,.patrols-page,.patrols-page .patrols-content{background:#edf2f7!important}
-.lawyers-page{background:#edf2f7!important;color:#1a2d42!important}
-.lawyers-page .lawyers-search,.lawyers-page input,.lawyers-page .lawyers-search input{background:#fff!important;color:#1a2d42!important}
-.lawyers-page .lawyers-section{margin-left:8px!important;margin-right:8px!important}
-.lawyers-page .lawyers-section-header{padding-left:20px!important}
-.lawyers-page .lawyers-table-wrap{overflow-x:auto!important;padding-left:6px!important}
-.lawyers-page table{min-width:680px}
-.agents-page,.agents-page .agents-list,.agents-page .agents-list-header{color:#1a2d42!important}
-.agents-page .agents-list-header-cell,.agents-page .agents-list-row,.agents-page .agents-list-row *{color:#1a2d42!important}
-.warrants-page .warrant-card,.warrants-page .warrant-card *{color:#1a2d42}
-.warrants-page .warrant-card{background:#fff!important;border:1px solid #d5dfeb!important;border-radius:10px!important;box-shadow:0 3px 12px rgba(16,40,71,.06)!important;padding:16px!important}
-.warrants-page .warrant-card-top{border-bottom:1px solid #d5dfeb!important;padding-bottom:10px!important}
-.warrants-page .warrant-priority{font-weight:800!important}
-.records-page .records-header,.wanted-page .wanted-header,.warrants-page .warrants-header{margin-bottom:4px}
-.dashboard-stat-icon,.dashboard-card-header-icon{display:flex!important;align-items:center!important;justify-content:center!important;color:#fff!important;font-size:20px!important;line-height:1!important}
-.dashboard-stat-icon:empty:before,.dashboard-card-header-icon:empty:before{content:"📊";display:block}
-.dashboard-stat-icon{background:#1d5687!important}
-.dashboard-stat-value,.dashboard-stat-label,.dashboard-card-header,.dashboard-card-body{color:#1a2d42!important}
-.dashboard-page .dashboard-stat,.dashboard-page .dashboard-card{background:#fff!important;color:#1a2d42!important}
-@media(max-width:760px){.sidebar{width:72px!important}.sidebar:not(.is-collapsed){width:72px!important}.page-content{padding-bottom:60px!important}.lawyers-page .lawyers-section{margin-left:0!important;margin-right:0!important}}
+html,body,#app,.main,.content,#pageContainer{
+ background:var(--lspd-bg)!important;color:var(--lspd-text)!important;
+}
+#pageContainer{min-height:0!important;height:auto!important;overflow:visible!important;padding-bottom:64px!important}
+#pageContainer>.page-loading,
+#pageContainer .page-loading,
+#pageContainer .loading-state,
+#pageContainer .loading-panel,
+#pageContainer .loading-container,
+#pageContainer .module-loading{
+ background:var(--lspd-surface)!important;color:var(--lspd-navy-800)!important;
+ border:1px solid var(--lspd-line)!important;border-radius:10px!important;
+ box-shadow:var(--lspd-shadow)!important;padding:24px!important;
+}
+#pageContainer .page-loading *,
+#pageContainer .loading-state *,
+#pageContainer .loading-panel *,
+#pageContainer .loading-container *,
+#pageContainer .module-loading *{color:inherit!important}
+#sessionLoadingScreen{background:linear-gradient(145deg,var(--lspd-navy-950),var(--lspd-navy-800))!important}
+#sessionLoadingScreen .session-loading-title{color:#fff!important}
+#sessionLoadingScreen .session-loading-subtitle{color:#d5e2ef!important}
 
-/* Additional page banners and table alignment */
-.dashboard-welcome{background:linear-gradient(105deg,#12385f,#1d5687)!important;color:#fff!important;border-left:4px solid #e2c52b!important}
-.dashboard-welcome *{color:#fff!important}
-.dashboard-welcome .dashboard-welcome-subtitle{color:#d8e7f5!important}
-.system-header{background:linear-gradient(105deg,#12385f,#1d5687)!important;color:#fff!important}
-.lawyers-section-header{padding-left:22px!important}
-.lawyers-table-wrap,.lawyers-table-container{padding-left:7px!important;overflow-x:auto!important}
-.warrants-page .warrants-stat-card{background:#fff!important;color:#1a2d42!important;border:1px solid #d5dfeb!important}
-.warrants-page .warrants-stat-label,.warrants-page .warrants-stat-value{color:#1a2d42!important}
+/* Blue editorial headers: white text, never grey-on-blue. */
+html body #pageContainer :is(.patrols-header,.agents-page-header,.records-header,
+ .warrants-header,.wanted-header,.lawyers-header,.system-header,.fines-sticky-top,
+ .ifines-top,.dashboard-welcome,.calendar-header,.announcements-header,
+ .gang-head,.bonuses-header,.vacations-header,.logs-header){
+ background:linear-gradient(105deg,#102847 0%,#1d5687 100%)!important;
+ color:#fff!important;border:1px solid #17395f!important;
+ border-left:4px solid #e2c52b!important;border-radius:10px!important;
+ box-shadow:0 6px 18px rgba(16,40,71,.13)!important;
+}
+html body #pageContainer :is(.patrols-header,.agents-page-header,.records-header,
+ .warrants-header,.wanted-header,.lawyers-header,.system-header,.fines-sticky-top,
+ .ifines-top,.dashboard-welcome,.calendar-header,.announcements-header,
+ .gang-head,.bonuses-header,.vacations-header,.logs-header) *{
+ color:#fff!important;
+}
+html body #pageContainer :is(.patrols-header,.agents-page-header,.records-header,
+ .warrants-header,.wanted-header,.lawyers-header,.system-header,.fines-sticky-top,
+ .ifines-top,.dashboard-welcome,.calendar-header,.announcements-header,
+ .gang-head,.bonuses-header,.vacations-header,.logs-header)
+ :is(.patrols-eyebrow,.agents-page-subtitle,.records-description,.warrants-subtitle,
+ .wanted-subtitle,.lawyers-subtitle,.system-header p,.fines-subtitle,
+ .ifines-subtitle,.dashboard-subtitle,.gang-head p){
+ color:#e0ebf5!important;
+}
+html body #pageContainer :is(.fines-sticky-top,.ifines-top){
+ position:sticky!important;top:0!important;z-index:20!important;
+ margin-left:-24px!important;margin-right:-24px!important;
+ padding:18px 24px 14px!important;
+}
+html body #pageContainer .fines-sticky-top .fines-header{
+ background:transparent!important;border:0!important;box-shadow:none!important;
+ padding:0!important;margin:0!important;
+}
+html body #pageContainer .fines-sticky-top .fines-disclaimer{
+ background:rgba(255,255,255,.10)!important;color:#fff!important;
+ border-color:rgba(255,255,255,.2)!important;
+}
+
+/* The FIB modal shell is retained as a component name only; its visual system is LSPD. */
+#fibGlobalModalOverlay{
+ background:rgba(8,24,42,.56)!important;backdrop-filter:blur(5px)!important;
+}
+#fibGlobalModalOverlay .fib-global-modal{
+ background:#fff!important;color:var(--lspd-text)!important;
+ border:1px solid var(--lspd-line)!important;border-top:4px solid #e2c52b!important;
+ border-radius:12px!important;box-shadow:0 24px 70px rgba(8,26,46,.28)!important;
+}
+#fibGlobalModalOverlay .fib-global-modal-header{
+ background:#f5f8fb!important;border-bottom:1px solid var(--lspd-line)!important;
+}
+#fibGlobalModalOverlay .fib-global-modal-title{color:var(--lspd-navy-900)!important}
+#fibGlobalModalOverlay .fib-global-modal-subtitle{color:var(--lspd-muted)!important}
+#fibGlobalModalOverlay .fib-global-modal-body{
+ background:#fff!important;color:var(--lspd-text)!important;
+}
+#fibGlobalModalOverlay .fib-global-modal-body :is(p,span,div,small,strong,label,legend,li){
+ color:inherit;
+}
+#fibGlobalModalOverlay .fib-global-modal-body :is(h1,h2,h3,h4,.modal-title,.section-title){
+ color:var(--lspd-navy-900)!important;
+}
+#fibGlobalModalOverlay .fib-global-modal-body :is(input:not([type=checkbox]):not([type=radio]),select,textarea){
+ background:#fff!important;color:var(--lspd-text)!important;
+ border:1px solid var(--lspd-line-strong)!important;border-radius:7px!important;
+}
+#fibGlobalModalOverlay .fib-global-modal-body :is(input,select,textarea)::placeholder{color:#8998a9!important}
+#fibGlobalModalOverlay .fib-global-modal-body :is(button,.button){
+ border-radius:7px!important;
+}
+#fibGlobalModalOverlay .fib-global-modal-footer{
+ background:#f7f9fc!important;border-top:1px solid var(--lspd-line)!important;
+}
+#fibGlobalModalOverlay .fib-global-modal-close{
+ background:#edf2f7!important;color:var(--lspd-navy-800)!important;
+ border:1px solid var(--lspd-line)!important;
+}
+#fibGlobalModalOverlay .fib-global-modal-close:hover{
+ background:#e3edf6!important;color:var(--lspd-navy-950)!important;
+}
+/* Special profile/personnel modal variants must not restore the dark FIB palette. */
+#fibGlobalModalOverlay.fib-modal-agents-mode .agents-system-modal,
+#fibGlobalModalOverlay.fib-modal-agents-mode .agents-system-modal-body{
+ background:#fff!important;color:var(--lspd-text)!important;
+}
+#fibGlobalModalOverlay.fib-modal-agents-mode .agents-system-modal-header,
+#fibGlobalModalOverlay.fib-modal-agents-mode .agents-system-modal-actions{
+ background:#f5f8fb!important;border-color:var(--lspd-line)!important;
+}
+#fibGlobalModalOverlay.fib-modal-agents-mode .agents-system-modal-title,
+#fibGlobalModalOverlay.fib-modal-agents-mode .agents-system-modal-body :is(h1,h2,h3,h4,label,strong){
+ color:var(--lspd-navy-900)!important;
+}
+#fibGlobalModalOverlay.fib-modal-agents-mode .agents-system-modal-description{
+ color:var(--lspd-muted)!important;
+}
+#fibGlobalModalOverlay.fib-modal-agents-mode :is(.agents-rank-select-button,.agents-form-select,.system-custom-select-trigger){
+ background:#fff!important;color:var(--lspd-text)!important;border-color:var(--lspd-line-strong)!important;
+}
+#profileModal{background:rgba(8,24,42,.56)!important}
+#profileModal .profile-modal{background:#fff!important;color:var(--lspd-text)!important;border:1px solid var(--lspd-line)!important;border-top:4px solid #e2c52b!important}
+#profileModal .profile-modal :is(h1,h2,h3,label,p,span,small,strong){color:var(--lspd-text)!important}
+#profileModal .profile-modal :is(input,select,textarea){background:#fff!important;color:var(--lspd-text)!important;border-color:var(--lspd-line-strong)!important}
+
+/* Leitstelle: remove obsolete global palette configuration and compact the filter row. */
+html body #pageContainer .patrols-page .patrols-filter,
+html body #pageContainer .patrols-page .patrol-filter,
+html body #pageContainer .patrols-page .filter-panel,
+html body #pageContainer .patrols-page .patrols-toolbar{
+ background:#fff!important;border:1px solid var(--lspd-line)!important;
+ border-radius:9px!important;padding:8px 10px!important;gap:7px!important;
+ box-shadow:none!important;min-height:0!important;
+}
+html body #pageContainer .patrols-page :is(.patrols-filter input,.patrol-filter input,.filter-panel input,
+ .patrols-filter select,.patrol-filter select,.filter-panel select){
+ height:32px!important;min-height:32px!important;padding:5px 9px!important;
+ font-size:11px!important;max-width:220px!important;
+}
+#pageContainer #patrolDisplayConfigButton,
+#pageContainer #patrolDisplayConfigPanel{display:none!important}
+
+/* Tables and tabs use readable contrast in every state. */
+html body #pageContainer :is(.ifines-tab,.fines-tab,[role=tab]){
+ color:var(--lspd-text-2)!important;background:transparent!important;
+}
+html body #pageContainer :is(.ifines-tab.active,.fines-tab.active,[role=tab][aria-selected=true]){
+ color:#fff!important;background:var(--lspd-navy-800)!important;
+ border-color:var(--lspd-gold)!important;
+}
+html body #pageContainer .lawyers-page :is(.lawyers-search,.lawyers-search input,.lawyers-search-panel){
+ background:#fff!important;color:var(--lspd-text)!important;
+}
+html body #pageContainer .lawyers-page :is(.lawyers-section,.lawyers-table-wrap,.lawyers-table-container){
+ margin-left:0!important;margin-right:0!important;padding-left:10px!important;
+ padding-right:10px!important;overflow-x:auto!important;
+}
+html body #pageContainer .lawyers-page .lawyers-section-header{padding-left:20px!important}
+html body #pageContainer .lawyers-page table{min-width:680px!important}
+html body #pageContainer .warrants-page .warrant-card{
+ background:#fff!important;color:var(--lspd-text)!important;border:1px solid var(--lspd-line)!important;
+ box-shadow:var(--lspd-shadow)!important;border-radius:10px!important;
+}
+html body #pageContainer .warrants-page .warrant-card :is(h1,h2,h3,h4,div,span,p,strong){
+ color:var(--lspd-text)!important;
+}
+html body #pageContainer .warrants-page .warrant-field-label{color:var(--lspd-muted)!important}
+html body #pageContainer .warrants-page .warrant-priority{
+ display:inline-flex!important;align-items:center!important;border-radius:6px!important;
+ padding:4px 8px!important;font-weight:800!important;
+}
+html body #pageContainer .warrants-page .warrant-priority.priority-sehr-hoch{
+ background:#fde8e8!important;color:#a11d2b!important;border:1px solid #f1b8bd!important;
+}
+html body #pageContainer .warrants-page .warrant-priority.priority-hoch{
+ background:#fff1df!important;color:#9a5410!important;border:1px solid #f1d0a4!important;
+}
+html body #pageContainer .warrants-page .warrant-priority.priority-normal{
+ background:#eaf2f9!important;color:#204e7b!important;border:1px solid #cbdced!important;
+}
+html body #pageContainer .warrants-page .warrant-priority.priority-untergetaucht{
+ background:#eceff3!important;color:#45566b!important;border:1px solid #d2dae3!important;
+}
+
+/* Dashboard icon wells: render a real fallback icon when source markup is empty. */
+html body #pageContainer .dashboard-stat-icon:empty::before{content:"📊"!important;display:block!important}
+html body #pageContainer .dashboard-card-header-icon:empty::before{content:"📁"!important;display:block!important}
+html body #pageContainer :is(.dashboard-stat-icon,.dashboard-card-header-icon){
+ display:grid!important;place-items:center!important;color:var(--lspd-navy-800)!important;
+ background:var(--lspd-blue-100)!important;border:1px solid #cbdced!important;
+ font-size:18px!important;line-height:1!important;
+}
+
+/* Scroll ownership: allow the document and page contents to reach their final rows. */
+html,body,#app,.main,.content,#pageContainer,.page-content,.page-container,.page-wrapper,
+.main-content,.page-content-inner{
+ min-height:0!important;overflow-y:visible!important;
+}
+html body #pageContainer :is(.patrols-page,.fines-page,.lawyers-page,.warrants-page,.wanted-page,
+ .records-page,.agents-page,.ifines-page,.system-page,.dashboard-page,.calendar-page,
+ .announcements-page,.logs-page,.gangs-page,.bonuses-page,.vacations-page){
+ min-height:0!important;height:auto!important;max-height:none!important;
+ overflow-x:hidden!important;overflow-y:visible!important;padding-bottom:72px!important;
+}
+html body #pageContainer :is(.patrols-content,.fines-content,.lawyers-content,.warrants-content,
+ .wanted-content,.records-content,.system-content,.dashboard-content){
+ overflow:visible!important;max-height:none!important;padding-bottom:32px!important;
+}
+@media(max-width:760px){
+ html body #pageContainer :is(.fines-sticky-top,.ifines-top){margin-left:-14px!important;margin-right:-14px!important;padding-left:14px!important;padding-right:14px!important}
+ html body #pageContainer .lawyers-page table{min-width:640px!important}
+}
+
+/* Sidebar collapse: collapsed state remains collapsed even while hovered. */
+.sidebar{transition:width .2s ease!important}
+.sidebar:not(.is-collapsed):hover{width:252px!important}
+.sidebar.is-collapsed,.sidebar.is-collapsed:hover{width:72px!important;min-width:72px!important}
+.sidebar.is-collapsed .brand-text,.sidebar.is-collapsed .nav-label,
+.sidebar.is-collapsed .nav-section-title,.sidebar.is-collapsed .user-info,
+.sidebar.is-collapsed .logout-button{display:none!important}
+.sidebar.is-collapsed .brand-icon{width:42px!important;height:42px!important;min-width:42px!important}
+.sidebar.is-collapsed .nav-item{justify-content:center!important;padding:0!important}
+.sidebar.is-collapsed .nav-icon{display:flex!important;justify-content:center!important;width:100%!important;margin:0!important;font-size:19px!important}
+.sidebar.is-collapsed .user-card{justify-content:center!important;padding:0!important}
+.sidebar.is-collapsed .user-avatar{display:flex!important;margin:0!important}
+.sidebar.is-collapsed + .main{padding-left:72px!important}
+.sidebar:not(.is-collapsed) + .main{padding-left:252px!important}
+.sidebar.is-collapsed .sidebar-collapse-toggle{right:22px!important;top:67px!important}
+
+/* Reliable emoji indicators independent of the remote icon font. */
+html body #pageContainer .dashboard-stats .dashboard-stat:nth-child(1) .dashboard-stat-icon::before{content:"⚖️"}
+html body #pageContainer .dashboard-stats .dashboard-stat:nth-child(2) .dashboard-stat-icon::before{content:"🔎"}
+html body #pageContainer .dashboard-stats .dashboard-stat:nth-child(3) .dashboard-stat-icon::before{content:"📁"}
+html body #pageContainer .dashboard-stats .dashboard-stat:nth-child(4) .dashboard-stat-icon::before{content:"👥"}
+html body #pageContainer .dashboard-stats .dashboard-stat-icon i{display:none!important}
+html body #pageContainer .dashboard-stats .dashboard-stat-icon::before{display:block!important;font-family:inherit!important;font-size:18px!important;line-height:1!important}
+
+/* Explicitly replace legacy FIB loading placeholders on catalog pages. */
+html body #pageContainer .fines-page .fines-state,
+html body #pageContainer .ifines-page :is(.ifines-state,.ifines-empty,.ifines-loading){
+ background:#fff!important;color:#40566e!important;
+ border:1px solid #d5dfeb!important;border-radius:10px!important;
+ box-shadow:0 4px 14px rgba(16,40,71,.06)!important;
+}
+html body #pageContainer .fines-page .fines-state.error{
+ background:#fff3f3!important;color:#9f2833!important;border-color:#efc6ca!important;
+}
+#fibGlobalModalOverlay .fib-global-modal-body :is(p,span,div,small,strong,label,legend,li){
+ color:var(--lspd-text)!important;
+}
+#fibGlobalModalOverlay .fib-global-modal-body :is(.muted,.hint,.description,.subtitle,.meta,.help-text){
+ color:var(--lspd-muted)!important;
+}
+#fibGlobalModalOverlay .fib-global-modal-body :is(.form-section,.agents-section-card,.agents-entry-item,.records-form-section,.system-section){
+ background:#fff!important;color:var(--lspd-text)!important;border-color:var(--lspd-line)!important;
+}
+
+html body #pageContainer .dashboard-permission-info{
+ background:#f1f6fb!important;border:1px solid #cbdced!important;
+ border-radius:9px!important;color:#1a2d42!important;box-shadow:none!important;
+}
+html body #pageContainer .dashboard-permission-label{color:#40566e!important}
+html body #pageContainer .dashboard-permission-value{color:#17395f!important}
+html body #pageContainer .dashboard-permission-value.granted{color:#237a4b!important}
+#fibGlobalModalOverlay.fib-modal-agents-mode .agents-system-modal *:not(button):not(.agents-button):not(.agents-btn){color:#1a2d42!important}
+#fibGlobalModalOverlay.fib-modal-agents-mode .agents-system-modal :is(.agents-system-modal-description,.agents-form-hint,.agents-muted,.muted){color:#718399!important}
+
+html body #pageContainer :is(.lspd-module-head,.mdt-module-head,.lspd-page-heading,.vc-head){
+ background:linear-gradient(105deg,#102847 0%,#1d5687 100%)!important;
+ color:#fff!important;border:1px solid #17395f!important;border-left:4px solid #e2c52b!important;
+ border-radius:10px!important;padding:18px 22px!important;margin:0 0 18px!important;
+ box-shadow:0 6px 18px rgba(16,40,71,.13)!important;
+}
+html body #pageContainer :is(.lspd-module-head,.mdt-module-head,.lspd-page-heading,.vc-head) *{
+ color:#fff!important;
+}
+html body #pageContainer :is(.lspd-module-subtitle,.lspd-page-heading p,.vc-subtitle){
+ color:#e0ebf5!important;
+}
+html body #pageContainer .mdt-module{padding:20px 22px 72px!important;color:#1a2d42!important}
+html body #pageContainer .mdt-module .sub{color:#718399!important}
+html body #pageContainer .lspd-module-head h2{font-size:24px!important;margin:0!important}
+
+html body #pageContainer .system-page :is(.system-tab,.system-tab button){
+ color:#40566e!important;background:transparent!important;border-color:transparent!important;
+}
+html body #pageContainer .system-page .system-tab:hover{
+ color:#17395f!important;background:#eaf2f9!important;
+}
+html body #pageContainer .system-page .system-tab.active{
+ color:#fff!important;background:#17395f!important;border-color:#e2c52b!important;
+}
+html body #pageContainer .system-page :is(.system-section,.system-modal,.system-modal-body){
+ background:#fff!important;color:#1a2d42!important;border-color:#d5dfeb!important;
+}
+html body #pageContainer .system-page :is(.system-section,.system-modal) :is(h1,h2,h3,h4,label,p,span,small,strong){
+ color:inherit!important;
+}
+html body #pageContainer .system-page :is(.system-section-title,.system-form-label,.system-toolbar-title){
+ color:#17395f!important;
+}
+
+#fibGlobalModalOverlay .fib-global-modal-footer :is(button,.button){
+ min-height:36px!important;border-radius:7px!important;font-weight:700!important;
+}
+#fibGlobalModalOverlay .fib-global-modal-footer :is(button.primary,.primary){
+ background:#17395f!important;color:#fff!important;border:1px solid #17395f!important;
+}
+#fibGlobalModalOverlay .fib-global-modal-footer :is(button.secondary,.secondary){
+ background:#edf2f7!important;color:#40566e!important;border:1px solid #d5dfeb!important;
+}
+#fibGlobalModalOverlay .fib-global-modal-footer :is(button.danger,.danger){
+ background:#fff0f1!important;color:#a8323c!important;border:1px solid #efc6ca!important;
+}
+
+
+/* Consolidated page-specific finishing rules. */
+.sidebar-collapse-toggle{
+ position:absolute!important;right:9px!important;top:9px!important;width:27px!important;height:27px!important;
+ border:1px solid rgba(255,255,255,.28)!important;border-radius:6px!important;
+ background:rgba(255,255,255,.12)!important;color:#fff!important;z-index:5!important;
+ display:grid!important;place-items:center!important;font-size:17px!important;line-height:1!important;
+}
+.sidebar.is-collapsed .sidebar-collapse-toggle{right:22px!important;top:67px!important}
+html body #pageContainer .patrols-page :is(.patrols-board,.patrols-toolbar,.patrols-content,.patrol-filter,.patrols-filter,.filter-panel){
+ background:#fff!important;color:#1a2d42!important;border-color:#d5dfeb!important;
+}
+html body #pageContainer .warrants-page .warrants-stat-card{
+ background:#fff!important;color:#1a2d42!important;border:1px solid #d5dfeb!important;
+ border-radius:10px!important;box-shadow:0 5px 18px rgba(16,40,71,.07)!important;
+}
+html body #pageContainer .warrants-page :is(.warrants-stat-label,.warrants-stat-value,.warrants-stat-sub){
+ color:#1a2d42!important;
+}
+
+.sidebar.is-collapsed .sidebar-header{justify-content:center!important;padding:10px!important}
+.sidebar.is-collapsed .sidebar-nav{padding:14px 9px!important}
+.sidebar.is-collapsed .sidebar-user{padding:10px 8px!important}
+.sidebar.is-collapsed .user-card{height:48px!important;justify-content:center!important}
+.sidebar.is-collapsed .user-avatar{width:38px!important;height:38px!important;min-width:38px!important}
