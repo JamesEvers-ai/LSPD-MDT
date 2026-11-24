@@ -1559,6 +1559,238 @@
 
 }
 
+   
+/* =========================================================
+   PERSONALAKTE – KONTRAST- UND DESIGNÜBERARBEITUNG
+   ========================================================= */
+
+/* Einheitliche Darstellung der Formularfelder */
+.agents-system-modal,
+.agents-system-modal-body {
+    color: #e5eaf1;
+}
+
+.agents-system-modal-body input,
+.agents-system-modal-body select,
+.agents-system-modal-body textarea,
+.agents-form-input,
+.agents-form-select,
+.agents-form-textarea {
+    color: #e5eaf1 !important;
+    background: #1b222c !important;
+    border-color: #354253 !important;
+    color-scheme: dark;
+}
+
+.agents-system-modal-body input::placeholder,
+.agents-system-modal-body textarea::placeholder {
+    color: #8793a3 !important;
+    opacity: 1;
+}
+
+.agents-system-modal-body input:focus,
+.agents-system-modal-body select:focus,
+.agents-system-modal-body textarea:focus {
+    background: #202a37 !important;
+    border-color: #3978c6 !important;
+    box-shadow: 0 0 0 2px rgba(57, 120, 198, 0.12);
+    outline: none;
+}
+
+/* Native Dropdown-Optionen */
+.agents-system-modal-body select option,
+.agents-form-select option {
+    color: #e5eaf1 !important;
+    background: #171e28 !important;
+}
+
+/* Deaktivierte Felder */
+.agents-system-modal-body input:disabled,
+.agents-system-modal-body select:disabled,
+.agents-system-modal-body textarea:disabled {
+    color: #9aa5b3 !important;
+    background: #151b23 !important;
+    opacity: 0.75;
+}
+
+/* =========================================================
+   TEXTE UND BESCHRIFTUNGEN
+   ========================================================= */
+
+.agents-form-label {
+    color: #b7c2d0 !important;
+}
+
+.agents-section-title {
+    color: #c4cfdd !important;
+}
+
+.agents-system-modal-description {
+    color: #9ba8b8 !important;
+}
+
+.agents-entry-title {
+    color: #f0f3f8 !important;
+}
+
+.agents-entry-meta span {
+    color: #a5b1c0 !important;
+}
+
+.agents-entry-content {
+    color: #c0cad7 !important;
+}
+
+.agents-empty-list,
+.agents-rank-empty {
+    color: #a0adbd !important;
+}
+
+/* Allgemeine Inhalte innerhalb der Personalakte */
+.agents-system-modal-body p,
+.agents-system-modal-body li,
+.agents-system-modal-body td,
+.agents-system-modal-body th {
+    color: #d5deea;
+}
+
+/* =========================================================
+   TAB-NAVIGATION – BLAU
+   ========================================================= */
+
+.agents-personnel-tabs {
+    border-bottom: 1px solid rgba(74, 137, 211, 0.22);
+    gap: 5px;
+}
+
+.agents-personnel-tab {
+    color: #91a2b8 !important;
+    border-radius: 6px 6px 0 0;
+    transition:
+        color 0.15s ease,
+        background 0.15s ease;
+}
+
+.agents-personnel-tab:hover {
+    color: #c8ddf7 !important;
+    background: rgba(55, 119, 190, 0.10);
+}
+
+.agents-personnel-tab.active {
+    color: #72aff5 !important;
+    background: rgba(55, 119, 190, 0.10);
+}
+
+.agents-personnel-tab.active::after {
+    background: #438bd8 !important;
+    height: 2px;
+}
+
+/* =========================================================
+   MODAL-BUTTONS – BLAUE AKZENTE
+   ========================================================= */
+
+/* Standard-Buttons, beispielsweise Abbrechen */
+.agents-system-button {
+    color: #c6d8ed !important;
+    background: rgba(49, 112, 181, 0.16) !important;
+    border: 1px solid rgba(74, 139, 211, 0.30) !important;
+}
+
+.agents-system-button:hover {
+    color: #ffffff !important;
+    background: rgba(49, 112, 181, 0.30) !important;
+    border-color: rgba(91, 157, 231, 0.55) !important;
+}
+
+/* Kleinere Aktionsbuttons */
+.agents-small-button {
+    color: #c6d8ed !important;
+    background: rgba(49, 112, 181, 0.13) !important;
+    border-color: rgba(74, 139, 211, 0.25) !important;
+}
+
+.agents-small-button:hover {
+    color: #ffffff !important;
+    background: rgba(49, 112, 181, 0.26) !important;
+    border-color: rgba(91, 157, 231, 0.48) !important;
+}
+
+/* Primäre Aktion */
+.agents-small-button.primary {
+    color: #ffffff !important;
+    background: #2868a9 !important;
+    border-color: #347fc9 !important;
+}
+
+.agents-small-button.primary:hover {
+    background: #347fc9 !important;
+    border-color: #4a94df !important;
+}
+
+/* =========================================================
+   RANG-DROPDOWN
+   ========================================================= */
+
+.agents-rank-select-button {
+    color: #e5edf7 !important;
+    background: #1b2635 !important;
+    border-color: #354b66 !important;
+}
+
+.agents-rank-select-button:hover {
+    background: #23344a !important;
+    border-color: #477db8 !important;
+}
+
+.agents-rank-select-menu {
+    background: #151e2b !important;
+    border-color: #354b66 !important;
+}
+
+.agents-rank-option {
+    color: #c5d1df !important;
+}
+
+.agents-rank-option:hover,
+.agents-rank-option.selected {
+    color: #ffffff !important;
+    background: rgba(55, 119, 190, 0.22) !important;
+}
+
+/* =========================================================
+   SCHLIESSEN-BUTTON
+   ========================================================= */
+
+.agents-system-modal-close {
+    color: #9eb5d0 !important;
+    background: rgba(49, 112, 181, 0.12) !important;
+}
+
+.agents-system-modal-close:hover {
+    color: #ffffff !important;
+    background: rgba(49, 112, 181, 0.30) !important;
+}
+
+/* =========================================================
+   ABSCHLIESSENDE KONTRASTABSICHERUNG
+   ========================================================= */
+
+/* Dynamisch erzeugte Formularfelder innerhalb der Akte */
+.agents-system-modal-body input:not([type="checkbox"]):not([type="radio"]),
+.agents-system-modal-body select,
+.agents-system-modal-body textarea {
+    -webkit-text-fill-color: #e5eaf1;
+}
+
+/* Auswahlfelder und Textbereiche dürfen nicht weiß bleiben */
+.agents-system-modal-body select:disabled,
+.agents-system-modal-body textarea:disabled,
+.agents-system-modal-body input:disabled {
+    -webkit-text-fill-color: #9aa5b3;
+}
+
+
 </style>
 
 
