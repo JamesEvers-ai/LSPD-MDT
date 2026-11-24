@@ -886,6 +886,462 @@
       color: #eef3f8;
       font-size: 12px;
     }
+
+   
+/* =========================================================
+   LSPD MDT – LEITSTELLE
+   EINHEITLICHES HELL-DESIGN
+   ========================================================= */
+
+/* Grundfarben und konfigurierbare Standard-Rosterfarben */
+:root {
+    --patrol-callsign-type-bg: #dceafa;
+    --patrol-callsign-type-fg: #245581;
+
+    --patrol-callsign-number-bg: #286eae;
+    --patrol-callsign-number-fg: #ffffff;
+
+    --patrol-ten-code-bg: #d9eff2;
+    --patrol-ten-code-fg: #155b6a;
+
+    --patrol-location-bg: #e9eef5;
+    --patrol-location-fg: #34465a;
+
+    --patrol-rank-bg: #dceafa;
+    --patrol-rank-fg: #245581;
+
+    --patrol-name-bg: #f0f3f7;
+    --patrol-name-fg: #34465a;
+}
+
+/* =========================================================
+   SEITENHEADER
+   ========================================================= */
+
+.patrols-title {
+    color: #172536 !important;
+}
+
+.patrols-eyebrow {
+    color: #347fc9 !important;
+}
+
+.patrols-subtitle {
+    color: #64748b !important;
+}
+
+/* =========================================================
+   EIGENER DIENSTSTATUS
+   ========================================================= */
+
+.patrol-own-status {
+    background: linear-gradient(120deg, #ffffff, #edf4fb) !important;
+    border: 1px solid #d5e1ed !important;
+    box-shadow: 0 3px 12px rgba(30, 55, 80, .06) !important;
+}
+
+.patrol-own-status-heading {
+    color: #347fc9 !important;
+}
+
+.patrol-own-status-name {
+    color: #172536 !important;
+}
+
+.patrol-own-status-caption {
+    color: #64748b !important;
+}
+
+.patrol-own-status-cell {
+    border-left-color: #dce4ed !important;
+}
+
+.patrol-own-status-label {
+    color: #64748b !important;
+}
+
+.patrol-own-status-value {
+    color: #263c53 !important;
+}
+
+.patrol-own-status-value.is-idle {
+    color: #7b8796 !important;
+}
+
+/* =========================================================
+   TOOLBAR UND FILTER
+   ========================================================= */
+
+.patrol-toolbar {
+    background: #ffffff !important;
+    border: 1px solid #dce3eb !important;
+    box-shadow: 0 2px 8px rgba(30, 55, 80, .035);
+}
+
+.patrol-toolbar-section + .patrol-toolbar-section {
+    border-top: 1px solid #e6ebf1 !important;
+}
+
+.patrol-toolbar-label {
+    color: #26384c !important;
+}
+
+.patrol-toolbar-description {
+    color: #758397 !important;
+}
+
+.patrol-toolbar-meta {
+    color: #64748b !important;
+}
+
+.patrol-filter {
+    background: #f4f6f9 !important;
+    border: 1px solid #dce3eb !important;
+    color: #53657a !important;
+}
+
+.patrol-filter:hover {
+    background: #eaf2fb !important;
+    border-color: #b8cde3 !important;
+    color: #245b91 !important;
+}
+
+.patrol-filter.active {
+    background: #e3effb !important;
+    border-color: #9bbfe3 !important;
+    color: #205d97 !important;
+}
+
+/* =========================================================
+   GRUPPENSTEUERUNG
+   ========================================================= */
+
+.patrol-group-controls {
+    background: #f0f3f7 !important;
+    border: 1px solid #dce3eb !important;
+}
+
+.patrol-group-button {
+    color: #64748b !important;
+}
+
+.patrol-group-button:hover {
+    color: #245b91 !important;
+    background: #e4edf7 !important;
+}
+
+.patrol-group-button.active {
+    background: #dceafa !important;
+    color: #245b91 !important;
+}
+
+/* =========================================================
+   GRUPPENÜBERSCHRIFTEN
+   ========================================================= */
+
+.patrol-group-title {
+    color: #53657a !important;
+}
+
+.patrol-group-count {
+    background: #e3effb !important;
+    color: #286eae !important;
+}
+
+/* =========================================================
+   EINSATZKARTEN
+   ========================================================= */
+
+.patrol-card {
+    background: #ffffff !important;
+    border: 1px solid #dce3eb !important;
+    box-shadow: 0 2px 6px rgba(30, 55, 80, .055) !important;
+}
+
+.patrol-card:hover {
+    background: #f7faff !important;
+    border-color: #a9c7e5 !important;
+}
+
+/* Funkrufzeichen */
+.patrol-callsign {
+    background: #f0f3f7 !important;
+    border-color: #dce3eb !important;
+}
+
+/* Statusanzeigen */
+.patrol-status {
+    background: #edf1f5 !important;
+    color: #40536a !important;
+    border-color: #dce3eb !important;
+}
+
+.patrol-status.status-10-1 {
+    background: #e3f3e8 !important;
+    color: #247342 !important;
+    border-color: #c4e5cf !important;
+}
+
+.patrol-status.status-10-3 {
+    background: #fbe8e8 !important;
+    color: #a83232 !important;
+    border-color: #efcaca !important;
+}
+
+.patrol-status.status-10-6 {
+    background: #fff3dc !important;
+    color: #946313 !important;
+    border-color: #efdfb6 !important;
+}
+
+.patrol-status.status-10-19,
+.patrol-status.status-10-23 {
+    background: #e7f0fa !important;
+    color: #285d91 !important;
+    border-color: #c9dced !important;
+}
+
+.patrol-status.status-10-76 {
+    background: #e4effc !important;
+    color: #245f9d !important;
+    border-color: #c4d9f0 !important;
+}
+
+/* Einsatzort */
+.patrol-location {
+    border-color: #dce3eb !important;
+}
+
+/* Fahrzeug */
+.patrol-vehicle {
+    background: #dceff3 !important;
+    border: 1px solid #c2e1e8 !important;
+    color: #155b6a !important;
+}
+
+/* Mitglieder */
+.patrol-member {
+    background: #f0f3f7 !important;
+    border-color: #dce3eb !important;
+}
+
+.patrol-member-callsign {
+    color: #3975ad !important;
+}
+
+/* Aktivitätsstatus */
+.patrol-activity-status {
+    background: #edf2f7 !important;
+    color: #34465a !important;
+    border-color: #dce3eb !important;
+}
+
+/* =========================================================
+   KARTENAKTIONEN
+   ========================================================= */
+
+.patrol-action-button {
+    background: #f0f4f8 !important;
+    border: 1px solid #dce3eb !important;
+    color: #64748b !important;
+}
+
+.patrol-action-button:hover {
+    background: #e3effb !important;
+    border-color: #a9c7e5 !important;
+    color: #286eae !important;
+}
+
+.patrol-join-button {
+    color: #286eae !important;
+    background: #e6f1fc !important;
+    border-color: #b9d3ed !important;
+}
+
+.patrol-join-button:hover {
+    background: #d5e8fa !important;
+}
+
+/* =========================================================
+   LEERZUSTÄNDE UND LADEANZEIGEN
+   ========================================================= */
+
+.patrol-loading-state,
+.patrol-empty,
+.patrol-inline-message {
+    background: #ffffff !important;
+    border: 1px solid #dce3eb !important;
+    box-shadow: 0 2px 8px rgba(30, 55, 80, .035);
+}
+
+.patrol-loading-text {
+    color: #53657a !important;
+}
+
+.patrol-loading-subtext {
+    color: #8793a3 !important;
+}
+
+.patrol-empty-icon {
+    background: #eaf2fb !important;
+    border-color: #c9dced !important;
+    color: #347fc9 !important;
+}
+
+.patrol-empty-title,
+.patrol-inline-message strong {
+    color: #26384c !important;
+}
+
+.patrol-empty-text,
+.patrol-inline-message {
+    color: #64748b !important;
+}
+
+.patrol-loading-spinner {
+    border-color: #dce3eb !important;
+    border-top-color: #347fc9 !important;
+    border-right-color: #83b8eb !important;
+}
+
+/* =========================================================
+   ANZEIGENKONFIGURATION
+   ========================================================= */
+
+.patrol-display-config {
+    background: #ffffff !important;
+    border: 1px solid #dce3eb !important;
+    box-shadow: 0 3px 12px rgba(30, 55, 80, .05);
+}
+
+.patrol-display-config,
+.patrol-display-config * {
+    color: #34465a;
+}
+
+.patrol-display-config-head {
+    color: #1e3045 !important;
+}
+
+.patrol-display-config-head button {
+    color: #64748b !important;
+}
+
+.patrol-display-config-head button:hover {
+    color: #286eae !important;
+}
+
+.patrol-display-config-grid label {
+    color: #34465a !important;
+}
+
+.patrol-display-config-grid input[type="color"] {
+    background: #ffffff !important;
+    border-color: #cbd5e1 !important;
+}
+
+.patrol-display-config-grid input[data-patrol-hex] {
+    background: #f7f9fc !important;
+    color: #26384c !important;
+    border-color: #cbd5e1 !important;
+}
+
+.patrol-color-preview {
+    border-color: #dce3eb !important;
+}
+
+#patrolDisplayConfigMessage {
+    color: #286eae !important;
+}
+
+/* =========================================================
+   TEN-CODE-AUSWAHL
+   ========================================================= */
+
+.patrol-ten-code-top {
+    color: #53657a !important;
+}
+
+.patrol-ten-code-top select {
+    color: #26384c !important;
+    background: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+}
+
+.patrol-ten-code-top select option {
+    color: #26384c !important;
+    background: #ffffff !important;
+}
+
+/* =========================================================
+   BUTTONS
+   ========================================================= */
+
+.patrol-header-button.secondary {
+    background: #edf3f9 !important;
+    border-color: #cbdced !important;
+    color: #245b91 !important;
+}
+
+.patrol-header-button.secondary:hover {
+    background: #dceafa !important;
+    border-color: #a9c7e5 !important;
+    color: #174875 !important;
+}
+
+/* =========================================================
+   FEHLERMELDUNGEN
+   ========================================================= */
+
+#patrolError {
+    background: #fff0f0 !important;
+    border-color: #efcaca !important;
+    color: #a83232 !important;
+    box-shadow: 0 8px 25px rgba(30, 55, 80, .12) !important;
+}
+
+/* =========================================================
+   TOOLBAR-HINWEISE
+   ========================================================= */
+
+.patrol-toolbar-action-hint {
+    color: #7b8796 !important;
+}
+
+/* =========================================================
+   FORMULARE – AUCH DYNAMISCH ERZEUGTE FELDER
+   ========================================================= */
+
+.patrols-page input:not([type="checkbox"]):not([type="radio"]):not([type="color"]),
+.patrols-page select,
+.patrols-page textarea,
+.patrol-display-config input[data-patrol-hex] {
+    color: #26384c !important;
+    background-color: #ffffff !important;
+    border-color: #cbd5e1 !important;
+    -webkit-text-fill-color: #26384c;
+    color-scheme: light;
+}
+
+.patrols-page input::placeholder,
+.patrols-page textarea::placeholder {
+    color: #8995a5 !important;
+    -webkit-text-fill-color: #8995a5;
+}
+
+.patrols-page input:focus,
+.patrols-page select:focus,
+.patrols-page textarea:focus {
+    border-color: #4388cf !important;
+    box-shadow: 0 0 0 3px rgba(67, 136, 207, .12);
+    outline: none;
+}
+
+.patrols-page select option {
+    background: #ffffff;
+    color: #26384c;
+}
+
 </style>
 
 <div class="patrols-page">
