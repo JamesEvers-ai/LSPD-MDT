@@ -935,3 +935,27 @@ html body #pageContainer .content :is(
     padding: 18px 20px !important;
   }
 }
+
+/* Personnel file v3: force the complete modal body into the same light visual system as the Personalien tab. */
+#fibGlobalModalOverlay.fib-modal-agents-mode .agents-system-modal-body,
+#fibGlobalModalOverlay.fib-modal-agents-mode .agents-system-modal-body * {
+  --agents-modal-text: #243b53;
+  --agents-modal-muted: #718399;
+}
+#fibGlobalModalOverlay.fib-modal-agents-mode .agents-system-modal-body { background:#fff!important;color:#243b53!important; }
+#fibGlobalModalOverlay.fib-modal-agents-mode .agents-system-modal-body :is(.agents-form,.agents-section,.agents-section-card,.agents-entry-item,.agents-history-item,.agents-note-list,.agents-history-list) { background:#fff!important;color:#243b53!important;border-color:#d8e2ec!important; }
+#fibGlobalModalOverlay.fib-modal-agents-mode .agents-system-modal-body :is(input,select,textarea,.agents-form-input,.agents-form-select,.agents-form-textarea) { background:#fff!important;color:#243b53!important;border-color:#cbd7e4!important; }
+#fibGlobalModalOverlay.fib-modal-agents-mode .agents-system-modal-body :is(.agents-section-title,.agents-entry-title,.agents-history-title) { color:#17395f!important; }
+#fibGlobalModalOverlay.fib-modal-agents-mode .agents-system-modal-body :is(.agents-entry-meta,.agents-history-meta,.agents-history-detail,.agents-sanction-meta,.agents-sanction-reason,.agents-form-hint,.agents-muted,.muted) { color:#718399!important; }
+#fibGlobalModalOverlay.fib-modal-agents-mode .agents-system-modal-body :is(.agents-personnel-tab,.agents-personnel-tab.active) { color:#40566e!important; background:transparent!important; }
+#fibGlobalModalOverlay.fib-modal-agents-mode .agents-system-modal-body .agents-personnel-tab.active { color:#17395f!important; }
+#fibGlobalModalOverlay.fib-modal-agents-mode .agents-system-modal-body .agents-history-list { display:grid!important; gap:10px!important; }
+#fibGlobalModalOverlay.fib-modal-agents-mode .agents-system-modal-body .agents-history-item { display:flex!important; gap:12px!important; padding:12px!important; border:1px solid #d8e2ec!important; border-radius:9px!important; box-shadow:0 3px 10px rgba(16,40,71,.04)!important; }
+#fibGlobalModalOverlay.fib-modal-agents-mode .agents-system-modal-body .agents-history-dot { width:8px!important;height:8px!important;flex:0 0 8px!important;margin-top:5px!important;border-radius:50%!important;background:#e2c52b!important;box-shadow:0 0 0 3px #f8f3d8!important; }
+#fibGlobalModalOverlay.fib-modal-agents-mode .agents-system-modal-body .agents-history-main { min-width:0!important; }
+#fibGlobalModalOverlay.fib-modal-agents-mode .agents-system-modal-body .agents-history-title { font-weight:800!important; }
+#fibGlobalModalOverlay.fib-modal-agents-mode .agents-system-modal-body .agents-history-detail { margin-top:6px!important; white-space:pre-wrap!important; }
+#fibGlobalModalOverlay.fib-modal-agents-mode .agents-system-modal-body .agents-sanction-meta { color:#718399!important; }
+#fibGlobalModalOverlay.fib-modal-agents-mode .agents-system-modal-body .agents-sanction-component { background:#f5f8fb!important;border:1px solid #e1e8ef!important;color:#40566e!important; }
+#fibGlobalModalOverlay.fib-modal-agents-mode .agents-system-modal-body .agents-sanction-component strong { color:#17395f!important; }
+#fibGlobalModalOverlay.fib-modal-agents-mode .agents-system-modal-body .agents-sanction-reason { color:#40566e!important; }

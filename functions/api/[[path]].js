@@ -78,6 +78,12 @@ function normalizePersonnelNoteRow(row={}){
 async function writeAudit(env,auth,action,moduleName,itemId,detail=""){
  try {await db(env,"fib_mdt_logs",{method:"POST",body:{id:id("LOG"),action,module_name:moduleName,item_id:itemId||null,detail:String(detail||"").slice(0,500),actor_id:auth?.user?.id||null,actor_name:auth?.user?.name||"System",created_at:new Date().toISOString()},prefer:"return=minimal"});} catch(e){console.warn("Audit log skipped:",e?.message);}
 }
+async function writePersonnelHistory(env,auth,userId,action,detail="") {
+ try {
+  await db(env,"personnel_history",{method:"POST",body:{id:id("PH"),user_id:String(userId),action:String(action),detail:String(detail||"").slice(0,1000),actor_id:auth?.user?.id||null,actor_name:auth?.user?.name||"System",created_at:new Date().toISOString()},prefer:"return=minimal"});
+ } catch(e) { console.warn("Personnel history skipped:",e?.message); }
+}
+
 async function moduleDispatch(method,args,env,token){
  const actions={getModuleItems:"list",createModuleItem:"create",updateModuleItem:"update",deleteModuleItem:"delete"};
  const action=actions[method]; if(!action)return undefined;
@@ -187,7 +193,7 @@ async function internalFineDispatch(method,args,env,token){
   const now=new Date().toISOString(),idValue=id("IFB"),amount=components.length===1&&components[0].type==="fine"?Number(components[0].amount):null;
   const metadata={record_type:"internal_fine_case",fine_id:item.id,fine_title:title,sanction_type:components.length===1?components[0].type:"composite",sanction_label:components.map(c=>c.label||sanctionLabel(c.type)).join(" + "),amount,sanction_value:components.length===1?components[0].value??null:null,sanction_unit:components.length===1?components[0].unit||"":"",sanction_components:components,personnel_id:user.id,personnel_name:user.name,personnel_rank:rank,service_number:p.service_number||"",call_sign:p.call_sign||"",department:p.department||"",unit:p.unit||"",reason:text(d.reason),issued_by:au.user.id,issued_by_name:au.user.name};
   const row={id:idValue,title:`${sanctionLabel(type)}: ${title} – ${user.name}`,description:text(d.reason)||item.description||`Interne Sanktion: ${title}`,status:"active",event_date:now,metadata,created_by:au.user.id,created_by_name:au.user.name,created_at:now,updated_at:now};
-  const saved=await db(env,"fib_internal_fines",{method:"POST",query:{select:"id,title,description,status,event_date,metadata,created_by,created_by_name,created_at,updated_at"},body:row,prefer:"return=representation"});return normalizeModuleRow(saved?.[0]||row);
+  const saved=await db(env,"fib_internal_fines",{method:"POST",query:{select:"id,title,description,status,event_date,metadata,created_by,created_by_name,created_at,updated_at"},body:row,prefer:"return=representation"});await writePersonnelHistory(env,au,personId,"sanction_issued",`Interne Sanktion „${title}“ festgesetzt: ${components.map(c=>c.label||sanctionLabel(c.type)).join(" + ")}.`);return normalizeModuleRow(saved?.[0]||row);
  }
 }
 
@@ -257,11 +263,12 @@ async function dispatchCore(method,args,env,token){
  if(method==="getPersonnelFileBundle"||method==="getPersonnelFile"){
   const au=await authz(env,token,"officers.view");const uid=text(args[1]);if(!uid)throw new Error("Keine Benutzer-ID angegeben.");
   const us=await db(env,"users",{query:{select:"id,username,name,rank,active,approved,profile_image",id:`eq.${uid}`,limit:"1"}});if(!us?.length)throw Object.assign(new Error("Beamter nicht gefunden."),{status:404});
-  const [pp,tt,nn,ss,ranks]=await Promise.all([
+  const [pp,tt,nn,ss,hh,ranks]=await Promise.all([
    db(env,"personnel",{query:{select:"*",user_id:`eq.${uid}`,limit:"1"}}),
    db(env,"personnel_trainings",{query:{select:"*",user_id:`eq.${uid}`,order:"created_at.desc"}}),
    db(env,"personnel_notes",{query:{select:"*",user_id:`eq.${uid}`,order:"created_at.desc"}}),
    db(env,"fib_internal_fines",{query:{select:"id,title,description,status,event_date,metadata,created_at", "metadata->>personnel_id":`eq.${uid}`,"metadata->>record_type":"eq.internal_fine_case",order:"created_at.desc",limit:"300"}}),
+   db(env,"personnel_history",{query:{select:"id,user_id,action,detail,actor_id,actor_name,created_at",user_id:`eq.${uid}`,order:"created_at.desc",limit:"300"}}).catch(()=>[]),
    rankRows(env)
   ]);
   const u=us[0],p=normalizePersonnelRow(pp?.[0]||{}),rank=(ranks||[]).find(r=>String(r.id)===String(u.rank)||r.name===u.rank);
@@ -269,15 +276,23 @@ async function dispatchCore(method,args,env,token){
   const canViewSanctions=au.master===true||!!(viewerRank&&rank&&Number(rank.level)<Number(viewerRank.level));
   const agent={...u,...p,rank:rank?.name||u.rank||"Kein Rang",rankId:rank?.id||u.rank||"",rankName:rank?.name||u.rank||"Kein Rang",profileImage:u.profile_image||p.profileImage||""};
   const sanctions=canViewSanctions?(ss||[]).filter(r=>r.metadata?.record_type==="internal_fine_case").map(normalizeModuleRow):[];
-  return {agent,personnel:p,trainings:(tt||[]).map(normalizeTrainingRow),notes:(nn||[]).map(normalizePersonnelNoteRow),sanctions,sanctionsVisible:canViewSanctions,rankOptions:ranks||[]};
+  return {agent,personnel:p,trainings:(tt||[]).map(normalizeTrainingRow),notes:(nn||[]).map(normalizePersonnelNoteRow),sanctions,sanctionsVisible:canViewSanctions,history:hh||[],rankOptions:ranks||[]};
  }
  if(method==="savePersonnelProfile"){
   const au=await authz(env,token,"officers.edit");const uid=text(args[1]),data=args[2]||{};if(!uid)throw new Error("Keine Benutzer-ID angegeben.");
-  const target=await db(env,"users",{query:{select:"id",id:`eq.${uid}`,limit:"1"}});if(!target?.length)throw Object.assign(new Error("Beamter nicht gefunden."),{status:404});
-  const rankId=text(data.rankId);if(rankId)await db(env,"users",{method:"PATCH",query:{id:`eq.${uid}`},body:{rank:rankId},prefer:"return=minimal"});
-  const payload={user_id:uid,service_number:text(data.serviceNumber),phone:text(data.phone),call_sign:text(data.callSign),department:text(data.department),unit:text(data.unit),email:text(data.email),address:text(data.address),entry_date:data.entryDate||null,personnel_status:text(data.personnelStatus),note:text(data.note)};
-  const existing=await db(env,"personnel",{query:{select:"user_id",user_id:`eq.${uid}`,limit:"1"}});
-  if(existing?.length)await db(env,"personnel",{method:"PATCH",query:{user_id:`eq.${uid}`},body:payload,prefer:"return=minimal"});else await db(env,"personnel",{method:"POST",body:payload,prefer:"return=minimal"});
+  const target=await db(env,"users",{query:{select:"id,rank",id:`eq.${uid}`,limit:"1"}});if(!target?.length)throw Object.assign(new Error("Beamter nicht gefunden."),{status:404});
+  const existingRows=await db(env,"personnel",{query:{select:"user_id,service_number,phone,call_sign,department,unit,email,address,entry_date,personnel_status,note",user_id:`eq.${uid}`,limit:"1"}});
+  const before=existingRows?.[0]||{}; const oldRank=String(target[0].rank||""); const rankId=text(data.rankId);
+  const labels={serviceNumber:"Dienstnummer",phone:"Telefon",callSign:"Callsign",department:"Abteilung",unit:"Einheit",email:"E-Mail",address:"Adresse",entryDate:"Eintrittsdatum",personnelStatus:"Personalstatus",note:"Personalnotiz",rankId:"Dienstgrad"};
+  const values={serviceNumber:text(data.serviceNumber),phone:text(data.phone),callSign:text(data.callSign),department:text(data.department),unit:text(data.unit),email:text(data.email),address:text(data.address),entryDate:data.entryDate||null,personnelStatus:text(data.personnelStatus),note:text(data.note)};
+  const changed=[]; const compare=(a,b)=>String(a??"")===String(b??"");
+  const beforeMap={serviceNumber:before.service_number,phone:before.phone,callSign:before.call_sign,department:before.department,unit:before.unit,email:before.email,address:before.address,entryDate:before.entry_date,personnelStatus:before.personnel_status,note:before.note};
+  for(const [key,label] of Object.entries(labels)){ if(key==="rankId") continue; if(!compare(beforeMap[key],values[key])) changed.push(label); }
+  if(rankId && String(rankId)!==oldRank) changed.push("Dienstgrad");
+  if(rankId)await db(env,"users",{method:"PATCH",query:{id:`eq.${uid}`},body:{rank:rankId},prefer:"return=minimal"});
+  const payload={user_id:uid,service_number:values.serviceNumber,phone:values.phone,call_sign:values.callSign,department:values.department,unit:values.unit,email:values.email,address:values.address,entry_date:values.entryDate,personnel_status:values.personnelStatus,note:values.note};
+  if(existingRows?.length)await db(env,"personnel",{method:"PATCH",query:{user_id:`eq.${uid}`},body:payload,prefer:"return=minimal"});else await db(env,"personnel",{method:"POST",body:payload,prefer:"return=minimal"});
+  if(changed.length) await writePersonnelHistory(env,au,uid,rankId&&String(rankId)!==oldRank&&changed.length===1?"rank_changed":"profile_updated",`Geändert: ${changed.join(", ")}`);
   return {success:true,personnel:normalizePersonnelRow(payload)};
  }
  if(method==="getPersonnelTrainings"||method==="getPersonnelNotes"){
@@ -290,9 +305,9 @@ async function dispatchCore(method,args,env,token){
    id:id("TR"),user_id:uid,name:text(d.name),category:text(d.category),date:d.date||null,instructor:text(d.instructor),status:text(d.status)||"Bestanden",expiry_date:d.expiryDate||d.expiry_date||null,notes:text(d.notes),created_by:au.user.id,created_by_name:au.user.name,created_at:now
   }:{id:id("NT"),user_id:uid,type:text(d.type)||"Vermerk",title:text(d.title),content:text(d.content),created_by:au.user.id,created_by_name:au.user.name,created_at:now};
   if(training&&!row.name)throw new Error("Bitte eine Bezeichnung für die Schulung angeben.");if(!training&&!row.title)throw new Error("Bitte einen Titel für den Vermerk angeben.");
-  const rows=await db(env,training?"personnel_trainings":"personnel_notes",{method:"POST",query:{select:"*"},body:row,prefer:"return=representation"});const saved=rows?.[0]||row;return training?normalizeTrainingRow(saved):normalizePersonnelNoteRow(saved);
+  const rows=await db(env,training?"personnel_trainings":"personnel_notes",{method:"POST",query:{select:"*"},body:row,prefer:"return=representation"});const saved=rows?.[0]||row;await writePersonnelHistory(env,au,uid,training?"training_created":"note_created",training?`Schulung „${row.name}“ hinzugefügt.`:`Vermerk „${row.title}“ hinzugefügt.`);return training?normalizeTrainingRow(saved):normalizePersonnelNoteRow(saved);
  }
- if(method==="deletePersonnelTraining"||method==="deletePersonnelNote"){await authz(env,token,"officers.edit");const table=method==="deletePersonnelTraining"?"personnel_trainings":"personnel_notes";await db(env,table,{method:"DELETE",query:{id:`eq.${text(args[2])}`,user_id:`eq.${text(args[1])}`},prefer:"return=minimal"});return {success:true};}
+ if(method==="deletePersonnelTraining"||method==="deletePersonnelNote"){const au=await authz(env,token,"officers.edit");const uid=text(args[1]),entryId=text(args[2]),training=method==="deletePersonnelTraining",table=training?"personnel_trainings":"personnel_notes";const found=await db(env,table,{query:{select:training?"id,name":"id,title",id:`eq.${entryId}`,user_id:`eq.${uid}`,limit:"1"}});await db(env,table,{method:"DELETE",query:{id:`eq.${entryId}`,user_id:`eq.${uid}`},prefer:"return=minimal"});const label=found?.[0]?(training?found[0].name:found[0].title):entryId;await writePersonnelHistory(env,au,uid,training?"training_deleted":"note_deleted",training?`Schulung „${label}“ gelöscht.`:`Vermerk „${label}“ gelöscht.`);return {success:true};}
  // Master-only patrol roster display colors. Settings are persisted in Supabase.
  const PATROL_COLOR_DEFAULTS={callsignTypeBg:"#174a70",callsignTypeFg:"#d9efff",callsignNumberBg:"#2879b9",callsignNumberFg:"#ffffff",tenCodeBg:"#164e63",tenCodeFg:"#cffafe",locationBg:"#334155",locationFg:"#dbeafe",rankBg:"#2879b9",rankFg:"#ffffff",nameBg:"#475569",nameFg:"#cbd5e1",tenCodeByCode:{"10-1":{bg:"#166534",fg:"#dcfce7"},"10-3":{bg:"#991b1b",fg:"#fee2e2"},"10-6":{bg:"#854d0e",fg:"#fef3c7"},"10-23":{bg:"#1e40af",fg:"#dbeafe"},"10-76":{bg:"#155e75",fg:"#cffafe"}}};
  if(method==="getPatrolTenCodes"){
@@ -487,7 +502,7 @@ const READ_ONLY_METHODS = new Set([
  "getInternalFineCases",
  "getInternalFineCatalog","getInternalFinePersonnel","getInternalSanctionsOverview",
  "getPatrolDisplayConfig","getPatrolEligibleUsers","getPatrolTenCodes","getPatrols",
- "getPersonnelFile","getPersonnelFileBundle","getPersonnelList","getPersonnelNotes",
+ "getPersonnelFile","getPersonnelFileBundle","getPersonnelHistory","getPersonnelList","getPersonnelNotes",
  "getPersonnelRankOptions","getPersonnelTrainings","getRankById","getRecord",
  "getRecordShares","getRecords","getRecordsConfig","getWanted","getWantedConfig",
  "getWantedEntries","getWantedEntry","getWarrantStatistics","getWarrants",

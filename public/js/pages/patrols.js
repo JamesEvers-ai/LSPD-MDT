@@ -570,9 +570,10 @@
       const codes=[...new Set((STATUSES||DEFAULT_STATUSES).map(v=>String(v||"").trim()).filter(v=>/^10-\d{1,2}$/.test(v)))];
       root.innerHTML=codes.map(code=>{const colors=patrolDisplayColors.tenCodeByCode?.[code]||{};const bg=colors.bg||"#64748b",fg=colors.fg||"#ffffff";return `<label>${escapeHtml(code)} – Hintergrund<input type="color" data-ten-code-color="${escapeHtml(code)}" data-part="bg" value="${bg}"></label><label>${escapeHtml(code)} – Text<input type="color" data-ten-code-color="${escapeHtml(code)}" data-part="fg" value="${fg}"></label>`;}).join("")||'<div style="color:#9eafc4">Keine Ten Codes konfiguriert.</div>';
     }
+    window.renderTenCodeColorSettings = renderTenCodeColorSettings;
     async function loadPatrolDisplayConfig() {
-      try { const result = await window.runServer("getPatrolDisplayConfig"); applyPatrolDisplayColors(result && result.colors); renderTenCodeColorSettings(); const button=document.getElementById("patrolDisplayConfigButton"); if(button) button.hidden = !(result && result.master === true); }
-      catch(error) { console.warn("Patrol display config could not be loaded", error); renderTenCodeColorSettings(); }
+      try { const result = await window.runServer("getPatrolDisplayConfig"); applyPatrolDisplayColors(result && result.colors); window.renderTenCodeColorSettings(); const button=document.getElementById("patrolDisplayConfigButton"); if(button) button.hidden = !(result && result.master === true); }
+      catch(error) { console.warn("Patrol display config could not be loaded", error); window.renderTenCodeColorSettings(); }
     }
     function initPatrolDisplayConfig() {
       const panel=document.getElementById("patrolDisplayConfigPanel"), button=document.getElementById("patrolDisplayConfigButton");
@@ -1610,7 +1611,7 @@
         applyPermissionUI();
         initPatrolDisplayConfig();
         loadPatrolDisplayConfig();
-        loadConfiguredTenCodes().then(function(){ const select=document.getElementById("patrolModalStatus"); if(select){const selected=select.value;select.innerHTML=STATUSES.map(v=>`<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join("");if(STATUSES.includes(selected))select.value=selected;} renderTenCodeColorSettings(); });
+        loadConfiguredTenCodes().then(function(){ const select=document.getElementById("patrolModalStatus"); if(select){const selected=select.value;select.innerHTML=STATUSES.map(v=>`<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join("");if(STATUSES.includes(selected))select.value=selected;} window.renderTenCodeColorSettings(); });
         buildFilters();
         bindStaticEvents();
 

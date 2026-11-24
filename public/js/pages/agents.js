@@ -27,6 +27,10 @@
 
             sanctions: [],
 
+            history: [],
+
+            historyLoaded: false,
+
             sanctionsVisible: false,
 
             sanctionsLoaded: false,
@@ -1401,6 +1405,16 @@
        OPEN PERSONNEL FILE
     ====================================================== */
 
+    function loadPersonnelHistory() {
+        const token = getAgentsSessionToken();
+        const agent = state.selectedAgent;
+        if (!token || !agent) return Promise.resolve([]);
+        return new Promise((resolve, reject) => {
+            CloudApi.run.withSuccessHandler(rows => { state.history = Array.isArray(rows) ? rows : []; state.historyLoaded = true; if (state.modalTab === "history") renderPersonnelModal(true); resolve(state.history); }).withFailureHandler(reject).getPersonnelHistory(token, String(agent.id));
+        });
+    }
+
+
     function openPersonnelFile(
         userId
     ) {
@@ -1471,6 +1485,8 @@
             [];
 
         state.sanctions = [];
+        state.history = [];
+        state.historyLoaded = false;
         state.sanctionsVisible = false;
         state.sanctionsLoaded = false;
 
@@ -1596,6 +1612,8 @@
                             : [];
 
                     state.sanctions = Array.isArray(bundle.sanctions) ? bundle.sanctions : [];
+                    state.history = Array.isArray(bundle.history) ? bundle.history : [];
+                    state.historyLoaded = true;
                     state.sanctionsVisible = bundle.sanctionsVisible === true;
                     state.sanctionsLoaded = true;
 
@@ -1802,6 +1820,9 @@
         else if (state.modalTab === "sanctions" && state.sanctionsVisible) {
             body.innerHTML = renderSanctionsTab();
         }
+        else if (state.modalTab === "history") {
+            body.innerHTML = renderHistoryTab();
+        }
         else {
 
             body.innerHTML =
@@ -1884,6 +1905,8 @@
                 </button>
 
                 ${state.sanctionsVisible ? `<button type="button" class="agents-personnel-tab ${activeTab === "sanctions" ? "active" : ""}" data-personnel-tab="sanctions">Verhängte Sanktionen</button>` : ""}
+
+                <button type="button" class="agents-personnel-tab ${activeTab === "history" ? "active" : ""}" data-personnel-tab="history">Historie</button>
 
             </div>
 
@@ -3183,6 +3206,7 @@
                     }
 
 
+                    loadPersonnelHistory().catch(function () {});
                     showAgentSuccess(
                         "Die Personalakte wurde erfolgreich gespeichert."
                     );
@@ -3992,6 +4016,7 @@
                     );
 
 
+                    loadPersonnelHistory().catch(function () {});
                     showAgentSuccess(
                         "Die Schulung wurde gelöscht."
                     );
@@ -4032,7 +4057,14 @@
         const labels = { fine: "Geldstrafe", hq_rounds: "HQ-Runden", fort_rounds: "Fort-Runden", human_labs: "Human Labs", suspension: "Suspendierung", termination: "Kündigung" };
         const componentsOf = m => Array.isArray(m.sanction_components) && m.sanction_components.length ? m.sanction_components : [{ type: m.sanction_type || (m.amount != null ? "fine" : ""), amount: m.amount, value: m.sanction_value, unit: m.sanction_unit }];
         const componentValue = c => c.type === "fine" ? `${Number(c.amount || 0).toLocaleString("de-DE")} $` : c.type === "termination" ? "Beendigung des Dienstverhältnisses" : `${Number(c.value ?? c.sanction_value ?? 0).toLocaleString("de-DE")} ${c.unit || c.sanction_unit || ""}`.trim();
-        return `${renderTabs("sanctions")}<div class="agents-form"><div class="agents-section"><div class="agents-section-title">Verhängte interne Sanktionen</div><div class="agents-note-list">${!state.sanctionsLoaded ? `<div class="agents-personnel-loading-strip">Sanktionshistorie wird geladen …</div>` : !entries.length ? `<div class="agents-empty-list">Für diesen Agenten sind keine internen Sanktionen dokumentiert.</div>` : entries.map(row => { const m = row.metadata || {}; const date = row.eventDate || row.created_at; const components = componentsOf(m); return `<div class="agents-section-card" style="margin-bottom:10px"><div><div class="agents-section-title" style="margin:0">${escapeHtml(m.fine_title || row.title || "Interne Sanktion")}</div><div style="margin-top:5px;color:rgba(255,255,255,.42);font-size:10px">${date ? escapeHtml(new Date(date).toLocaleString("de-DE")) : "Datum unbekannt"}</div></div><div style="display:grid;gap:5px;margin-top:10px">${components.map(c => `<div style="display:flex;justify-content:space-between;gap:12px"><span style="color:rgba(255,255,255,.55);font-size:11px">${escapeHtml(labels[c.type] || "Sanktion")}</span><strong>${escapeHtml(componentValue(c))}</strong></div>`).join("")}</div>${m.reason || row.description ? `<div style="margin-top:9px;white-space:pre-wrap">${escapeHtml(m.reason || row.description)}</div>` : ""}<div style="margin-top:8px;color:rgba(255,255,255,.42);font-size:10px">Festgesetzt durch: ${escapeHtml(m.issued_by_name || row.created_by_name || "Unbekannt")}</div></div>`; }).join("")}</div></div></div>`;
+        return `${renderTabs("sanctions")}<div class="agents-form"><div class="agents-section"><div class="agents-section-title">Verhängte interne Sanktionen</div><div class="agents-note-list">${!state.sanctionsLoaded ? `<div class="agents-personnel-loading-strip">Sanktionshistorie wird geladen …</div>` : !entries.length ? `<div class="agents-empty-list">Für diesen Agenten sind keine internen Sanktionen dokumentiert.</div>` : entries.map(row => { const m = row.metadata || {}; const date = row.eventDate || row.created_at; const components = componentsOf(m); return `<div class="agents-section-card agents-sanction-card"><div><div class="agents-section-title" style="margin:0">${escapeHtml(m.fine_title || row.title || "Interne Sanktion")}</div><div class="agents-sanction-meta">${date ? escapeHtml(new Date(date).toLocaleString("de-DE")) : "Datum unbekannt"}</div></div><div class="agents-sanction-components">${components.map(c => `<div class="agents-sanction-component"><span>${escapeHtml(labels[c.type] || "Sanktion")}</span><strong>${escapeHtml(componentValue(c))}</strong></div>`).join("")}</div>${m.reason || row.description ? `<div class="agents-sanction-reason">${escapeHtml(m.reason || row.description)}</div>` : ""}<div class="agents-sanction-meta agents-sanction-issued">Festgesetzt durch: ${escapeHtml(m.issued_by_name || row.created_by_name || "Unbekannt")}</div></div>`; }).join("")}</div></div></div>`;
+    }
+
+
+    function renderHistoryTab() {
+        const entries = Array.isArray(state.history) ? state.history : [];
+        const actionLabels = { profile_updated: "Stammdaten geändert", rank_changed: "Dienstgrad geändert", training_created: "Schulung hinzugefügt", training_deleted: "Schulung gelöscht", note_created: "Vermerk hinzugefügt", note_deleted: "Vermerk gelöscht", sanction_issued: "Interne Sanktion festgesetzt" };
+        return `${renderTabs("history")}<div class="agents-form"><div class="agents-section"><div class="agents-section-title">Änderungshistorie</div><div class="agents-history-list">${!state.historyLoaded ? `<div class="agents-personnel-loading-strip">Historie wird geladen …</div>` : !entries.length ? `<div class="agents-empty-list">Für diese Personalakte sind noch keine Änderungen protokolliert.</div>` : entries.map(row => { const date = row.created_at || row.createdAt; return `<article class="agents-history-item"><div class="agents-history-dot"></div><div class="agents-history-main"><div class="agents-history-title">${escapeHtml(actionLabels[row.action] || row.action || "Änderung")}</div><div class="agents-history-meta">${date ? escapeHtml(new Date(date).toLocaleString("de-DE")) : "Datum unbekannt"} · ${escapeHtml(row.actor_name || row.actorName || "System")}</div>${row.detail ? `<div class="agents-history-detail">${escapeHtml(row.detail)}</div>` : ""}</div></article>`; }).join("")}</div></div></div>`;
     }
 
 
@@ -4554,6 +4586,7 @@
                     );
 
 
+                    loadPersonnelHistory().catch(function () {});
                     showAgentSuccess(
                         "Der Vermerk wurde hinzugefügt."
                     );
@@ -4653,6 +4686,7 @@
                     );
 
 
+                    loadPersonnelHistory().catch(function () {});
                     showAgentSuccess(
                         "Der Vermerk wurde gelöscht."
                     );
