@@ -1383,6 +1383,424 @@
     }
 
   }
+
+  
+/* =========================================================
+   LSPD MDT – SYSTEMVERWALTUNG
+   LIGHT THEME OVERRIDE
+   ========================================================= */
+
+.system-page {
+    color: #243449;
+}
+
+/* HEADER */
+.system-header h1 {
+    color: #1d2d42;
+}
+
+.system-header p {
+    color: #718096;
+}
+
+/* TABS */
+.system-tabs {
+    background: #f1f4f8;
+    border-color: #dce3ec;
+}
+
+.system-tab {
+    color: #64748b;
+}
+
+.system-tab:hover {
+    color: #1d4168;
+    background: #e5edf6;
+}
+
+.system-tab.active {
+    color: #fff;
+    background: #244f7c;
+}
+
+/* TOOLBAR */
+.system-toolbar {
+    background: #fff;
+    border-color: #dce4ed;
+    box-shadow: 0 3px 12px rgba(25, 45, 70, .05);
+}
+
+.system-toolbar-title {
+    color: #243449;
+}
+
+.system-toolbar-description {
+    color: #78879a;
+}
+
+/* BUTTONS */
+.system-button {
+    color: #40536b;
+    background: #fff;
+    border-color: #d7e0ea;
+}
+
+.system-button:hover {
+    color: #1d4168;
+    background: #f1f5f9;
+    border-color: #b9c9da;
+}
+
+.system-button.primary {
+    color: #fff;
+    background: #244f7c;
+    border-color: #244f7c;
+}
+
+.system-button.primary:hover {
+    color: #fff;
+    background: #193e65;
+    border-color: #193e65;
+}
+
+.system-button.danger {
+    color: #b42332;
+    background: #fff5f5;
+    border-color: #f0c9cc;
+}
+
+.system-button.danger:hover {
+    background: #fee9e9;
+    border-color: #e9aeb4;
+}
+
+/* TABLE */
+.system-table-wrapper {
+    background: #fff;
+    border-color: #dce4ed;
+    box-shadow: 0 3px 12px rgba(25, 45, 70, .05);
+}
+
+.system-table th {
+    color: #687b91;
+    background: #f5f7fa;
+    border-bottom-color: #e1e7ef;
+}
+
+.system-table td {
+    color: #34465c;
+    border-bottom-color: #edf0f4;
+}
+
+.system-table tbody tr:hover {
+    background: #f5f8fc;
+}
+
+.system-empty {
+    color: #8794a5 !important;
+}
+
+.system-table-muted {
+    color: #9aa6b5;
+}
+
+/* RANK SHORTNAME */
+.system-rank-shortname {
+    color: #36516e;
+    background: #f0f4f8;
+    border-color: #dce4ed;
+}
+
+/* STATUS */
+.system-status {
+    border-color: #e1e7ef;
+}
+
+.system-status.active {
+    color: #176b48;
+    background: #eaf7f0;
+}
+
+.system-status.active::before {
+    background: #20a36b;
+}
+
+.system-status.inactive {
+    color: #7d8998;
+    background: #f2f4f7;
+}
+
+.system-status.inactive::before {
+    background: #aab4c0;
+}
+
+.system-master {
+    color: #8a6827;
+    background: #fbf5e8;
+    border-color: #ead9b5;
+}
+
+.system-normal {
+    color: #68788c;
+    background: #f1f4f7;
+    border-color: #e0e6ed;
+}
+
+/* RANK PERMISSIONS */
+.rank-permission-sidebar,
+.rank-permission-content {
+    background: #fff;
+    border-color: #dce4ed;
+}
+
+.rank-permission-title {
+    color: #243449;
+}
+
+.rank-permission-description {
+    color: #718096;
+}
+
+/* CUSTOM SELECT */
+.system-custom-select-trigger {
+    color: #293b50;
+    background: #fff;
+    border-color: #cbd5e1;
+}
+
+.system-custom-select-trigger:hover {
+    color: #193e65;
+    background: #f7f9fc;
+    border-color: #9fb2c8;
+}
+
+.system-custom-select.open .system-custom-select-trigger {
+    color: #193e65;
+    background: #fff;
+    border-color: #315f8d;
+}
+
+.system-custom-select-chevron {
+    color: #718096;
+}
+
+.system-custom-select-menu {
+    background: #fff;
+    border-color: #d4deea;
+    box-shadow: 0 12px 30px rgba(25, 45, 70, .14);
+}
+
+.system-custom-select-option {
+    color: #34465c;
+}
+
+.system-custom-select-option:hover {
+    color: #193e65;
+    background: #edf3f9;
+}
+
+.system-custom-select-option.selected {
+    color: #194b7d;
+    background: #e7f0fa;
+    border-color: #c6d9ed;
+}
+
+.system-custom-select-empty {
+    color: #8794a5;
+}
+
+/* PERMISSION LIST */
+.permission-category-title {
+    color: #75869a;
+}
+
+.permission-item {
+    background: #fff;
+    border-color: #dfe6ee;
+}
+
+.permission-item:hover {
+    background: #f5f8fc;
+    border-color: #c4d2e1;
+}
+
+.permission-item-content {
+    min-width: 0;
+}
+
+.permission-item-name {
+    color: #293b50;
+}
+
+.permission-item-key {
+    color: #8492a3;
+}
+
+/* =========================================================
+   CHECKBOXEN – WICHTIGSTER FIX
+   ========================================================= */
+
+/* Berechtigungs-Checkboxen und Formular-Checkboxen */
+.permission-item input[type="checkbox"],
+.system-form-checkbox input[type="checkbox"] {
+    appearance: none;
+    -webkit-appearance: none;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 19px;
+    height: 19px;
+    min-width: 19px;
+    min-height: 19px;
+
+    flex: 0 0 19px;
+
+    margin: 0;
+    padding: 0;
+
+    background: #fff;
+    border: 1.5px solid #aab8c8;
+    border-radius: 5px;
+
+    cursor: pointer;
+
+    position: relative;
+
+    transition:
+        background .15s ease,
+        border-color .15s ease,
+        box-shadow .15s ease;
+}
+
+/* Nicht ausgewählt */
+.permission-item input[type="checkbox"]:not(:checked),
+.system-form-checkbox input[type="checkbox"]:not(:checked) {
+    background: #fff;
+    border-color: #aab8c8;
+}
+
+/* Ausgewählt */
+.permission-item input[type="checkbox"]:checked,
+.system-form-checkbox input[type="checkbox"]:checked {
+    background: #245b91;
+    border-color: #245b91;
+}
+
+/* Deutlich sichtbarer Haken */
+.permission-item input[type="checkbox"]:checked::after,
+.system-form-checkbox input[type="checkbox"]:checked::after {
+    content: "✓";
+
+    position: absolute;
+    inset: 0;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    color: #fff;
+
+    font-size: 13px;
+    font-weight: 800;
+    line-height: 1;
+}
+
+/* Fokus */
+.permission-item input[type="checkbox"]:focus-visible,
+.system-form-checkbox input[type="checkbox"]:focus-visible {
+    outline: 3px solid rgba(36, 91, 145, .2);
+    outline-offset: 2px;
+}
+
+/* Checkbox-Beschriftung */
+.system-form-checkbox {
+    color: #34465c;
+}
+
+/* Hover */
+.permission-item input[type="checkbox"]:hover,
+.system-form-checkbox input[type="checkbox"]:hover {
+    border-color: #245b91;
+}
+
+/* Speichern */
+.rank-permission-save {
+    border-top-color: #e2e8f0;
+}
+
+/* =========================================================
+   MODAL
+   ========================================================= */
+
+.system-modal {
+    background: #fff;
+    border-color: #dce4ed;
+    box-shadow: 0 24px 70px rgba(20, 40, 65, .22);
+}
+
+.system-modal-header {
+    border-bottom-color: #e5eaf0;
+}
+
+.system-modal-title {
+    color: #1d2d42;
+}
+
+.system-modal-description {
+    color: #78879a;
+}
+
+.system-modal-close {
+    color: #64748b;
+    background: #f1f4f8;
+}
+
+.system-modal-close:hover {
+    color: #1d4168;
+    background: #e5edf6;
+}
+
+.system-modal-actions {
+    border-top-color: #e5eaf0;
+}
+
+/* FORMULARE */
+.system-form-label {
+    color: #64778e;
+}
+
+.system-form-input,
+.system-form-textarea {
+    color: #293b50;
+    background: #fff;
+    border-color: #d2dce7;
+}
+
+.system-form-input::placeholder,
+.system-form-textarea::placeholder {
+    color: #a0acba;
+}
+
+.system-form-input:focus,
+.system-form-textarea:focus {
+    background: #fff;
+    border-color: #315f8d;
+    box-shadow: 0 0 0 3px rgba(49, 95, 141, .10);
+}
+
+.system-form-hint {
+    color: #8794a5;
+}
+
+/* RESPONSIVE */
+@media (max-width: 650px) {
+    .system-tabs {
+        background: #f1f4f8;
+    }
+}
+
 </style>
 
 
