@@ -35,6 +35,6 @@
  $("vcDeleteCancel").addEventListener("click",()=>{$("vcDeleteDialog").classList.remove("open");$("vcDeleteDialog").setAttribute("aria-hidden","true");state.deleteId=null;});
  $("vcDeleteConfirm").addEventListener("click",remove);
  $("vcDeleteDialog").addEventListener("click",e=>{if(e.target.id==="vcDeleteDialog"){$("vcDeleteDialog").classList.remove("open");$("vcDeleteDialog").setAttribute("aria-hidden","true");state.deleteId=null;}});
- window.addEventListener("fib-mdt:data-changed",e=>{if(["saveVehicleCatalogItem","deleteVehicleCatalogItem"].includes(e.detail?.method))load();});
+ window.__fibPageLifecycle.on(window, "fib-mdt:data-changed",e=>{if(["saveVehicleCatalogItem","deleteVehicleCatalogItem"].includes(e.detail?.method))load();});
  load();
 })();

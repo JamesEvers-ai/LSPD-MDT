@@ -494,7 +494,7 @@
     state.search = String(value || "").trim().slice(0, 100);
 
     if (state.searchTimer) clearTimeout(state.searchTimer);
-    state.searchTimer = setTimeout(function () {
+    state.searchTimer = window.__fibPageLifecycle.timeout(function () {
       loadCurrent(false);
     }, 260);
   }
@@ -1058,8 +1058,8 @@
 
   window.recordsOpenTab = openTab;
   window.recordsLoadCurrent = function () { loadCurrent(true); };
-  window.addEventListener("fib-mdt:refresh-request", function (event) { if (document.getElementById("fibRecordsPage") && !(event.detail && event.detail.source === "mutation")) loadCurrent(true); });
-  window.addEventListener("fib-mdt:data-changed", function (event) { const modal=document.getElementById("fibGlobalModalOverlay"); if (document.getElementById("fibRecordsPage") && !(modal && modal.classList.contains("open")) && /Record|Akten|record/i.test(String(event.detail && event.detail.method || ""))) loadCurrent(true); });
+  window.__fibPageLifecycle.on(window, "fib-mdt:refresh-request", function (event) { if (document.getElementById("fibRecordsPage") && !(event.detail && event.detail.source === "mutation")) loadCurrent(true); });
+  window.__fibPageLifecycle.on(window, "fib-mdt:data-changed", function (event) { const modal=document.getElementById("fibGlobalModalOverlay"); if (document.getElementById("fibRecordsPage") && !(modal && modal.classList.contains("open")) && /Record|Akten|record/i.test(String(event.detail && event.detail.method || ""))) loadCurrent(true); });
   window.recordsSearchChanged = searchChanged;
   window.recordsStatusChanged = statusChanged;
   window.recordsOpenRecord = openRecord;
@@ -1078,5 +1078,5 @@
     // Hier werden deshalb bewusst KEINE weiteren Escape-/Backdrop-Listener registriert.
   }
 
-  setTimeout(initialize, 0);
+  window.__fibPageLifecycle.timeout(initialize, 0);
 })();

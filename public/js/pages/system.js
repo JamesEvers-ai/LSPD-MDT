@@ -6719,7 +6719,7 @@ function createRankFromModal() {
       true;
 
 
-    document.addEventListener(
+    window.__fibPageLifecycle.on(document, 
       "click",
       function (
         event
@@ -6739,7 +6739,7 @@ function createRankFromModal() {
     );
 
 
-    document.addEventListener(
+    window.__fibPageLifecycle.on(document, 
       "keydown",
       function (
         event
@@ -6779,7 +6779,7 @@ function createRankFromModal() {
     );
 
 
-    document.addEventListener(
+    window.__fibPageLifecycle.on(document, 
       "click",
       function (
         event
@@ -6870,12 +6870,12 @@ function createRankFromModal() {
      INITIALIZATION
      ========================================================= */
 
-  window.addEventListener("fib-mdt:refresh-request", function () {
+  window.__fibPageLifecycle.on(window, "fib-mdt:refresh-request", function () {
     const section = document.getElementById("systemSectionUsers");
     const modal = document.getElementById("fibGlobalModalOverlay");
     if (section && section.offsetParent !== null && !(modal && modal.classList.contains("open"))) loadSystemUsers();
   });
-  window.addEventListener("fib-mdt:data-changed", function (event) {
+  window.__fibPageLifecycle.on(window, "fib-mdt:data-changed", function (event) {
     const section = document.getElementById("systemSectionUsers");
     const modal = document.getElementById("fibGlobalModalOverlay");
     if (section && section.offsetParent !== null && !(modal && modal.classList.contains("open")) && /User|Rank|Permission|System/i.test(String(event.detail && event.detail.method || ""))) loadSystemUsers();

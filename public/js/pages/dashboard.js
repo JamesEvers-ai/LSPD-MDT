@@ -435,7 +435,7 @@
     }
 
     updateDashboardClock();
-    state.clockInterval = setInterval(updateDashboardClock, 1000);
+    state.clockInterval = window.__fibPageLifecycle.interval(updateDashboardClock, 1000);
   }
 
   function setDashboardStat(id, value) {

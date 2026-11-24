@@ -1552,7 +1552,7 @@ function copyWarrantDetails(
         "✓";
 
 
-      setTimeout(
+      window.__fibPageLifecycle.timeout(
         () => {
 
           button.classList.remove(
@@ -1812,7 +1812,7 @@ function showWarrantError(
   );
 
 
-  setTimeout(
+  window.__fibPageLifecycle.timeout(
     () => {
 
       if (error) {
@@ -1877,7 +1877,7 @@ if (
   "loading"
 ) {
 
-  document.addEventListener(
+  window.__fibPageLifecycle.on(document, 
     "DOMContentLoaded",
     initializeWarrants
   );

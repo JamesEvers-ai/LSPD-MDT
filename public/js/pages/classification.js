@@ -3291,8 +3291,8 @@
        INITIALISIERUNG
        ============================================================ */
 
-    window.addEventListener("fib-mdt:refresh-request", function (event) { if (document.getElementById("classificationsPage") && !(event.detail && event.detail.source === "mutation")) loadData(); });
-    window.addEventListener("fib-mdt:data-changed", function (event) { const modal=document.getElementById("fibGlobalModalOverlay"); if (document.getElementById("classificationsPage") && !(modal && modal.classList.contains("open")) && /Classification|Classified|Request|Person/i.test(String(event.detail && event.detail.method || ""))) loadData(); });
+    window.__fibPageLifecycle.on(window, "fib-mdt:refresh-request", function (event) { if (document.getElementById("classificationsPage") && !(event.detail && event.detail.source === "mutation")) loadData(); });
+    window.__fibPageLifecycle.on(window, "fib-mdt:data-changed", function (event) { const modal=document.getElementById("fibGlobalModalOverlay"); if (document.getElementById("classificationsPage") && !(modal && modal.classList.contains("open")) && /Classification|Classified|Request|Person/i.test(String(event.detail && event.detail.method || ""))) loadData(); });
 
     function initializeClassifications() {
 
@@ -3483,7 +3483,7 @@
         "loading"
     ) {
 
-        document.addEventListener(
+        window.__fibPageLifecycle.on(document, 
 
             "DOMContentLoaded",
 
@@ -3498,7 +3498,7 @@
 
     } else {
 
-        setTimeout(
+        window.__fibPageLifecycle.timeout(
             initializeClassifications,
             0
         );

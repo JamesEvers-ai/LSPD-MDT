@@ -1884,7 +1884,7 @@
         `;
 
 
-        setTimeout(
+        window.__fibPageLifecycle.timeout(
             function () {
 
                 button.classList.remove(
@@ -1984,7 +1984,7 @@
 
 
         app.clockTimer =
-            setTimeout(
+            window.__fibPageLifecycle.timeout(
 
                 function () {
 
@@ -2312,7 +2312,7 @@
        DYNAMIC PAGE INITIALIZATION
        ========================================================= */
 
-    setTimeout(
+    window.__fibPageLifecycle.timeout(
         function () {
 
             initFinesPage();

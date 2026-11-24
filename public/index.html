@@ -5272,6 +5272,8 @@ const NAVIGATION = [
 
       try {
 
+        if (window.__fibPageLifecycle) window.__fibPageLifecycle.cleanup();
+
         /*
          * HTML zunächst außerhalb des echten
          * Containers aufbauen.
@@ -7943,6 +7945,48 @@ const NAVIGATION = [
       }
     }
   });
+})();
+</script>
+<script>
+/* LSPD MDT – page lifecycle cleanup. Dynamically mounted page scripts may register
+   listeners/timers; clean them before the next page is mounted so revisiting a page
+   does not multiply refresh handlers or live timers. */
+(function () {
+  "use strict";
+  if (window.__fibPageLifecycle) return;
+  const cleanups = new Set();
+  function addCleanup(fn) {
+    if (typeof fn !== "function") return fn;
+    cleanups.add(fn);
+    return fn;
+  }
+  function cleanup() {
+    for (const fn of Array.from(cleanups)) {
+      try { fn(); } catch (error) { console.warn("[LSPD MDT] page cleanup failed", error); }
+    }
+    cleanups.clear();
+  }
+  window.__fibPageLifecycle = {
+    on(target, type, listener, options) {
+      if (!target || typeof target.addEventListener !== "function") return listener;
+      target.addEventListener(type, listener, options);
+      addCleanup(() => target.removeEventListener(type, listener, options));
+      return listener;
+    },
+    interval(callback, ms, ...args) {
+      const id = window.setInterval(callback, ms, ...args);
+      addCleanup(() => window.clearInterval(id));
+      return id;
+    },
+    timeout(callback, ms, ...args) {
+      const id = window.setTimeout(callback, ms, ...args);
+      addCleanup(() => window.clearTimeout(id));
+      return id;
+    },
+    cleanup,
+    addCleanup
+  };
+  window.addEventListener("pagehide", cleanup, { once: false });
 })();
 </script>
 <script>

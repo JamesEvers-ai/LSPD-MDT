@@ -1227,7 +1227,7 @@
 
 
     window.lawyersClockInterval =
-      setInterval(
+      window.__fibPageLifecycle.interval(
         updateLawyersClock,
         1000
       );
@@ -1247,7 +1247,7 @@
     "loading"
   ) {
 
-    document.addEventListener(
+    window.__fibPageLifecycle.on(document, 
       "DOMContentLoaded",
       initLawyersPage
     );

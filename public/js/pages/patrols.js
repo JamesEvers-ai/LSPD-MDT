@@ -1502,9 +1502,9 @@
                     if (typeof window.showError === "function") window.showError(error?.message || "Dein Callsign konnte nicht aus der Personalakte geladen werden.");
                 }
             }
-            window.addEventListener("fib-mdt:duty-start-request", handleDutySelection);
-            window.addEventListener("fib-mdt:duty-selection-changed", handleDutySelection);
-            window.addEventListener("fib-mdt:ten-code-changed", async function(event) {
+            window.__fibPageLifecycle.on(window, "fib-mdt:duty-start-request", handleDutySelection);
+            window.__fibPageLifecycle.on(window, "fib-mdt:duty-selection-changed", handleDutySelection);
+            window.__fibPageLifecycle.on(window, "fib-mdt:ten-code-changed", async function(event) {
                 const code = String(event.detail?.tenCode || "").trim();
                 if (!code) return;
                 try {
@@ -1639,7 +1639,7 @@
     // Cross-client modular status sync: refresh the persisted patrol snapshot regularly.
     // This makes changes saved by another Agent appear without a manual page reload.
     if (!window.fibPatrolLiveSyncTimer) {
-        window.fibPatrolLiveSyncTimer = window.setInterval(function () {
+        window.fibPatrolLiveSyncTimer = window.__fibPageLifecycle.interval(function () {
             const list = document.getElementById("patrolsList");
             const modal = document.getElementById("fibGlobalModalOverlay");
             if (list && !state.saving && !(modal && modal.classList.contains("open"))) {
@@ -1647,6 +1647,6 @@
             }
         }, 15000);
     }
-    window.addEventListener("fib-mdt:refresh-request", function (event) { const modal=document.getElementById("fibGlobalModalOverlay"); if (document.getElementById("patrolsList") && !state.saving && !(modal && modal.classList.contains("open"))) refreshPatrolData(); });
-    window.addEventListener("fib-mdt:data-changed", function (event) { const modal=document.getElementById("fibGlobalModalOverlay"); if (document.getElementById("patrolsList") && !(modal && modal.classList.contains("open")) && /Patrol|patrol|Member|member/.test(String(event.detail && event.detail.method || ""))) refreshPatrolData(); });
+    window.__fibPageLifecycle.on(window, "fib-mdt:refresh-request", function (event) { const modal=document.getElementById("fibGlobalModalOverlay"); if (document.getElementById("patrolsList") && !state.saving && !(modal && modal.classList.contains("open"))) refreshPatrolData(); });
+    window.__fibPageLifecycle.on(window, "fib-mdt:data-changed", function (event) { const modal=document.getElementById("fibGlobalModalOverlay"); if (document.getElementById("patrolsList") && !(modal && modal.classList.contains("open")) && /Patrol|patrol|Member|member/.test(String(event.detail && event.detail.method || ""))) refreshPatrolData(); });
 })();

@@ -719,7 +719,7 @@
     }
     tick();
     if (state.clockInterval) clearInterval(state.clockInterval);
-    state.clockInterval = setInterval(tick, 1000);
+    state.clockInterval = window.__fibPageLifecycle.interval(tick, 1000);
 
     loadConfig();
   }
@@ -731,13 +731,13 @@
   }
 
   window.refreshWanted = function() { loadWanted(true); };
-  window.addEventListener("fib-mdt:refresh-request", function (event) { if (document.getElementById("wantedActiveBody") && !(event.detail && event.detail.source === "mutation")) loadWanted(false); });
-  window.addEventListener("fib-mdt:data-changed", function (event) { const modal=document.getElementById("fibGlobalModalOverlay"); if (document.getElementById("wantedActiveBody") && !(modal && modal.classList.contains("open")) && /Wanted|Fahnd|wanted/i.test(String(event.detail && event.detail.method || ""))) loadWanted(false); });
+  window.__fibPageLifecycle.on(window, "fib-mdt:refresh-request", function (event) { if (document.getElementById("wantedActiveBody") && !(event.detail && event.detail.source === "mutation")) loadWanted(false); });
+  window.__fibPageLifecycle.on(window, "fib-mdt:data-changed", function (event) { const modal=document.getElementById("fibGlobalModalOverlay"); if (document.getElementById("wantedActiveBody") && !(modal && modal.classList.contains("open")) && /Wanted|Fahnd|wanted/i.test(String(event.detail && event.detail.method || ""))) loadWanted(false); });
   window.initializeWantedPage = initializeWantedPage;
 
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", initializeWantedPage);
+    window.__fibPageLifecycle.on(document, "DOMContentLoaded", initializeWantedPage);
   } else {
-    setTimeout(initializeWantedPage, 0);
+    window.__fibPageLifecycle.timeout(initializeWantedPage, 0);
   }
 })();

@@ -52,3 +52,40 @@ CREATE INDEX IF NOT EXISTS idx_fib_wanted_status
 COMMIT;
 
 NOTIFY pgrst, 'reload schema';
+
+-- Phase 2: indexes for the list/detail paths used most often by the MDT.
+-- These are intentionally narrow and idempotent.
+CREATE INDEX IF NOT EXISTS fib_records_type_updated_at_idx
+  ON public.fib_records(type, updated_at DESC);
+CREATE INDEX IF NOT EXISTS fib_records_status_updated_at_idx
+  ON public.fib_records(status, updated_at DESC);
+CREATE INDEX IF NOT EXISTS fib_records_type_status_updated_at_idx
+  ON public.fib_records(type, status, updated_at DESC);
+CREATE INDEX IF NOT EXISTS fib_wanted_created_at_idx
+  ON public.fib_wanted(created_at DESC);
+CREATE INDEX IF NOT EXISTS fib_wanted_status_created_at_idx
+  ON public.fib_wanted(status, created_at DESC);
+CREATE INDEX IF NOT EXISTS fib_internal_fine_catalog_category_sort_idx
+  ON public.fib_internal_fine_catalog(category_id, sort_order ASC);
+CREATE INDEX IF NOT EXISTS fib_internal_fines_event_date_idx
+  ON public.fib_internal_fines(event_date DESC);
+CREATE INDEX IF NOT EXISTS fib_internal_fines_created_at_idx
+  ON public.fib_internal_fines(created_at DESC);
+CREATE INDEX IF NOT EXISTS fib_calendar_events_event_date_created_at_idx
+  ON public.fib_calendar_events(event_date, created_at DESC);
+CREATE INDEX IF NOT EXISTS fib_vacations_status_created_at_idx
+  ON public.fib_vacations(status, created_at DESC);
+CREATE INDEX IF NOT EXISTS fib_announcements_status_created_at_idx
+  ON public.fib_announcements(status, created_at DESC);
+CREATE INDEX IF NOT EXISTS fib_bonus_entries_created_at_idx
+  ON public.fib_bonus_entries(created_at DESC);
+CREATE INDEX IF NOT EXISTS fib_gang_profiles_created_at_idx
+  ON public.fib_gang_profiles(created_at DESC);
+CREATE INDEX IF NOT EXISTS fib_patrols_status_updated_at_idx
+  ON public.patrols(status, updated_at DESC);
+CREATE INDEX IF NOT EXISTS fib_patrol_members_patrol_user_idx
+  ON public.patrol_members(patrol_id, user_id);
+CREATE INDEX IF NOT EXISTS fib_patrol_members_user_patrol_idx
+  ON public.patrol_members(user_id, patrol_id);
+
+NOTIFY pgrst, 'reload schema';

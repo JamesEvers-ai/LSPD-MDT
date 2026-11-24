@@ -644,7 +644,7 @@
      * vorhanden sein.
      */
 
-    setTimeout(
+    window.__fibPageLifecycle.timeout(
         function() {
 
             initializeAgentsPage();
@@ -4701,7 +4701,7 @@
             true;
 
 
-        document.addEventListener(
+        window.__fibPageLifecycle.on(document, 
             "click",
             function(event) {
 
@@ -4724,7 +4724,7 @@
         );
 
 
-        document.addEventListener(
+        window.__fibPageLifecycle.on(document, 
             "keydown",
             function(event) {
 
@@ -4757,7 +4757,7 @@
         );
 
 
-        document.addEventListener(
+        window.__fibPageLifecycle.on(document, 
             "click",
             function(event) {
 
@@ -4841,9 +4841,9 @@
        GLOBAL FUNCTIONS
     ====================================================== */
 
-    window.addEventListener("fib-mdt:refresh-request", function (event) { if (document.getElementById("agentsPage") && !(event.detail && event.detail.source === "mutation")) loadAgents(); });
+    window.__fibPageLifecycle.on(window, "fib-mdt:refresh-request", function (event) { if (document.getElementById("agentsPage") && !(event.detail && event.detail.source === "mutation")) loadAgents(); });
 
-    window.addEventListener("fib-mdt:data-changed", function (event) { const modal=document.getElementById("fibGlobalModalOverlay"); if (document.getElementById("agentsPage") && !(modal && modal.classList.contains("open")) && /Personnel|Agent|Training|Note|Rank|User/i.test(String(event.detail && event.detail.method || ""))) loadAgents(); });
+    window.__fibPageLifecycle.on(window, "fib-mdt:data-changed", function (event) { const modal=document.getElementById("fibGlobalModalOverlay"); if (document.getElementById("agentsPage") && !(modal && modal.classList.contains("open")) && /Personnel|Agent|Training|Note|Rank|User/i.test(String(event.detail && event.detail.method || ""))) loadAgents(); });
 
     window.openPersonnelFile =
         openPersonnelFile;
