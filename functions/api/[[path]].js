@@ -1,11 +1,17 @@
 import { config, db, json, readJson } from "../_lib/supabase.js";
 import { SHEET_BACKED_METHODS, googleSheetsCall } from "../_lib/google-sheets.js";
-import { bearer, createSession, getPermissions, publicUser, requireSession, sha256, verifyPassword } from "../_lib/auth.js";
+import { bearer, clearAuthCaches, createSession, getPermissions, publicUser, requireSession, sha256, verifyPassword } from "../_lib/auth.js";
 const bad=(message,status=400,code)=>json({success:false,message,...(code?{code}:{})},status);
 const dashboardStatsCache={value:null,at:0};
 const text=v=>String(v??"").trim();
 const id=prefix=>prefix+crypto.randomUUID().replace(/-/g,"").slice(0,14).toUpperCase();
-async function authz(env,token,permission){const auth=await requireSession(env,token);if(!auth)throw Object.assign(new Error("Deine Sitzung ist abgelaufen. Bitte erneut anmelden."),{status:401});const p=await getPermissions(env,auth.user);if(auth.user.master!==true&&permission&&!p.permissions.includes("*")&&!p.permissions.includes(permission))throw Object.assign(new Error("Du besitzt nicht die erforderliche Berechtigung."),{status:403});return {...auth,master:auth.user.master===true,permissions:p.permissions};}
+async function authz(env,token,permission){
+  const auth=await requireSession(env,token);
+  if(!auth)throw Object.assign(new Error("Deine Sitzung ist abgelaufen. Bitte erneut anmelden."),{status:401});
+  const p=await getPermissions(env,auth.user);
+  if(auth.user.master!==true&&permission&&!p.permissions.includes("*")&&!p.permissions.includes(permission))throw Object.assign(new Error("Du besitzt nicht die erforderliche Berechtigung."),{status:403});
+  return {...auth,master:auth.user.master===true,permissions:p.permissions};
+}
 async function has(env,auth,perm){return auth.master||auth.permissions.includes("*")||auth.permissions.includes(perm)}
 async function rankRows(env){return await db(env,"ranks",{query:{select:"id,name,short_name,level,active",order:"level.desc"}})}
 async function permissionsFor(env,auth){return {master:auth.master,permissions:auth.permissions}}
@@ -15,7 +21,7 @@ async function handleAuth(path,request,env,payload){const args=Array.isArray(pay
  if(path==="session"){const a=await requireSession(env,args[0]||token);return a?json(publicUser(a.user)):bad("Deine Sitzung ist abgelaufen. Bitte erneut anmelden.",401);}
  if(path==="session-info"){const a=await requireSession(env,args[0]||token);return a?json({success:true,user:publicUser(a.user),expiresAt:a.session.expires_at}):bad("Sitzung abgelaufen.",401);}
  if(path==="permissions"){const a=await authz(env,args[0]||token);return json(await permissionsFor(env,a));}
- if(path==="logout"){const t=String(args[0]||token||"");const actor=t?await requireSession(env,t):null;if(t)await db(env,"fib_mdt_sessions",{method:"DELETE",query:{token_hash:`eq.${await sha256(t)}`},prefer:"return=minimal"});if(actor)await writeAudit(env,actor,"logout","authentication",actor.user.id,"Abmeldung");return json({success:true});}
+ if(path==="logout"){const t=String(args[0]||token||"");const actor=t?await requireSession(env,t):null;if(t)await db(env,"fib_mdt_sessions",{method:"DELETE",query:{token_hash:`eq.${await sha256(t)}`},prefer:"return=minimal"});clearAuthCaches();if(actor)await writeAudit(env,actor,"logout","authentication",actor.user.id,"Abmeldung");return json({success:true});}
  if(path==="password"){const t=String(args[0]||token),current=String(args[1]??""),next=String(args[2]??"");const a=await authz(env,t);if(!current||!next)return bad("Aktuelles und neues Passwort sind erforderlich.");if(next.length<8)return bad("Das neue Passwort muss mindestens 8 Zeichen lang sein.");const rows=await db(env,"users",{query:{select:"password_salt,password_hash",id:`eq.${a.user.id}`,limit:"1"}});const u=rows?.[0];if(!u||!(await verifyPassword(current,u.password_salt,u.password_hash)))return bad("Das aktuelle Passwort ist falsch.",403);const salt=[...crypto.getRandomValues(new Uint8Array(16))].map(b=>b.toString(16).padStart(2,"0")).join("");await db(env,"users",{method:"PATCH",query:{id:`eq.${a.user.id}`},body:{password_salt:salt,password_hash:await sha256(salt+next),updated_at:new Date().toISOString()},prefer:"return=minimal"});await writeAudit(env,a,"password_change","authentication",a.user.id,"Eigenes Passwort geändert");return json({success:true,message:"Passwort geändert."});}
  if(path==="profile-image") {
   const a=await authz(env,args[0]||token); const dataUrl=String(args[1]||""); const fileName=String(args[2]||"profile");
@@ -321,11 +327,17 @@ async function dispatchCore(method,args,env,token){
  // patrols
  if(method==="getPatrols"){
   await authz(env,token,"patrols.view");const [ps,ms,us,rs,people]=await Promise.all([
-   db(env,"patrols",{query:{select:"*",order:"created_at.desc"}}),db(env,"patrol_members",{query:{select:"*"}}),
+   db(env,"patrols",{query:{select:"id,callsign,number,vehicle_type,status,ten_code,location,activity,created_at,created_by,updated_at,updated_by",order:"updated_at.desc,created_at.desc"}}),db(env,"patrol_members",{query:{select:"id,patrol_id,user_id,position"}}),
    db(env,"users",{query:{select:"id,username,name,rank,active,approved,profile_image"}}),rankRows(env),
    db(env,"personnel",{query:{select:"user_id,call_sign,personnel_status"}})
   ]);
-  return (ps||[]).map(p=>({...p,tenCode:p.ten_code||p.status,vehicleType:p.vehicle_type,members:(ms||[]).filter(m=>String(m.patrol_id)===String(p.id)).map(m=>{const u=(us||[]).find(x=>String(x.id)===String(m.user_id))||{};const person=(people||[]).find(x=>String(x.user_id)===String(m.user_id))||{};const r=(rs||[]).find(x=>String(x.id)===String(u.rank)||x.name===u.rank);return {id:u.id,name:u.name,username:u.username,rank:r?.name||u.rank||"Kein Rang",rankShortName:r?.short_name||r?.shortName||r?.name||u.rank||"Kein Rang",rankId:r?.id||u.rank,profileImage:u.profile_image||"",callSign:text(person.call_sign),position:m.position||"Member"};})}));
+  const usersById=new Map((us||[]).map(u=>[String(u.id),u]));
+  const peopleByUserId=new Map((people||[]).map(p=>[String(p.user_id),p]));
+  const ranksById=new Map((rs||[]).map(r=>[String(r.id),r]));
+  const ranksByName=new Map((rs||[]).map(r=>[String(r.name),r]));
+  const membersByPatrol=new Map();
+  for(const m of (ms||[])){const key=String(m.patrol_id);const list=membersByPatrol.get(key);if(list)list.push(m);else membersByPatrol.set(key,[m]);}
+  return (ps||[]).map(p=>({...p,tenCode:p.ten_code||p.status,vehicleType:p.vehicle_type,members:(membersByPatrol.get(String(p.id))||[]).map(m=>{const u=usersById.get(String(m.user_id))||{};const person=peopleByUserId.get(String(m.user_id))||{};const r=ranksById.get(String(u.rank))||ranksByName.get(String(u.rank));return {id:u.id,name:u.name,username:u.username,rank:r?.name||u.rank||"Kein Rang",rankShortName:r?.short_name||r?.shortName||r?.name||u.rank||"Kein Rang",rankId:r?.id||u.rank,profileImage:u.profile_image||"",callSign:text(person.call_sign),position:m.position||"Member"};})}));
  }
  if(method==="getPatrolEligibleUsers"){
   await authz(env,token,"patrols.view");const [us,ms,rs,people]=await Promise.all([
@@ -422,7 +434,7 @@ async function dispatchCore(method,args,env,token){
  if(method==="systemGetUserRanks"||method==="systemGetAllRanks"){await authz(env,token,"system.ranks.view");return await rankRows(env);}
  if(method==="systemGetPermissions"){await authz(env,token,"system.permissions.view");return await db(env,"permissions",{query:{select:"*",order:"key.asc"}});}
  if(method==="systemGetRankPermissions"){await authz(env,token,"system.permissions.view");const links=await db(env,"rank_permissions",{query:{select:"permission_id",rank_id:`eq.${text(args[1])}`}});return (links||[]).map(x=>x.permission_id);}
- if(method==="systemSetRankPermissions"){await authz(env,token,"system.permissions.manage");const rid=text(args[1]),selected=Array.isArray(args[2])?args[2]:[];await db(env,"rank_permissions",{method:"DELETE",query:{rank_id:`eq.${rid}`},prefer:"return=minimal"});if(selected.length)await db(env,"rank_permissions",{method:"POST",body:selected.map(pid=>({rank_id:rid,permission_id:text(pid)})),prefer:"return=minimal"});return {success:true};}
+ if(method==="systemSetRankPermissions"){await authz(env,token,"system.permissions.manage");const rid=text(args[1]),selected=Array.isArray(args[2])?args[2]:[];await db(env,"rank_permissions",{method:"DELETE",query:{rank_id:`eq.${rid}`},prefer:"return=minimal"});if(selected.length)await db(env,"rank_permissions",{method:"POST",body:selected.map(pid=>({rank_id:rid,permission_id:text(pid)})),prefer:"return=minimal"});clearAuthCaches();return {success:true};}
  if(method==="systemCreateRank"){await authz(env,token,"system.ranks.manage");const d=args[1]||{};const row={id:text(d.id)||id("R"),name:text(d.name||d.Name),short_name:text(d.shortName||d.short_name||d.ShortName),level:Number(d.level||d.Level||0),active:d.active!==false&&d.Active!==false};const r=await db(env,"ranks",{method:"POST",query:{select:"*"},body:row,prefer:"return=representation"});return r?.[0]||row;}
  if(method==="systemUpdateRank"){await authz(env,token,"system.ranks.manage");const rid=text(args[1]),d=args[2]||{};const patch={};for(const [k,keys] of Object.entries({name:["name","Name"],short_name:["shortName","short_name","ShortName"],level:["level","Level"],active:["active","Active"]})){const found=keys.find(x=>d[x]!==undefined);if(found)patch[k]=k==="level"?Number(d[found]):k==="active"?(d[found]===true||String(d[found]).toLowerCase()==="true"):text(d[found]);}const r=await db(env,"ranks",{method:"PATCH",query:{id:`eq.${rid}`,select:"*"},body:patch,prefer:"return=representation"});return r?.[0]||{success:true};}
  if(method==="systemCreatePermission"){
@@ -461,9 +473,9 @@ async function dispatchCore(method,args,env,token){
   return {success:true,checkedAt:new Date().toISOString(),checks,failed:checks.filter(x=>!x.ok),googleSheets:{configured:Boolean(String(env.GOOGLE_SHEETS_API_URL||"").trim())}};
  }
  if(method==="systemCreateUser"){await authz(env,token,"system.users.manage");const d=args[1]||{};const username=text(d.username||d.Username),name=text(d.name||d.Name),password=String(d.password||d.Password||"");if(!username||!name||!password)throw new Error("Benutzername, Name und Passwort sind erforderlich.");const salt=[...crypto.getRandomValues(new Uint8Array(16))].map(b=>b.toString(16).padStart(2,"0")).join("");const row={id:id("U"),username,name,rank:text(d.rankId||d.rank)||null,password_salt:salt,password_hash:await sha256(salt+password),active:d.active!==false,approved:d.approved!==false,master:d.master===true,created_at:new Date().toISOString()};const r=await db(env,"users",{method:"POST",query:{select:"id,username,name,rank,active,approved,master"},body:row,prefer:"return=representation"});return r?.[0]||{success:true};}
- if(method==="systemUpdateUser"){await authz(env,token,"system.users.manage");const uid=text(args[1]),d=args[2]||{},patch={};for(const k of ["name","username","rank","active","approved","master"])if(d[k]!==undefined)patch[k]=d[k];if(d.rankId!==undefined)patch.rank=d.rankId;const r=await db(env,"users",{method:"PATCH",query:{id:`eq.${uid}`,select:"id,username,name,rank,active,approved,master"},body:patch,prefer:"return=representation"});return r?.[0]||{success:true};}
+ if(method==="systemUpdateUser"){await authz(env,token,"system.users.manage");const uid=text(args[1]),d=args[2]||{},patch={};for(const k of ["name","username","rank","active","approved","master"])if(d[k]!==undefined)patch[k]=d[k];if(d.rankId!==undefined)patch.rank=d.rankId;const r=await db(env,"users",{method:"PATCH",query:{id:`eq.${uid}`,select:"id,username,name,rank,active,approved,master"},body:patch,prefer:"return=representation"});clearAuthCaches();return r?.[0]||{success:true};}
  if(method==="systemApproveUser"){await authz(env,token,"system.users.manage");const uid=text(args[1]),rank=text(args[2]);await db(env,"users",{method:"PATCH",query:{id:`eq.${uid}`},body:{rank:rank||null,active:true,approved:true},prefer:"return=minimal"});return {success:true};}
- if(method==="systemDeactivateUser"){await authz(env,token,"system.users.manage");await db(env,"users",{method:"PATCH",query:{id:`eq.${text(args[1])}`},body:{active:false},prefer:"return=minimal"});return {success:true};}
+ if(method==="systemDeactivateUser"){await authz(env,token,"system.users.manage");await db(env,"users",{method:"PATCH",query:{id:`eq.${text(args[1])}`},body:{active:false},prefer:"return=minimal"});clearAuthCaches();return {success:true};}
  throw Object.assign(new Error(`Serverfunktion „${method}“ ist noch nicht implementiert.`),{status:501,code:"NOT_MIGRATED"});
 }
 

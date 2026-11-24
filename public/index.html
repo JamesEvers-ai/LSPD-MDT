@@ -7964,8 +7964,11 @@ const NAVIGATION = [
     return document.visibilityState === "visible";
   }
   window.setInterval(function () {
+    // Patrols have their own, shorter live-sync loop. Avoid doubling the
+    // request rate on that page with the generic global refresh.
+    if (document.getElementById("patrolsList")) return;
     if (safeToRefresh()) window.dispatchEvent(new CustomEvent("fib-mdt:refresh-request", {detail:{source:"poll", at:Date.now()}}));
-  }, 20000);
+  }, 30000);
   // Successful writes emit `fib-mdt:data-changed`; active page modules subscribe directly.
 
 })();

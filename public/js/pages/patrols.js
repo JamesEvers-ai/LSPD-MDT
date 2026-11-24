@@ -1645,7 +1645,7 @@
             if (list && !state.saving && !(modal && modal.classList.contains("open"))) {
                 fetchPatrols(true).catch(function () {});
             }
-        }, 5000);
+        }, 15000);
     }
     window.addEventListener("fib-mdt:refresh-request", function (event) { const modal=document.getElementById("fibGlobalModalOverlay"); if (document.getElementById("patrolsList") && !state.saving && !(modal && modal.classList.contains("open"))) refreshPatrolData(); });
     window.addEventListener("fib-mdt:data-changed", function (event) { const modal=document.getElementById("fibGlobalModalOverlay"); if (document.getElementById("patrolsList") && !(modal && modal.classList.contains("open")) && /Patrol|patrol|Member|member/.test(String(event.detail && event.detail.method || ""))) refreshPatrolData(); });
