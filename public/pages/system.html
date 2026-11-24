@@ -1636,99 +1636,106 @@
     color: #8492a3;
 }
 
+
 /* =========================================================
-   CHECKBOXEN – WICHTIGSTER FIX
+   CHECKBOXEN – FINALER SICHTBARKEITS-FIX
    ========================================================= */
 
-/* Berechtigungs-Checkboxen und Formular-Checkboxen */
+/* Grundzustand aller Checkboxen in der Systemverwaltung */
+.system-page input[type="checkbox"],
+.system-modal input[type="checkbox"],
 .permission-item input[type="checkbox"],
 .system-form-checkbox input[type="checkbox"] {
-    appearance: none;
-    -webkit-appearance: none;
+    appearance: none !important;
+    -webkit-appearance: none !important;
 
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
+    display: inline-block !important;
 
-    width: 19px;
-    height: 19px;
-    min-width: 19px;
-    min-height: 19px;
+    width: 19px !important;
+    height: 19px !important;
+    min-width: 19px !important;
+    min-height: 19px !important;
 
-    flex: 0 0 19px;
+    flex: 0 0 19px !important;
 
-    margin: 0;
-    padding: 0;
+    margin: 0 !important;
+    padding: 0 !important;
 
-    background: #fff;
-    border: 1.5px solid #aab8c8;
-    border-radius: 5px;
+    position: relative !important;
 
-    cursor: pointer;
+    opacity: 1 !important;
+    visibility: visible !important;
 
-    position: relative;
+    background-color: #ffffff !important;
+    background-image: none !important;
+
+    border: 2px solid #899bad !important;
+    border-radius: 5px !important;
+
+    box-shadow: none !important;
+
+    cursor: pointer !important;
+    vertical-align: middle !important;
 
     transition:
-        background .15s ease,
+        background-color .15s ease,
         border-color .15s ease,
-        box-shadow .15s ease;
+        box-shadow .15s ease !important;
 }
 
 /* Nicht ausgewählt */
+.system-page input[type="checkbox"]:not(:checked),
+.system-modal input[type="checkbox"]:not(:checked),
 .permission-item input[type="checkbox"]:not(:checked),
 .system-form-checkbox input[type="checkbox"]:not(:checked) {
-    background: #fff;
-    border-color: #aab8c8;
+    background-color: #ffffff !important;
+    background-image: none !important;
+    border-color: #899bad !important;
 }
 
-/* Ausgewählt */
+/* Ausgewählt – dunkelblauer Hintergrund mit weißem SVG-Haken */
+.system-page input[type="checkbox"]:checked,
+.system-modal input[type="checkbox"]:checked,
 .permission-item input[type="checkbox"]:checked,
 .system-form-checkbox input[type="checkbox"]:checked {
-    background: #245b91;
-    border-color: #245b91;
-}
+    background-color: #245b91 !important;
 
-/* Deutlich sichtbarer Haken */
-.permission-item input[type="checkbox"]:checked::after,
-.system-form-checkbox input[type="checkbox"]:checked::after {
-    content: "✓";
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3 8.5l3.2 3.2L13 4.5' fill='none' stroke='%23ffffff' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
 
-    position: absolute;
-    inset: 0;
+    background-repeat: no-repeat !important;
+    background-position: center !important;
+    background-size: 13px 13px !important;
 
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    color: #fff;
-
-    font-size: 13px;
-    font-weight: 800;
-    line-height: 1;
-}
-
-/* Fokus */
-.permission-item input[type="checkbox"]:focus-visible,
-.system-form-checkbox input[type="checkbox"]:focus-visible {
-    outline: 3px solid rgba(36, 91, 145, .2);
-    outline-offset: 2px;
-}
-
-/* Checkbox-Beschriftung */
-.system-form-checkbox {
-    color: #34465c;
+    border-color: #245b91 !important;
 }
 
 /* Hover */
-.permission-item input[type="checkbox"]:hover,
-.system-form-checkbox input[type="checkbox"]:hover {
-    border-color: #245b91;
+.system-page input[type="checkbox"]:hover,
+.system-modal input[type="checkbox"]:hover {
+    border-color: #245b91 !important;
 }
 
-/* Speichern */
-.rank-permission-save {
-    border-top-color: #e2e8f0;
+/* Fokus */
+.system-page input[type="checkbox"]:focus-visible,
+.system-modal input[type="checkbox"]:focus-visible {
+    outline: 3px solid rgba(36, 91, 145, .22) !important;
+    outline-offset: 2px !important;
 }
+
+/* Beschriftung */
+.system-form-checkbox {
+    color: #34465c !important;
+}
+
+/* Berechtigungsfelder */
+.permission-item {
+    cursor: pointer;
+}
+
+.permission-item input[type="checkbox"] {
+    pointer-events: auto !important;
+}
+
 
 /* =========================================================
    MODAL
