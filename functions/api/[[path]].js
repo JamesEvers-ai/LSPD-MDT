@@ -325,9 +325,9 @@ async function dispatchCore(method,args,env,token){
   const now=new Date().toISOString();
   const payload={
     documentNumber:text(d.documentNumber),issueDate:text(d.issueDate),issuingOffice:text(d.issuingOffice),processedBy:text(d.processedBy),recipient:text(d.recipient),
-    confidentiality:"Vertraulich – Personal",nameServerId:`${userRows[0].name||""} / ${p.service_number||userRows[0].username||uid}`,previousRank:text(d.previousRank),departmentUnit:text(d.departmentUnit),
+    confidentiality:"Vertraulich – Personal",previousRank:text(d.previousRank),departmentUnit:text(d.departmentUnit),
     terminationType:text(d.terminationType),effectiveDate:text(d.effectiveDate),decidingOffice:text(d.decidingOffice),reason:text(d.reason),approval:text(d.approval),equipmentReturn:text(d.equipmentReturn),updatedAt:text(d.updatedAt),
-    issuerNameRank:text(d.issuerNameRank),issuerSignature:signature,employeeNameRank:text(d.employeeNameRank),employeeSignature:text(d.employeeSignature||"")
+    issuerNameRank:text(d.issuerNameRank),issuerSignature:signature
   };
   const row={id:id("BE"),user_id:uid,document_number:payload.documentNumber,public_token_hash:await sha256(raw),payload,created_by:au.user.id,created_by_name:au.user.name,created_at:now};
   const saved=await db(env,"personnel_terminations",{method:"POST",query:{select:"id,user_id,document_number,created_by_name,created_at",},body:row,prefer:"return=representation"});

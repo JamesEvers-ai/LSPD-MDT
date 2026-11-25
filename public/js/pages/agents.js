@@ -1814,6 +1814,12 @@
             `Personalakte · ${rank}`;
 
 
+        if (!loaded && state.bundleLoading) {
+            body.innerHTML = `${renderTabs("personal")}<div class="agents-form"><div class="agents-personnel-loading-strip">Personalakte wird geladen …</div></div>`;
+            bindPersonnelTabEvents();
+            return;
+        }
+
         if (
             state.modalTab ===
             "department"
@@ -1954,7 +1960,7 @@
 
                 <button type="button" class="agents-personnel-tab ${activeTab === "history" ? "active" : ""}" data-personnel-tab="history">Historie</button>
 
-                ${canEditOfficers() ? `<button type="button" class="agents-personnel-tab ${activeTab === "termination" ? "active" : ""}" data-personnel-tab="termination">Beendigung</button>` : ""}
+                ${canEditOfficers() ? `<button type="button" class="agents-personnel-tab ${activeTab === "termination" ? "active" : ""}" data-personnel-tab="termination">Kündigung / Austritt</button>` : ""}
 
             </div>
 
@@ -1975,6 +1981,7 @@
             const button = event.target.closest("[data-personnel-tab]");
             if (!button || !body.contains(button)) return;
 
+            if (state.bundleLoading) return;
             event.preventDefault();
             state.modalTab = button.dataset.personnelTab || "personal";
             renderPersonnelModal(true);
@@ -4181,7 +4188,7 @@
         return `${renderTabs("termination")}
         <div class="agents-form">
           <div class="agents-section">
-            <div class="agents-section-title">Beendigung des Dienstverhältnisses</div>
+            <div class="agents-section-title">Kündigung / Austritt aus dem Dienstverhältnis</div>
             <div class="agents-section-card">
               <div class="agents-form-grid">
                 ${terminationInput("terminationDocumentNumber","Dokumentennummer",docNumber,true)}
@@ -4190,10 +4197,9 @@
                 ${terminationInput("terminationProcessedBy","Bearbeitet durch",currentName,true)}
                 ${terminationInput("terminationRecipient","Empfänger / Betroffener",agent.name || "",true)}
                 ${terminationInput("terminationConfidentiality","Vertraulichkeit","Vertraulich – Personal",true)}
-                ${terminationInput("terminationNameServerId","Name / Server-ID",`${agent.name || ""} / ${serviceNumber || agent.username || agent.id || ""}`,true)}
                 ${terminationInput("terminationPreviousRank","Bisheriger Dienstgrad",rank,true)}
                 <div class="agents-form-group"><label class="agents-form-label">Division / Einheit *</label><select id="terminationDepartmentUnit" class="agents-form-select"><option value="">Keine Abteilung</option>${DEPARTMENTS.map(item => `<option value="${escapeHtml(item)}" ${String(department)===String(item)?"selected":""}>${escapeHtml(item)}</option>`).join("")}</select></div>
-                <div class="agents-form-group"><label class="agents-form-label">Art der Beendigung *</label><select id="terminationType" class="agents-form-select"><option>Entlassung</option><option>Freiwilliger Austritt</option><option>Sonstiger Grund</option></select></div>
+                <div class="agents-form-group"><label class="agents-form-label">Art des Austritts / der Kündigung *</label><select id="terminationType" class="agents-form-select"><option>Entlassung</option><option>Freiwilliger Austritt</option><option>Sonstiger Grund</option></select></div>
                 ${terminationInput("terminationEffectiveDate","Wirksam zum",now,false,"date")}
                 ${terminationInput("terminationDecidingOffice","Entscheidende Stelle",currentName ? `${currentName}${currentRank ? ` / ${currentRank}` : ""}` : "")}
               </div>
@@ -4203,13 +4209,9 @@
               ${terminationInput("terminationUpdatedAt","Personalakte / MDT aktualisiert am",`${new Date().toLocaleDateString("de-DE")} / ${agent.name || ""}`,true)}
               <div class="agents-termination-signature-grid">
                 <div><label class="agents-form-label">Ausgestellt durch – Name / Dienstgrad *</label><input id="terminationIssuerNameRank" class="agents-form-input" value="${escapeHtml(currentName ? `${currentName}${currentRank ? ` / ${currentRank}` : ""}` : "")}" placeholder="Name / Dienstgrad"></div>
-                <div><label class="agents-form-label">Signatur der kündigenden Person *</label><div class="agents-signature-wrap"><canvas id="terminationSignatureCanvas" class="agents-signature-canvas" width="900" height="220"></canvas><button type="button" class="agents-signature-clear" id="terminationSignatureClear">Signatur löschen</button></div></div>
+                <div><label class="agents-form-label">Signatur der kündigenden Person *</label><div class="agents-signature-wrap"><canvas id="terminationSignatureCanvas" class="agents-signature-canvas" width="640" height="160"></canvas><button type="button" class="agents-signature-clear" id="terminationSignatureClear">Signatur löschen</button></div></div>
               </div>
-              <div class="agents-termination-signature-grid">
-                <div><label class="agents-form-label">Kenntnisnahme Mitarbeiter – Name / Dienstgrad</label><input id="terminationEmployeeNameRank" class="agents-form-input" value="${escapeHtml(`${agent.name || ""} / ${rank}`)}"></div>
-                <div><label class="agents-form-label">Kenntnisnahme Mitarbeiter – Signatur (optional)</label><div class="agents-signature-wrap"><canvas id="terminationEmployeeSignatureCanvas" class="agents-signature-canvas" width="900" height="220"></canvas><button type="button" class="agents-signature-clear" id="terminationEmployeeSignatureClear">Signatur löschen</button></div></div>
-              </div>
-              <div class="agents-termination-actions"><button type="button" class="agents-system-button agents-system-button-primary" id="terminationSubmitButton">Beendigung dokumentieren &amp; Person deaktivieren</button></div>
+              <div class="agents-termination-actions"><button type="button" class="agents-system-button agents-system-button-primary" id="terminationSubmitButton">Kündigung dokumentieren &amp; Person deaktivieren</button></div>
               <div class="agents-termination-hint">Nach der Erstellung ist das Dokument über den erzeugten externen Link dauerhaft einsehbar.</div>
             </div>
           </div>
@@ -4234,24 +4236,22 @@
     function bindTerminationForm() {
         if (state.modalTab !== "termination") return;
         const issuer=setupSignatureCanvas($("terminationSignatureCanvas"));
-        const employee=setupSignatureCanvas($("terminationEmployeeSignatureCanvas"));
-        $("terminationSignatureClear")?.addEventListener("click",()=>issuer.clear());
-        $("terminationEmployeeSignatureClear")?.addEventListener("click",()=>employee.clear());
-        $("terminationSubmitButton")?.addEventListener("click",()=>{
+                $("terminationSignatureClear")?.addEventListener("click",()=>issuer.clear());
+                $("terminationSubmitButton")?.addEventListener("click",()=>{
             const requiredIds=["terminationIssuingOffice","terminationProcessedBy","terminationDecidingOffice","terminationReason","terminationApproval","terminationEquipmentReturn","terminationUpdatedAt","terminationIssuerNameRank","terminationDepartmentUnit"];
-            const data={documentNumber:$("terminationDocumentNumber")?.value,issueDate:$("terminationIssueDate")?.value,issuingOffice:$("terminationIssuingOffice")?.value,processedBy:$("terminationProcessedBy")?.value,recipient:$("terminationRecipient")?.value,previousRank:$("terminationPreviousRank")?.value,departmentUnit:$("terminationDepartmentUnit")?.value,terminationType:$("terminationType")?.value,effectiveDate:$("terminationEffectiveDate")?.value,decidingOffice:$("terminationDecidingOffice")?.value,reason:$("terminationReason")?.value,approval:$("terminationApproval")?.value,equipmentReturn:$("terminationEquipmentReturn")?.value,updatedAt:$("terminationUpdatedAt")?.value,issuerNameRank:$("terminationIssuerNameRank")?.value,issuerSignature:issuer.data(),employeeNameRank:$("terminationEmployeeNameRank")?.value,employeeSignature:employee.data()};
-            if(requiredIds.some(id=>!String($(id)?.value||"").trim())){showAgentError("Bitte fülle alle Pflichtfelder des Beendigungsdokuments aus.");return;}
-            if(!data.issuerSignature){showAgentError("Bitte setze die Signatur der kündigenden Person.");return;}
+            const data={documentNumber:$("terminationDocumentNumber")?.value,issueDate:$("terminationIssueDate")?.value,issuingOffice:$("terminationIssuingOffice")?.value,processedBy:$("terminationProcessedBy")?.value,recipient:$("terminationRecipient")?.value,previousRank:$("terminationPreviousRank")?.value,departmentUnit:$("terminationDepartmentUnit")?.value,terminationType:$("terminationType")?.value,effectiveDate:$("terminationEffectiveDate")?.value,decidingOffice:$("terminationDecidingOffice")?.value,reason:$("terminationReason")?.value,approval:$("terminationApproval")?.value,equipmentReturn:$("terminationEquipmentReturn")?.value,updatedAt:$("terminationUpdatedAt")?.value,issuerNameRank:$("terminationIssuerNameRank")?.value,issuerSignature:issuer.data()};
+            if(requiredIds.some(id=>!String($(id)?.value||"").trim())){showAgentError("Bitte fülle alle Pflichtfelder des Kündigungsschreibens aus.");return;}
+            if(!data.issuerSignature){showAgentError("Bitte setze die Signatur der verantwortlichen Person.");return;}
             const button=$("terminationSubmitButton"); if(button)button.disabled=true;
             CloudApi.run.withSuccessHandler(result=>{
                 const targetId=String(state.selectedAgent.id);
                 state.agents=state.agents.map(item=>String(item.id)===targetId?{...item,active:false,approved:false,personnelStatus:"Ausgeschieden"}:item);
                 state.selectedAgent={...state.selectedAgent,active:false,approved:false,personnelStatus:"Ausgeschieden"};
                 filterAgents($("agentsSearchInput")?.value || "");
-                showAgentSuccess("Beendigung dokumentiert. Das dauerhafte externe Dokument wurde geöffnet.");
+                showAgentSuccess("Kündigung dokumentiert. Das dauerhafte externe Dokument wurde geöffnet.");
                 if(result.url) { try { window.open(new URL(result.url,window.location.origin).href,"_blank","noopener"); } catch(e) {} if(navigator.clipboard) navigator.clipboard.writeText(new URL(result.url,window.location.origin).href).catch(()=>{}); }
                 state.lastTerminationUrl = result.url ? new URL(result.url,window.location.origin).href : ""; state.modalTab="history"; renderPersonnelModal(true); loadPersonnelHistory().catch(()=>{});
-            }).withFailureHandler(error=>{if(button)button.disabled=false;showAgentError(error?.message||"Die Beendigung konnte nicht dokumentiert werden.");}).createPersonnelTermination(getAgentsSessionToken(),String(state.selectedAgent.id),data);
+            }).withFailureHandler(error=>{if(button)button.disabled=false;showAgentError(error?.message||"Das Kündigungsschreiben konnte nicht erstellt werden.");}).createPersonnelTermination(getAgentsSessionToken(),String(state.selectedAgent.id),data);
         });
     }
 
@@ -4264,15 +4264,15 @@
         const entries = Array.isArray(state.sanctions) ? state.sanctions : [];
         const labels = { fine: "Geldstrafe", hq_rounds: "HQ-Runden", fort_rounds: "Fort-Runden", human_labs: "Human Labs", suspension: "Suspendierung", termination: "Kündigung" };
         const componentsOf = m => Array.isArray(m.sanction_components) && m.sanction_components.length ? m.sanction_components : [{ type: m.sanction_type || (m.amount != null ? "fine" : ""), amount: m.amount, value: m.sanction_value, unit: m.sanction_unit }];
-        const componentValue = c => c.type === "fine" ? `${Number(c.amount || 0).toLocaleString("de-DE")} $` : c.type === "termination" ? "Beendigung des Dienstverhältnisses" : `${Number(c.value ?? c.sanction_value ?? 0).toLocaleString("de-DE")} ${c.unit || c.sanction_unit || ""}`.trim();
+        const componentValue = c => c.type === "fine" ? `${Number(c.amount || 0).toLocaleString("de-DE")} $` : c.type === "termination" ? "Kündigung / Austritt aus dem Dienstverhältnis" : `${Number(c.value ?? c.sanction_value ?? 0).toLocaleString("de-DE")} ${c.unit || c.sanction_unit || ""}`.trim();
         return `${renderTabs("sanctions")}<div class="agents-form"><div class="agents-section"><div class="agents-section-title">Verhängte interne Sanktionen</div><div class="agents-note-list">${!state.sanctionsLoaded ? `<div class="agents-personnel-loading-strip">Sanktionshistorie wird geladen …</div>` : !entries.length ? `<div class="agents-empty-list">Für diesen Agenten sind keine internen Sanktionen dokumentiert.</div>` : entries.map(row => { const m = row.metadata || {}; const date = row.eventDate || row.created_at; const components = componentsOf(m); return `<div class="agents-section-card agents-sanction-card"><div><div class="agents-section-title" style="margin:0">${escapeHtml(m.fine_title || row.title || "Interne Sanktion")}</div><div class="agents-sanction-meta">${date ? escapeHtml(new Date(date).toLocaleString("de-DE")) : "Datum unbekannt"}</div></div><div class="agents-sanction-components">${components.map(c => `<div class="agents-sanction-component"><span>${escapeHtml(labels[c.type] || "Sanktion")}</span><strong>${escapeHtml(componentValue(c))}</strong></div>`).join("")}</div>${m.reason || row.description ? `<div class="agents-sanction-reason">${escapeHtml(m.reason || row.description)}</div>` : ""}<div class="agents-sanction-meta agents-sanction-issued">Festgesetzt durch: ${escapeHtml(m.issued_by_name || row.created_by_name || "Unbekannt")}</div></div>`; }).join("")}</div></div></div>`;
     }
 
 
     function renderHistoryTab() {
         const entries = Array.isArray(state.history) ? state.history : [];
-        const actionLabels = { profile_updated: "Stammdaten geändert", rank_changed: "Dienstgrad geändert", training_created: "Schulung hinzugefügt", training_deleted: "Schulung gelöscht", note_created: "Vermerk hinzugefügt", note_deleted: "Vermerk gelöscht", sanction_issued: "Interne Sanktion festgesetzt", termination_created: "Dienstverhältnis beendet" };
-        return `${renderTabs("history")}<div class="agents-form">${state.lastTerminationUrl ? `<div class="agents-section"><div class="agents-section-title">Beendigungsdokument</div><div class="agents-section-card agents-termination-link-card"><div class="agents-history-detail">Das Dokument wurde dauerhaft veröffentlicht.</div><a class="agents-system-button agents-system-button-primary agents-termination-link" href="${escapeHtml(state.lastTerminationUrl)}" target="_blank" rel="noopener">Dauerhaftes Dokument öffnen</a></div></div>` : ""}<div class="agents-section"><div class="agents-section-title">Änderungshistorie</div><div class="agents-history-list">${!state.historyLoaded ? `<div class="agents-personnel-loading-strip">Historie wird geladen …</div>` : !entries.length ? `<div class="agents-empty-list">Für diese Personalakte sind noch keine Änderungen protokolliert.</div>` : entries.map(row => { const date = row.created_at || row.createdAt; return `<article class="agents-history-item"><div class="agents-history-dot"></div><div class="agents-history-main"><div class="agents-history-title">${escapeHtml(actionLabels[row.action] || row.action || "Änderung")}</div><div class="agents-history-meta">${date ? escapeHtml(new Date(date).toLocaleString("de-DE")) : "Datum unbekannt"} · ${escapeHtml(row.actor_name || row.actorName || "System")}</div>${row.detail ? `<div class="agents-history-detail">${escapeHtml(row.detail)}</div>` : ""}</div></article>`; }).join("")}</div></div></div>`;
+        const actionLabels = { profile_updated: "Stammdaten geändert", rank_changed: "Dienstgrad geändert", training_created: "Schulung hinzugefügt", training_deleted: "Schulung gelöscht", note_created: "Vermerk hinzugefügt", note_deleted: "Vermerk gelöscht", sanction_issued: "Interne Sanktion festgesetzt", termination_created: "Kündigung / Austritt dokumentiert" };
+        return `${renderTabs("history")}<div class="agents-form">${state.lastTerminationUrl ? `<div class="agents-section"><div class="agents-section-title">Kündigungsschreiben</div><div class="agents-section-card agents-termination-link-card"><div class="agents-history-detail">Das Dokument wurde dauerhaft veröffentlicht.</div><a class="agents-system-button agents-system-button-primary agents-termination-link" href="${escapeHtml(state.lastTerminationUrl)}" target="_blank" rel="noopener">Dauerhaftes Dokument öffnen</a></div></div>` : ""}<div class="agents-section"><div class="agents-section-title">Änderungshistorie</div><div class="agents-history-list">${!state.historyLoaded ? `<div class="agents-personnel-loading-strip">Historie wird geladen …</div>` : !entries.length ? `<div class="agents-empty-list">Für diese Personalakte sind noch keine Änderungen protokolliert.</div>` : entries.map(row => { const date = row.created_at || row.createdAt; return `<article class="agents-history-item"><div class="agents-history-dot"></div><div class="agents-history-main"><div class="agents-history-title">${escapeHtml(actionLabels[row.action] || row.action || "Änderung")}</div><div class="agents-history-meta">${date ? escapeHtml(new Date(date).toLocaleString("de-DE")) : "Datum unbekannt"} · ${escapeHtml(row.actor_name || row.actorName || "System")}</div>${row.detail ? `<div class="agents-history-detail">${escapeHtml(row.detail)}</div>` : ""}</div></article>`; }).join("")}</div></div></div>`;
     }
 
 
