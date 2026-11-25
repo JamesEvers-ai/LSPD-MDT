@@ -54,7 +54,9 @@
 
             departmentFilter: "all",
 
-            globalEventsBound: false
+            globalEventsBound: false,
+
+            lastTerminationUrl: ""
 
         };
 
@@ -1822,6 +1824,15 @@
 
         if (
             state.modalTab ===
+            "department"
+        ) {
+
+            body.innerHTML =
+                renderDepartmentTab();
+
+        }
+        else if (
+            state.modalTab ===
             "trainings"
         ) {
 
@@ -1864,6 +1875,7 @@
         bindPersonalForm();
 
         bindTrainingForm();
+        bindDepartmentWorkspace();
 
         bindNoteForm();
         bindTerminationForm();
@@ -1893,6 +1905,23 @@
                     data-personnel-tab="personal"
                 >
                     Personalien
+                </button>
+
+
+                <button
+                    type="button"
+                    class="
+                        agents-personnel-tab
+                        ${
+                            activeTab ===
+                            "department"
+                                ? "active"
+                                : ""
+                        }
+                    "
+                    data-personnel-tab="department"
+                >
+                    Abteilung
                 </button>
 
 
@@ -3279,6 +3308,89 @@
 
 
     /* =====================================================
+       DEPARTMENT WORKSPACE
+    ====================================================== */
+
+    function renderDepartmentTab() {
+        const agent = state.selectedAgent || {};
+        const currentDepartment = String(getValue(agent, ["department", "Department"], "") || "");
+        const members = (Array.isArray(state.agents) ? state.agents : [])
+            .filter(item => String(getValue(item, ["department", "Department"], "") || "") === currentDepartment)
+            .sort((a,b) => String(a.name||"").localeCompare(String(b.name||""), "de"));
+        const departments = DEPARTMENTS.map(item => `<option value="${escapeHtml(item)}" ${currentDepartment===item?"selected":""}>${escapeHtml(item)}</option>`).join("");
+        return `${renderTabs("department")}
+        <div class="agents-form">
+          <div class="agents-section">
+            <div class="agents-section-title">Abteilungszuordnung</div>
+            <div class="agents-section-card agents-department-workspace">
+              <div class="agents-form-group">
+                <label class="agents-form-label">Abteilung</label>
+                <select id="agentDepartmentWorkspace" class="agents-form-select" ${canEditOfficers()?"":"disabled"}>
+                  <option value="">Keine Abteilung</option>${departments}
+                </select>
+              </div>
+              ${canEditOfficers()?`<div class="agents-department-workspace-actions"><button type="button" class="agents-system-button agents-system-button-primary" id="agentDepartmentWorkspaceSave">Abteilung speichern</button></div>`:""}
+              <div class="agents-department-workspace-info">Die Abteilung steuert die organisatorische Zuordnung der Personalakte. Die Liste darunter zeigt die aktuell zugeordnete Belegschaft. Die Zuordnung wird ohne zusätzliche Datenbankabfrage aus dem bereits geladenen Personalbestand gefiltert.</div>
+            </div>
+          </div>
+          <div class="agents-section">
+            <div class="agents-section-title">${escapeHtml(currentDepartment || "Keine Abteilung")} · ${members.length} ${members.length===1?"Person":"Personen"}</div>
+            <div class="agents-department-member-list">
+              ${members.length ? members.map(item => `<button type="button" class="agents-department-member" data-department-member-id="${escapeHtml(item.id)}"><span class="agents-department-member-main"><strong>${escapeHtml(item.name || item.username || "Unbekannt")}</strong><span>${escapeHtml(item.rank || "Kein Rang")}${item.callSign ? ` · ${escapeHtml(item.callSign)}` : ""}</span></span><span>${escapeHtml(item.serviceNumber || "—")}</span></button>`).join("") : `<div class="agents-empty-list">Dieser Abteilung sind derzeit keine weiteren geladenen Personalakten zugeordnet.</div>`}
+            </div>
+          </div>
+        </div>`;
+    }
+
+    function bindDepartmentWorkspace() {
+        const save = $("agentDepartmentWorkspaceSave");
+        const select = $("agentDepartmentWorkspace");
+        if (save && select) save.onclick = () => saveDepartmentOnly(select.value);
+        document.querySelectorAll("[data-department-member-id]").forEach(button => {
+            button.onclick = () => {
+                const target = state.agents.find(item => String(item.id) === String(button.dataset.departmentMemberId));
+                if (!target) return;
+                state.modalTab = "personal";
+                openPersonnelFile(target);
+            };
+        });
+    }
+
+    function saveDepartmentOnly(department) {
+        if (!canEditOfficers() || !state.selectedAgent) return;
+        const token = getAgentsSessionToken();
+        const agent = state.selectedAgent;
+        const userId = String(agent.id || "");
+        if (!token || !userId) return showAgentError("Keine aktive Personalakte.");
+        const data = {
+            serviceNumber: String(getValue(agent,["serviceNumber"],"")||""),
+            phone: String(getValue(agent,["phone"],"")||""),
+            callSign: String(getValue(agent,["callSign"],"")||""),
+            department: String(department||""),
+            unit: String(getValue(agent,["unit"],"")||""),
+            email: String(getValue(agent,["email"],"")||""),
+            address: String(getValue(agent,["address"],"")||""),
+            entryDate: getValue(agent,["entryDate"],"")||"",
+            personnelStatus: String(getValue(agent,["personnelStatus"],"")||""),
+            note: String(getValue(agent,["personnelNote","note"],"")||""),
+            rankId: String(getValue(agent,["rankId"],"")||"")
+        };
+        const save = $("agentDepartmentWorkspaceSave");
+        if (save) { save.disabled=true; save.textContent="Wird gespeichert..."; }
+        CloudApi.run.withSuccessHandler(() => {
+            state.selectedAgent = {...state.selectedAgent, department:data.department};
+            state.agents = state.agents.map(item => String(item.id)===userId ? {...item,department:data.department} : item);
+            filterAgents($("agentsSearchInput")?.value || "");
+            if (save) { save.disabled=false; save.textContent="Abteilung gespeichert"; }
+            renderPersonnelModal(true);
+            showAgentSuccess("Abteilung wurde gespeichert.");
+        }).withFailureHandler(error => {
+            if (save) { save.disabled=false; save.textContent="Abteilung speichern"; }
+            showAgentError(error?.message || "Die Abteilung konnte nicht gespeichert werden.");
+        }).savePersonnelProfile(token,userId,data);
+    }
+
+    /* =====================================================
        TRAININGS
     ====================================================== */
 
@@ -4099,14 +4211,14 @@
                 ${terminationInput("terminationConfidentiality","Vertraulichkeit","Vertraulich – Personal",true)}
                 ${terminationInput("terminationNameServerId","Name / Server-ID",`${agent.name || ""} / ${serviceNumber || agent.username || agent.id || ""}`,true)}
                 ${terminationInput("terminationPreviousRank","Bisheriger Dienstgrad",rank,true)}
-                ${terminationInput("terminationDepartmentUnit","Division / Einheit",department || "")}
+                <div class="agents-form-group"><label class="agents-form-label">Division / Einheit *</label><select id="terminationDepartmentUnit" class="agents-form-select"><option value="">Keine Abteilung</option>${DEPARTMENTS.map(item => `<option value="${escapeHtml(item)}" ${String(department)===String(item)?"selected":""}>${escapeHtml(item)}</option>`).join("")}</select></div>
                 <div class="agents-form-group"><label class="agents-form-label">Art der Beendigung *</label><select id="terminationType" class="agents-form-select"><option>Entlassung</option><option>Freiwilliger Austritt</option><option>Sonstiger Grund</option></select></div>
                 ${terminationInput("terminationEffectiveDate","Wirksam zum",now,false,"date")}
-                ${terminationInput("terminationDecidingOffice","Entscheidende Stelle","")}
+                ${terminationInput("terminationDecidingOffice","Entscheidende Stelle",currentName ? `${currentName}${currentRank ? ` / ${currentRank}` : ""}` : "")}
               </div>
               ${terminationTextarea("terminationReason","Begründung / Anlass","")}
-              ${terminationTextarea("terminationApproval","Zustimmung / Genehmigung","")}
-              ${terminationTextarea("terminationEquipmentReturn","Rückgabe von Dienstmitteln","")}
+              ${terminationTextarea("terminationApproval","Zustimmung / Genehmigung","Keine zusätzliche Genehmigung erforderlich") }
+              ${terminationTextarea("terminationEquipmentReturn","Rückgabe von Dienstmitteln","Keine offenen Dienstmittel") }
               ${terminationInput("terminationUpdatedAt","Personalakte / MDT aktualisiert am",`${new Date().toLocaleDateString("de-DE")} / ${agent.name || ""}`,true)}
               <div class="agents-termination-signature-grid">
                 <div><label class="agents-form-label">Ausgestellt durch – Name / Dienstgrad *</label><input id="terminationIssuerNameRank" class="agents-form-input" value="${escapeHtml(currentName ? `${currentName}${currentRank ? ` / ${currentRank}` : ""}` : "")}" placeholder="Name / Dienstgrad"></div>
@@ -4145,7 +4257,7 @@
         $("terminationSignatureClear")?.addEventListener("click",()=>issuer.clear());
         $("terminationEmployeeSignatureClear")?.addEventListener("click",()=>employee.clear());
         $("terminationSubmitButton")?.addEventListener("click",()=>{
-            const requiredIds=["terminationIssuingOffice","terminationProcessedBy","terminationDecidingOffice","terminationReason","terminationApproval","terminationEquipmentReturn","terminationUpdatedAt","terminationIssuerNameRank"];
+            const requiredIds=["terminationIssuingOffice","terminationProcessedBy","terminationDecidingOffice","terminationReason","terminationApproval","terminationEquipmentReturn","terminationUpdatedAt","terminationIssuerNameRank","terminationDepartmentUnit"];
             const data={documentNumber:$("terminationDocumentNumber")?.value,issueDate:$("terminationIssueDate")?.value,issuingOffice:$("terminationIssuingOffice")?.value,processedBy:$("terminationProcessedBy")?.value,recipient:$("terminationRecipient")?.value,previousRank:$("terminationPreviousRank")?.value,departmentUnit:$("terminationDepartmentUnit")?.value,terminationType:$("terminationType")?.value,effectiveDate:$("terminationEffectiveDate")?.value,decidingOffice:$("terminationDecidingOffice")?.value,reason:$("terminationReason")?.value,approval:$("terminationApproval")?.value,equipmentReturn:$("terminationEquipmentReturn")?.value,updatedAt:$("terminationUpdatedAt")?.value,issuerNameRank:$("terminationIssuerNameRank")?.value,issuerSignature:issuer.data(),employeeNameRank:$("terminationEmployeeNameRank")?.value,employeeSignature:employee.data()};
             if(requiredIds.some(id=>!String($(id)?.value||"").trim())){showAgentError("Bitte fülle alle Pflichtfelder des Beendigungsdokuments aus.");return;}
             if(!data.issuerSignature){showAgentError("Bitte setze die Signatur der kündigenden Person.");return;}
@@ -4157,7 +4269,7 @@
                 filterAgents($("agentsSearchInput")?.value || "");
                 showAgentSuccess("Beendigung dokumentiert. Das dauerhafte externe Dokument wurde geöffnet.");
                 if(result.url) { try { window.open(new URL(result.url,window.location.origin).href,"_blank","noopener"); } catch(e) {} if(navigator.clipboard) navigator.clipboard.writeText(new URL(result.url,window.location.origin).href).catch(()=>{}); }
-                state.modalTab="history"; renderPersonnelModal(true); loadPersonnelHistory().catch(()=>{});
+                state.lastTerminationUrl = result.url ? new URL(result.url,window.location.origin).href : ""; state.modalTab="history"; renderPersonnelModal(true); loadPersonnelHistory().catch(()=>{});
             }).withFailureHandler(error=>{if(button)button.disabled=false;showAgentError(error?.message||"Die Beendigung konnte nicht dokumentiert werden.");}).createPersonnelTermination(getAgentsSessionToken(),String(state.selectedAgent.id),data);
         });
     }
@@ -4178,8 +4290,8 @@
 
     function renderHistoryTab() {
         const entries = Array.isArray(state.history) ? state.history : [];
-        const actionLabels = { profile_updated: "Stammdaten geändert", rank_changed: "Dienstgrad geändert", training_created: "Schulung hinzugefügt", training_deleted: "Schulung gelöscht", note_created: "Vermerk hinzugefügt", note_deleted: "Vermerk gelöscht", sanction_issued: "Interne Sanktion festgesetzt" };
-        return `${renderTabs("history")}<div class="agents-form"><div class="agents-section"><div class="agents-section-title">Änderungshistorie</div><div class="agents-history-list">${!state.historyLoaded ? `<div class="agents-personnel-loading-strip">Historie wird geladen …</div>` : !entries.length ? `<div class="agents-empty-list">Für diese Personalakte sind noch keine Änderungen protokolliert.</div>` : entries.map(row => { const date = row.created_at || row.createdAt; return `<article class="agents-history-item"><div class="agents-history-dot"></div><div class="agents-history-main"><div class="agents-history-title">${escapeHtml(actionLabels[row.action] || row.action || "Änderung")}</div><div class="agents-history-meta">${date ? escapeHtml(new Date(date).toLocaleString("de-DE")) : "Datum unbekannt"} · ${escapeHtml(row.actor_name || row.actorName || "System")}</div>${row.detail ? `<div class="agents-history-detail">${escapeHtml(row.detail)}</div>` : ""}</div></article>`; }).join("")}</div></div></div>`;
+        const actionLabels = { profile_updated: "Stammdaten geändert", rank_changed: "Dienstgrad geändert", training_created: "Schulung hinzugefügt", training_deleted: "Schulung gelöscht", note_created: "Vermerk hinzugefügt", note_deleted: "Vermerk gelöscht", sanction_issued: "Interne Sanktion festgesetzt", termination_created: "Dienstverhältnis beendet" };
+        return `${renderTabs("history")}<div class="agents-form">${state.lastTerminationUrl ? `<div class="agents-section"><div class="agents-section-title">Beendigungsdokument</div><div class="agents-section-card agents-termination-link-card"><div class="agents-history-detail">Das Dokument wurde dauerhaft veröffentlicht.</div><a class="agents-system-button agents-system-button-primary agents-termination-link" href="${escapeHtml(state.lastTerminationUrl)}" target="_blank" rel="noopener">Dauerhaftes Dokument öffnen</a></div></div>` : ""}<div class="agents-section"><div class="agents-section-title">Änderungshistorie</div><div class="agents-history-list">${!state.historyLoaded ? `<div class="agents-personnel-loading-strip">Historie wird geladen …</div>` : !entries.length ? `<div class="agents-empty-list">Für diese Personalakte sind noch keine Änderungen protokolliert.</div>` : entries.map(row => { const date = row.created_at || row.createdAt; return `<article class="agents-history-item"><div class="agents-history-dot"></div><div class="agents-history-main"><div class="agents-history-title">${escapeHtml(actionLabels[row.action] || row.action || "Änderung")}</div><div class="agents-history-meta">${date ? escapeHtml(new Date(date).toLocaleString("de-DE")) : "Datum unbekannt"} · ${escapeHtml(row.actor_name || row.actorName || "System")}</div>${row.detail ? `<div class="agents-history-detail">${escapeHtml(row.detail)}</div>` : ""}</div></article>`; }).join("")}</div></div></div>`;
     }
 
 
