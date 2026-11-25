@@ -1295,6 +1295,16 @@
 .patrols-page select { appearance:auto!important; -webkit-appearance:auto!important; color-scheme:light!important; background:#fff!important; color:#26384c!important; }
 .patrols-page select option { background:#fff!important; color:#26384c!important; }
 </style>
+<style id="lspd-patrol-compact-layout">
+.patrol-toolbar{display:block!important;padding:0!important;margin:0 0 14px!important;border-radius:12px!important;overflow:visible!important}
+.patrol-toolbar-section{padding:10px 13px!important}
+.patrol-toolbar-section+.patrol-toolbar-section{border-top:1px solid #e8edf2!important}
+.patrol-toolbar-top{margin-bottom:6px!important}
+.patrol-toolbar-description{display:none!important}
+.patrol-filter-group{gap:5px!important}
+.patrol-filter{height:28px!important;padding:0 10px!important;border-radius:7px!important;font-size:10px!important}
+.patrol-toolbar-label{font-size:10px!important;text-transform:uppercase;letter-spacing:.05em}
+</style>
 
 <div class="patrols-page">
 
@@ -1361,113 +1371,19 @@
          FILTER
     ====================================================== -->
 
-    <div class="patrol-toolbar">
-
+    <div class="patrol-toolbar patrol-group-toolbar">
         <div class="patrol-toolbar-section">
-
-            <div class="patrol-toolbar-top">
-                <button type="button" class="patrol-header-button secondary" id="fibDutyEndButton" style="margin-left:auto;">Aus dem Dienst gehen</button>
-
-                <div>
-
-                    <div class="patrol-toolbar-label">
-                        Callsign
-                    </div>
-
-                    <div class="patrol-toolbar-description">
-                        Streifen nach Funkrufzeichen filtern
-                    </div>
-
+            <div class="patrol-group-toolbar-inner">
+                <div class="patrol-group-toolbar-title">
+                    <span class="patrol-toolbar-label">Gruppierung</span>
+                    <span class="patrol-toolbar-meta" id="patrolCount">0 Streifen</span>
                 </div>
-
+                <div class="patrol-group-controls" role="group" aria-label="Streifen gruppieren nach">
+                    <button type="button" class="patrol-group-button active" data-group="callsign">Callsign</button>
+                    <button type="button" class="patrol-group-button" data-group="status">Status</button>
+                </div>
             </div>
-
-
-            <div
-                class="patrol-filter-group"
-                id="patrolCallsignFilters"
-            ></div>
-
         </div>
-
-
-        <div class="patrol-toolbar-section">
-
-            <div class="patrol-toolbar-top">
-
-                <div>
-
-                    <div class="patrol-toolbar-label">
-                        Fahrzeug
-                    </div>
-
-                    <div class="patrol-toolbar-description">
-                        Streifen nach Fahrzeugtyp filtern
-                    </div>
-
-                </div>
-
-            </div>
-
-
-            <div
-                class="patrol-filter-group"
-                id="patrolVehicleFilters"
-            ></div>
-
-        </div>
-
-
-        <div class="patrol-toolbar-section">
-
-            <div class="patrol-toolbar-top">
-
-                <div>
-
-                    <div class="patrol-toolbar-label">
-                        Gruppierung
-                    </div>
-
-                    <div class="patrol-toolbar-description">
-                        Darstellung der Streifen gruppieren
-                    </div>
-
-                </div>
-
-
-                <div
-                    class="patrol-toolbar-meta"
-                    id="patrolCount"
-                >
-                    0 Streifen
-                </div>
-
-            </div>
-
-
-            <div class="patrol-group-controls">
-
-                <button
-                    type="button"
-                    class="patrol-group-button active"
-                    data-group="status"
-                >
-                    Status
-                </button>
-
-
-                <button
-                    type="button"
-                    class="patrol-group-button"
-                    data-group="callsign"
-                >
-                    Callsign
-                </button>
-
-            </div>
-
-        </div>
-
     </div>
 
 
@@ -1517,9 +1433,7 @@
         patrolDataPromise: null,
         patrolUsersPromise: null,
         patrolFilters: {
-            callsign: null,
-            vehicle: null,
-            group: "status"
+            group: "callsign"
         },
         initialized: false,
         instanceId: "",
@@ -1852,91 +1766,6 @@
         return match ? match[1] : raw;
     }
 
-    function getAvailableCallsigns() {
-        const values = new Set(CALLSIGNS);
-        (state.patrolData || []).forEach(function (patrol) {
-            const value = getCallsignType(patrol.callsign);
-            if (value) values.add(value);
-        });
-        return Array.from(values).sort(function (a, b) { return a.localeCompare(b, "de"); });
-    }
-
-    function refreshCallsignFilters() {
-        const container = document.getElementById("patrolCallsignFilters");
-        if (!container) return;
-        container.innerHTML = "";
-        createFilterButton(container, "Alle", null, "callsign");
-        getAvailableCallsigns().forEach(function (value) {
-            createFilterButton(container, value, value, "callsign");
-        });
-    }
-
-    function buildFilters() {
-        const callsignContainer =
-            document.getElementById("patrolCallsignFilters");
-        const vehicleContainer =
-            document.getElementById("patrolVehicleFilters");
-
-        if (!callsignContainer || !vehicleContainer) return;
-
-        callsignContainer.innerHTML = "";
-        vehicleContainer.innerHTML = "";
-
-        createFilterButton(
-            callsignContainer,
-            "Alle",
-            null,
-            "callsign"
-        );
-
-        getAvailableCallsigns().forEach(function (value) {
-            createFilterButton(callsignContainer, value, value, "callsign");
-        });
-
-        createFilterButton(
-            vehicleContainer,
-            "Alle",
-            null,
-            "vehicle"
-        );
-
-        VEHICLES.forEach(function (value) {
-            createFilterButton(
-                vehicleContainer,
-                value,
-                value,
-                "vehicle"
-            );
-        });
-    }
-
-    function createFilterButton(container, label, value, type) {
-        const button = document.createElement("button");
-        button.type = "button";
-        button.className = "patrol-filter";
-
-        if (state.patrolFilters[type] === value) {
-            button.classList.add("active");
-        }
-
-        button.textContent = label;
-
-        button.addEventListener("click", function () {
-            state.patrolFilters[type] = value;
-
-            container
-                .querySelectorAll(".patrol-filter")
-                .forEach(function (item) {
-                    item.classList.remove("active");
-                });
-
-            button.classList.add("active");
-            renderPatrols();
-        });
-
-        container.appendChild(button);
-    }
-
     function fetchPatrols(forceReload) {
         const cache = window.fibCache.patrols;
 
@@ -1968,7 +1797,6 @@
                     state.patrolDataPromise = null;
                     setLoading(false);
                     updateCount();
-                    refreshCallsignFilters();
                     renderPatrols();
                     renderOwnStatus();
                     restoreOwnDutyPicker();
@@ -2054,7 +1882,10 @@
         return state.patrolUsersPromise;
     }
 
-    /* Globale Farbkonfiguration entfernt; die Leitstelle verwendet die zentrale LSPD-Farbpalette. */
+    // Patrol display colors are intentionally fixed.
+    // The former master-only color customization was removed so patrol rendering
+    // no longer depends on a persisted color configuration or optional globals.
+
     function refreshPatrolData() {
         clearPatrolsCache();
         clearPatrolUsersCache();
@@ -2070,26 +1901,7 @@
 
         updateCount();
 
-        const filtered = state.patrolData.filter(function (patrol) {
-            const callsign = String(patrol.callsign || "").trim();
-            const vehicle = String(patrol.vehicleType || "").trim();
-
-            if (
-                state.patrolFilters.callsign &&
-                getCallsignType(callsign) !== state.patrolFilters.callsign
-            ) {
-                return false;
-            }
-
-            if (
-                state.patrolFilters.vehicle &&
-                vehicle !== state.patrolFilters.vehicle
-            ) {
-                return false;
-            }
-
-            return true;
-        });
+        const filtered = state.patrolData.slice();
 
         if (!filtered.length) {
             container.innerHTML = `
@@ -2969,9 +2781,9 @@
                     if (typeof window.showError === "function") window.showError(error?.message || "Dein Callsign konnte nicht aus der Personalakte geladen werden.");
                 }
             }
-            window.addEventListener("fib-mdt:duty-start-request", handleDutySelection);
-            window.addEventListener("fib-mdt:duty-selection-changed", handleDutySelection);
-            window.addEventListener("fib-mdt:ten-code-changed", async function(event) {
+            window.__fibPageLifecycle.on(window, "fib-mdt:duty-start-request", handleDutySelection);
+            window.__fibPageLifecycle.on(window, "fib-mdt:duty-selection-changed", handleDutySelection);
+            window.__fibPageLifecycle.on(window, "fib-mdt:ten-code-changed", async function(event) {
                 const code = String(event.detail?.tenCode || "").trim();
                 if (!code) return;
                 try {
@@ -3076,7 +2888,6 @@
 
         applyPermissionUI();
         loadConfiguredTenCodes().then(function(){ const select=document.getElementById("patrolModalStatus"); if(select){const selected=select.value;select.innerHTML=STATUSES.map(v=>`<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join("");if(STATUSES.includes(selected))select.value=selected;} });
-        buildFilters();
         bindStaticEvents();
 
         if (cacheValid(window.fibCache.patrols)) {
@@ -3104,16 +2915,16 @@
     // Cross-client modular status sync: refresh the persisted patrol snapshot regularly.
     // This makes changes saved by another Agent appear without a manual page reload.
     if (!window.fibPatrolLiveSyncTimer) {
-        window.fibPatrolLiveSyncTimer = window.setInterval(function () {
+        window.fibPatrolLiveSyncTimer = window.__fibPageLifecycle.interval(function () {
             const list = document.getElementById("patrolsList");
             const modal = document.getElementById("fibGlobalModalOverlay");
             if (list && !state.saving && !(modal && modal.classList.contains("open"))) {
                 fetchPatrols(true).catch(function () {});
             }
-        }, 5000);
+        }, 15000);
     }
-    window.addEventListener("fib-mdt:refresh-request", function (event) { const modal=document.getElementById("fibGlobalModalOverlay"); if (document.getElementById("patrolsList") && !state.saving && !(modal && modal.classList.contains("open"))) refreshPatrolData(); });
-    window.addEventListener("fib-mdt:data-changed", function (event) { const modal=document.getElementById("fibGlobalModalOverlay"); if (document.getElementById("patrolsList") && !(modal && modal.classList.contains("open")) && /Patrol|patrol|Member|member/.test(String(event.detail && event.detail.method || ""))) refreshPatrolData(); });
+    window.__fibPageLifecycle.on(window, "fib-mdt:refresh-request", function (event) { const modal=document.getElementById("fibGlobalModalOverlay"); if (document.getElementById("patrolsList") && !state.saving && !(modal && modal.classList.contains("open"))) refreshPatrolData(); });
+    window.__fibPageLifecycle.on(window, "fib-mdt:data-changed", function (event) { const modal=document.getElementById("fibGlobalModalOverlay"); if (document.getElementById("patrolsList") && !(modal && modal.classList.contains("open")) && /Patrol|patrol|Member|member/.test(String(event.detail && event.detail.method || ""))) refreshPatrolData(); });
 })();
 </script>
 
@@ -3285,5 +3096,68 @@
   .patrol-own-status-main { grid-column:auto !important; }
   .patrol-own-status-cell { border-left:0 !important; padding-left:0 !important; }
   .patrol-card { overflow-x:auto !important; }
+}
+</style>
+<style>
+/* Final compact grouping toolbar: grouping only, no Ten-Code/filter wall. */
+.patrol-group-toolbar {
+  margin-bottom: 12px !important;
+  border-radius: 10px !important;
+}
+.patrol-group-toolbar .patrol-toolbar-section {
+  padding: 8px 11px !important;
+}
+.patrol-group-toolbar-inner {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  min-width:0;
+}
+.patrol-group-toolbar-title {
+  display:flex;
+  align-items:center;
+  gap:9px;
+  min-width:0;
+}
+.patrol-group-toolbar-title .patrol-toolbar-label {
+  font-size:10px !important;
+  font-weight:800 !important;
+  letter-spacing:.045em;
+  text-transform:uppercase;
+}
+.patrol-group-toolbar-title .patrol-toolbar-meta {
+  font-size:10px !important;
+}
+.patrol-group-toolbar .patrol-group-controls {
+  flex:0 0 auto;
+  padding:2px !important;
+  border-radius:8px !important;
+  background:#f3f6f9 !important;
+  border:1px solid #dce5ee !important;
+}
+.patrol-group-toolbar .patrol-group-button {
+  min-width:82px;
+  height:28px !important;
+  padding:0 11px !important;
+  border-radius:6px !important;
+  color:#718399 !important;
+  background:transparent !important;
+  font-size:10px !important;
+  font-weight:700 !important;
+}
+.patrol-group-toolbar .patrol-group-button:hover {
+  color:#245b91 !important;
+  background:#eaf2f9 !important;
+}
+.patrol-group-toolbar .patrol-group-button.active {
+  color:#1f5f97 !important;
+  background:#e3effb !important;
+  box-shadow:0 1px 2px rgba(30,55,80,.06) !important;
+}
+@media (max-width:560px) {
+  .patrol-group-toolbar-inner { align-items:stretch; flex-direction:column; }
+  .patrol-group-toolbar .patrol-group-controls { width:100%; }
+  .patrol-group-toolbar .patrol-group-button { flex:1 1 0; }
 }
 </style>

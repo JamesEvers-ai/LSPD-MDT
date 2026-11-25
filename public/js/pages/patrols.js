@@ -15,7 +15,7 @@
         patrolUsersPromise: null,
         patrolFilters: {
             callsign: null,
-            vehicle: null,
+            status: null,
             group: "status"
         },
         initialized: false,
@@ -369,41 +369,21 @@
     }
 
     function buildFilters() {
-        const callsignContainer =
-            document.getElementById("patrolCallsignFilters");
-        const vehicleContainer =
-            document.getElementById("patrolVehicleFilters");
-
-        if (!callsignContainer || !vehicleContainer) return;
+        const callsignContainer = document.getElementById("patrolCallsignFilters");
+        const statusContainer = document.getElementById("patrolStatusFilters");
+        if (!callsignContainer || !statusContainer) return;
 
         callsignContainer.innerHTML = "";
-        vehicleContainer.innerHTML = "";
+        statusContainer.innerHTML = "";
 
-        createFilterButton(
-            callsignContainer,
-            "Alle",
-            null,
-            "callsign"
-        );
-
+        createFilterButton(callsignContainer, "Alle", null, "callsign");
         getAvailableCallsigns().forEach(function (value) {
             createFilterButton(callsignContainer, value, value, "callsign");
         });
 
-        createFilterButton(
-            vehicleContainer,
-            "Alle",
-            null,
-            "vehicle"
-        );
-
-        VEHICLES.forEach(function (value) {
-            createFilterButton(
-                vehicleContainer,
-                value,
-                value,
-                "vehicle"
-            );
+        createFilterButton(statusContainer, "Alle", null, "status");
+        STATUSES.forEach(function (value) {
+            createFilterButton(statusContainer, value, value, "status");
         });
     }
 
@@ -581,9 +561,10 @@
                 return false;
             }
 
+            const patrolStatus = String(patrol.tenCode || patrol.ten_code || patrol.status || "").trim();
             if (
-                state.patrolFilters.vehicle &&
-                vehicle !== state.patrolFilters.vehicle
+                state.patrolFilters.status &&
+                patrolStatus !== state.patrolFilters.status
             ) {
                 return false;
             }
