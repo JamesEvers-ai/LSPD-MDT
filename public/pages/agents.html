@@ -6000,3 +6000,21 @@
 
 })();
 </script>
+
+<style>
+/* Final personnel toolbar containment: the search field always stays inside the page viewport. */
+#agentsPage,
+#agentsPage .agents-page-header,
+#agentsPage .agents-toolbar,
+#agentsPage .agents-search,
+#agentsPage .agents-search input {
+  box-sizing:border-box !important;
+  max-width:100% !important;
+  min-width:0 !important;
+}
+#agentsPage { width:100% !important; overflow-x:hidden !important; }
+#agentsPage .agents-page-header { width:100% !important; overflow:visible !important; }
+#agentsPage .agents-toolbar { width:100% !important; overflow:visible !important; }
+#agentsPage .agents-search { width:100% !important; flex:1 1 100% !important; }
+#agentsPage .agents-search input { width:100% !important; display:block !important; }
+</style>

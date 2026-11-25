@@ -909,3 +909,108 @@ html body #pageContainer .content :is(
     padding: 18px 20px !important;
   }
 }
+
+/* =========================================================
+   LSPD GLOBAL MODAL – FINAL BUTTON SYSTEM
+   One visual language for every modal action.
+========================================================= */
+#fibGlobalModalOverlay .fib-global-modal-footer {
+  display:flex !important;
+  align-items:center !important;
+  justify-content:flex-end !important;
+  gap:10px !important;
+  padding:13px 20px !important;
+  background:#f7f9fc !important;
+  border-top:1px solid #dfe6ed !important;
+}
+#fibGlobalModalOverlay .fib-global-modal-footer .fib-modal-button,
+#fibGlobalModalOverlay .fib-global-modal-footer button {
+  appearance:none !important;
+  -webkit-appearance:none !important;
+  min-width:96px !important;
+  min-height:36px !important;
+  padding:8px 15px !important;
+  border:1px solid #cbd7e4 !important;
+  border-radius:8px !important;
+  background:#fff !important;
+  color:#334b63 !important;
+  font:600 12px/1.2 inherit !important;
+  cursor:pointer !important;
+  box-shadow:0 1px 2px rgba(24,48,72,.05) !important;
+  transition:background .12s ease,border-color .12s ease,color .12s ease,box-shadow .12s ease !important;
+}
+#fibGlobalModalOverlay .fib-global-modal-footer .fib-modal-button:hover,
+#fibGlobalModalOverlay .fib-global-modal-footer button:hover {
+  background:#eef4f9 !important;
+  border-color:#b9c9d8 !important;
+  color:#173b5f !important;
+  box-shadow:0 2px 5px rgba(24,48,72,.08) !important;
+}
+#fibGlobalModalOverlay .fib-global-modal-footer .fib-modal-button.primary,
+#fibGlobalModalOverlay .fib-global-modal-footer button.primary {
+  background:#1f5f97 !important;
+  border-color:#1f5f97 !important;
+  color:#fff !important;
+}
+#fibGlobalModalOverlay .fib-global-modal-footer .fib-modal-button.primary:hover,
+#fibGlobalModalOverlay .fib-global-modal-footer button.primary:hover {
+  background:#174c7b !important;
+  border-color:#174c7b !important;
+  color:#fff !important;
+}
+#fibGlobalModalOverlay .fib-global-modal-footer .fib-modal-button.danger,
+#fibGlobalModalOverlay .fib-global-modal-footer button.danger {
+  background:#fff !important;
+  border-color:#e4b7bc !important;
+  color:#a8323c !important;
+}
+#fibGlobalModalOverlay .fib-global-modal-footer .fib-modal-button.danger:hover,
+#fibGlobalModalOverlay .fib-global-modal-footer button.danger:hover {
+  background:#fff3f4 !important;
+  border-color:#d9939a !important;
+  color:#922d36 !important;
+}
+#fibGlobalModalOverlay .fib-global-modal-footer .fib-modal-button:disabled,
+#fibGlobalModalOverlay .fib-global-modal-footer button:disabled {
+  opacity:.55 !important;
+  cursor:not-allowed !important;
+  transform:none !important;
+}
+
+/* Keep every global modal control readable in the light LSPD system. */
+#fibGlobalModalOverlay .fib-global-modal-body :is(input,textarea,select) {
+  color-scheme:light !important;
+}
+#fibGlobalModalOverlay .fib-global-modal-body :is(select,.fib-ui-select-trigger) {
+  background:#fff !important;
+  color:#243b53 !important;
+  border-color:#cbd7e4 !important;
+}
+#fibGlobalModalOverlay .fib-ui-select-trigger {
+  min-height:38px !important;
+  border-radius:8px !important;
+  box-shadow:none !important;
+}
+#fibGlobalModalOverlay .fib-ui-select-trigger:hover,
+#fibGlobalModalOverlay .fib-ui-select-trigger[aria-expanded="true"] {
+  background:#f7fafc !important;
+  border-color:#9eb8d0 !important;
+}
+#fibGlobalModalOverlay .fib-ui-select-menu {
+  background:#fff !important;
+  border:1px solid #cbd7e4 !important;
+  border-radius:8px !important;
+  box-shadow:0 14px 36px rgba(19,47,75,.18) !important;
+  padding:5px !important;
+}
+#fibGlobalModalOverlay .fib-ui-select-option {
+  background:#fff !important;
+  color:#243b53 !important;
+  border-radius:6px !important;
+}
+#fibGlobalModalOverlay .fib-ui-select-option:hover,
+#fibGlobalModalOverlay .fib-ui-select-option.active,
+#fibGlobalModalOverlay .fib-ui-select-option.selected {
+  background:#eaf2f9 !important;
+  color:#17395f !important;
+}

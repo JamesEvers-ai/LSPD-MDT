@@ -3116,3 +3116,174 @@
     window.addEventListener("fib-mdt:data-changed", function (event) { const modal=document.getElementById("fibGlobalModalOverlay"); if (document.getElementById("patrolsList") && !(modal && modal.classList.contains("open")) && /Patrol|patrol|Member|member/.test(String(event.detail && event.detail.method || ""))) refreshPatrolData(); });
 })();
 </script>
+
+<style>
+/* =========================================================
+   LEITSTELLE – FINAL LSPD LIGHT VISUAL SYSTEM
+   Replace the remaining legacy FIB/dark palette without
+   changing the patrol functionality or DOM contract.
+========================================================= */
+.patrols-page {
+  color:#243447 !important;
+  background:transparent !important;
+  padding:22px 24px 70px !important;
+  max-width:1440px !important;
+  margin:0 auto !important;
+}
+.patrols-header { margin-bottom:18px !important; }
+.patrols-eyebrow { color:#347fc9 !important; }
+.patrols-title { color:#17324d !important; font-size:26px !important; }
+.patrols-subtitle { color:#718399 !important; }
+.patrols-header-actions { gap:8px !important; }
+.patrol-header-button {
+  height:36px !important;
+  padding:0 13px !important;
+  border:1px solid #cbd7e4 !important;
+  border-radius:8px !important;
+  background:#fff !important;
+  color:#29445f !important;
+  box-shadow:0 1px 2px rgba(30,55,80,.05) !important;
+  transform:none !important;
+}
+.patrol-header-button:hover { background:#edf4fa !important; border-color:#b7c9da !important; color:#173b5f !important; transform:none !important; }
+.patrol-header-button:not(.secondary) { background:#1f5f97 !important; border-color:#1f5f97 !important; color:#fff !important; }
+.patrol-header-button:not(.secondary):hover { background:#174c7b !important; border-color:#174c7b !important; }
+.patrol-header-button.secondary { background:#fff !important; color:#526a80 !important; border-color:#d2dce7 !important; }
+
+.patrol-own-status {
+  background:#fff !important;
+  border:1px solid #dce5ee !important;
+  border-radius:12px !important;
+  box-shadow:0 5px 18px rgba(24,52,79,.06) !important;
+  padding:16px 18px !important;
+}
+.patrol-own-status-heading,.patrol-own-status-label { color:#718399 !important; }
+.patrol-own-status-name { color:#17324d !important; }
+.patrol-own-status-caption,.patrol-own-status-value.is-idle { color:#718399 !important; }
+.patrol-own-status-value { color:#29445f !important; }
+.patrol-own-status-cell { border-left-color:#e4eaf0 !important; }
+
+.patrol-toolbar {
+  background:#fff !important;
+  border:1px solid #dce5ee !important;
+  border-radius:12px !important;
+  box-shadow:0 4px 16px rgba(24,52,79,.045) !important;
+}
+.patrol-toolbar-section + .patrol-toolbar-section { border-top-color:#e8edf2 !important; }
+.patrol-toolbar-label { color:#29445f !important; }
+.patrol-toolbar-description,.patrol-toolbar-meta { color:#8291a2 !important; }
+.patrol-filter {
+  background:#f5f8fb !important;
+  border:1px solid #d8e2eb !important;
+  color:#5f7387 !important;
+}
+.patrol-filter:hover { background:#edf4fa !important; border-color:#b8cce0 !important; color:#245b91 !important; }
+.patrol-filter.active { background:#e4f0fb !important; border-color:#9ebfdf !important; color:#1f5f97 !important; }
+.patrol-group-controls { background:#f4f7fa !important; border-color:#dce4ec !important; }
+.patrol-group-button { color:#718399 !important; }
+.patrol-group-button:hover { color:#245b91 !important; }
+.patrol-group-button.active { background:#e4f0fb !important; color:#1f5f97 !important; }
+
+.patrol-loading-state {
+  background:#fff !important;
+  border:1px solid #dce5ee !important;
+  border-radius:12px !important;
+}
+.patrol-loading-spinner { border-color:#dbe5ee !important; border-top-color:#347fc9 !important; border-right-color:#8eb8d8 !important; }
+.patrol-loading-text { color:#60758a !important; }
+.patrol-loading-subtext { color:#8a99a9 !important; }
+.patrol-group-title { color:#62768b !important; }
+.patrol-group-count { background:#e5f0f9 !important; color:#2f6d9f !important; }
+
+.patrol-card {
+  background:#fff !important;
+  border:1px solid #dce5ee !important;
+  border-radius:11px !important;
+  box-shadow:0 3px 12px rgba(24,52,79,.055) !important;
+  color:#29445f !important;
+}
+.patrol-card:hover { background:#fbfdff !important; border-color:#b9cfe2 !important; transform:none !important; }
+.patrol-callsign { background:#f4f7fa !important; border-color:#d7e1eb !important; }
+.patrol-callsign-type { background:#e7f0f8 !important; color:#245b91 !important; }
+.patrol-callsign-number { background:#2f78b7 !important; border-left-color:#d1dfeb !important; color:#fff !important; }
+.patrol-status { background:#f2f5f8 !important; border-color:#dce4ec !important; color:#526a80 !important; }
+.patrol-status.status-10-1 { background:#eaf7ef !important; color:#26764b !important; }
+.patrol-status.status-10-3 { background:#fff0f1 !important; color:#a53c46 !important; }
+.patrol-status.status-10-6 { background:#fff8e6 !important; color:#89691f !important; }
+.patrol-status.status-10-19,.patrol-status.status-10-23 { background:#edf5fc !important; color:#356f9e !important; }
+.patrol-status.status-10-76 { background:#e8f2fb !important; color:#27699e !important; }
+.patrol-location { background:#f3f6f9 !important; border-color:#dce5ee !important; color:#42586e !important; }
+.patrol-vehicle { background:#eaf6f8 !important; border-color:#bfe0e5 !important; color:#276879 !important; }
+.patrol-activity-status { background:#f2f5f8 !important; color:#536b81 !important; border-color:#dce4ec !important; }
+.patrol-member { background:#f4f7fa !important; border-color:#d7e1eb !important; }
+.patrol-member-rank { background:#e7f0f8 !important; color:#245b91 !important; }
+.patrol-member-name { background:#fff !important; color:#42586e !important; border-left-color:#dce5ee !important; }
+.patrol-member-callsign { color:#6f91ad !important; }
+.patrol-action-button {
+  background:#f3f6f9 !important;
+  border-color:#d7e1eb !important;
+  color:#5f7387 !important;
+}
+.patrol-action-button:hover { background:#eaf2f9 !important; border-color:#aac4db !important; color:#245b91 !important; }
+.patrol-join-button { background:#eaf2fb !important; border-color:#b6cde2 !important; color:#2f78b7 !important; }
+.patrol-join-button:hover { background:#dcecf9 !important; }
+.patrol-ten-code-top { color:#60758a !important; }
+.patrol-ten-code-top select { background:#fff !important; color:#29445f !important; border-color:#cbd7e4 !important; color-scheme:light !important; }
+
+.patrol-empty,
+.patrol-inline-message,
+.patrol-modal-empty {
+  background:#fff !important;
+  border-color:#dce5ee !important;
+  color:#718399 !important;
+}
+.patrol-empty-title { color:#29445f !important; }
+.patrol-empty-text { color:#8191a2 !important; }
+
+/* Patrol edit modal content inherits the same light form system. */
+#fibGlobalModalBody .patrol-modal-shell,
+#fibGlobalModalBody .patrol-form-grid,
+#fibGlobalModalBody .patrol-members-box,
+#fibGlobalModalBody .patrol-selected-member,
+#fibGlobalModalBody .patrol-user-option {
+  background:#fff !important;
+  color:#29445f !important;
+  border-color:#dce5ee !important;
+}
+#fibGlobalModalBody .patrol-field label,
+#fibGlobalModalBody .patrol-members-header,
+#fibGlobalModalBody .patrol-selected-rank,
+#fibGlobalModalBody .patrol-selected-name,
+#fibGlobalModalBody .patrol-user-option-rank,
+#fibGlobalModalBody .patrol-user-option-name { color:#29445f !important; }
+#fibGlobalModalBody .patrol-member-search,
+#fibGlobalModalBody .patrol-member-position,
+#fibGlobalModalBody .patrol-form-grid input,
+#fibGlobalModalBody .patrol-form-grid select,
+#fibGlobalModalBody .patrol-form-grid textarea {
+  background:#fff !important;
+  color:#243b53 !important;
+  border-color:#cbd7e4 !important;
+  color-scheme:light !important;
+}
+#fibGlobalModalBody .patrol-add-member,
+#fibGlobalModalBody .patrol-remove-member {
+  background:#f1f5f8 !important;
+  border-color:#d5e0e9 !important;
+  color:#4f687f !important;
+}
+#fibGlobalModalBody .patrol-add-member:hover { background:#e6f0f8 !important; color:#245b91 !important; }
+
+@media (max-width:900px) {
+  .patrols-page { padding:18px 16px 60px !important; }
+  .patrol-header-actions { flex-wrap:wrap; }
+}
+@media (max-width:640px) {
+  .patrols-page { padding:16px 12px 50px !important; }
+  .patrols-title { font-size:22px !important; }
+  .patrol-own-status { grid-template-columns:1fr !important; }
+  .patrol-own-status-main { grid-column:auto !important; }
+  .patrol-own-status-cell { border-left:0 !important; padding-left:0 !important; }
+  .patrol-card { overflow-x:auto !important; }
+}
+</style>
