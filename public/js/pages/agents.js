@@ -4,6 +4,13 @@
 
     "use strict";
 
+    const DEPARTMENTS = [
+        "Internal Affairs Division", "Central Division", "Northern Division", "Patrol Division",
+        "Investigative Division", "Metropolitan Division", "Support Division", "Internal Affairs",
+        "Patrol Unit", "Detective Bureau", "Special Weapons and Tactics", "Gang Enforcement Detail",
+        "Canine (K9)", "Police Academy", "Public Relations Office", "Air Support Division", "High Command"
+    ];
+
 
     /* =====================================================
        STATE
@@ -44,6 +51,8 @@
             bundleLoading: false,
 
             modalTab: "personal",
+
+            departmentFilter: "all",
 
             globalEventsBound: false
 
@@ -630,6 +639,7 @@
 
 
         bindAgentsSearch();
+        bindDepartmentTabs();
 
         bindGlobalEvents();
 
@@ -656,6 +666,17 @@
         },
         50
     );
+
+
+    function bindDepartmentTabs() {
+        document.querySelectorAll("[data-agent-department]").forEach(button => {
+            button.onclick = function() {
+                state.departmentFilter = button.dataset.agentDepartment || "all";
+                document.querySelectorAll("[data-agent-department]").forEach(item => item.classList.toggle("active", item === button));
+                filterAgents($("agentsSearchInput")?.value || "");
+            };
+        });
+    }
 
 
     /* =====================================================
@@ -698,17 +719,17 @@
             .toLowerCase();
 
 
+        const department = String(state.departmentFilter || "all");
+        const source = department === "all" ? state.agents : state.agents.filter(agent => String(agent.department || "") === department);
+
         if (!value) {
 
-            state.filteredAgents =
-                [
-                    ...state.agents
-                ];
+            state.filteredAgents = [...source];
 
         } else {
 
             state.filteredAgents =
-                state.agents.filter(
+                source.filter(
                     agent => {
 
                         const haystack = [
@@ -1823,6 +1844,9 @@
         else if (state.modalTab === "history") {
             body.innerHTML = renderHistoryTab();
         }
+        else if (state.modalTab === "termination" && canEditOfficers()) {
+            body.innerHTML = renderTerminationTab();
+        }
         else {
 
             body.innerHTML =
@@ -1842,6 +1866,7 @@
         bindTrainingForm();
 
         bindNoteForm();
+        bindTerminationForm();
 
     }
 
@@ -1907,6 +1932,8 @@
                 ${state.sanctionsVisible ? `<button type="button" class="agents-personnel-tab ${activeTab === "sanctions" ? "active" : ""}" data-personnel-tab="sanctions">Verhängte Sanktionen</button>` : ""}
 
                 <button type="button" class="agents-personnel-tab ${activeTab === "history" ? "active" : ""}" data-personnel-tab="history">Historie</button>
+
+                ${canEditOfficers() ? `<button type="button" class="agents-personnel-tab ${activeTab === "termination" ? "active" : ""}" data-personnel-tab="termination">Beendigung</button>` : ""}
 
             </div>
 
@@ -2328,12 +2355,13 @@
                                 Abteilung
                             </label>
 
-                            <input
+                            <select
                                 id="agentDepartment"
-                                class="agents-form-input"${editDisabled}
-                                type="text"
-                                value="${escapeHtml(department)}"
+                                class="agents-form-select"${editDisabled}
                             >
+                                <option value="">Keine Abteilung</option>
+                                ${DEPARTMENTS.map(item => `<option value="${escapeHtml(item)}" ${String(department)===String(item)?"selected":""}>${escapeHtml(item)}</option>`).join("")}
+                            </select>
 
                         </div>
 
@@ -4045,6 +4073,93 @@
                 trainingId
             );
 
+    }
+
+
+    function renderTerminationTab() {
+        const agent = state.selectedAgent || {};
+        const currentName = (typeof currentUser !== "undefined" && currentUser) ? (currentUser.name || currentUser.username || "") : "";
+        const currentRank = (typeof currentUser !== "undefined" && currentUser) ? (currentUser.rank || "") : "";
+        const rank = getValue(agent, ["rankName","rank"], "Kein Rang");
+        const department = getValue(agent, ["department"], "");
+        const serviceNumber = getValue(agent, ["serviceNumber"], "");
+        const now = new Date().toISOString().slice(0,10);
+        const docNumber = `LSPD-BE-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`;
+        return `${renderTabs("termination")}
+        <div class="agents-form">
+          <div class="agents-section">
+            <div class="agents-section-title">Beendigung des Dienstverhältnisses</div>
+            <div class="agents-section-card">
+              <div class="agents-form-grid">
+                ${terminationInput("terminationDocumentNumber","Dokumentennummer",docNumber,true)}
+                ${terminationInput("terminationIssueDate","Ausstellungsdatum",now,true,"date")}
+                ${terminationInput("terminationIssuingOffice","Ausstellende Stelle",department || "LSPD")}
+                ${terminationInput("terminationProcessedBy","Bearbeitet durch",currentName,true)}
+                ${terminationInput("terminationRecipient","Empfänger / Betroffener",agent.name || "",true)}
+                ${terminationInput("terminationConfidentiality","Vertraulichkeit","Vertraulich – Personal",true)}
+                ${terminationInput("terminationNameServerId","Name / Server-ID",`${agent.name || ""} / ${serviceNumber || agent.username || agent.id || ""}`,true)}
+                ${terminationInput("terminationPreviousRank","Bisheriger Dienstgrad",rank,true)}
+                ${terminationInput("terminationDepartmentUnit","Division / Einheit",department || "")}
+                <div class="agents-form-group"><label class="agents-form-label">Art der Beendigung *</label><select id="terminationType" class="agents-form-select"><option>Entlassung</option><option>Freiwilliger Austritt</option><option>Sonstiger Grund</option></select></div>
+                ${terminationInput("terminationEffectiveDate","Wirksam zum",now,false,"date")}
+                ${terminationInput("terminationDecidingOffice","Entscheidende Stelle","")}
+              </div>
+              ${terminationTextarea("terminationReason","Begründung / Anlass","")}
+              ${terminationTextarea("terminationApproval","Zustimmung / Genehmigung","")}
+              ${terminationTextarea("terminationEquipmentReturn","Rückgabe von Dienstmitteln","")}
+              ${terminationInput("terminationUpdatedAt","Personalakte / MDT aktualisiert am",`${new Date().toLocaleDateString("de-DE")} / ${agent.name || ""}`,true)}
+              <div class="agents-termination-signature-grid">
+                <div><label class="agents-form-label">Ausgestellt durch – Name / Dienstgrad *</label><input id="terminationIssuerNameRank" class="agents-form-input" value="${escapeHtml(currentName ? `${currentName}${currentRank ? ` / ${currentRank}` : ""}` : "")}" placeholder="Name / Dienstgrad"></div>
+                <div><label class="agents-form-label">Signatur der kündigenden Person *</label><div class="agents-signature-wrap"><canvas id="terminationSignatureCanvas" class="agents-signature-canvas" width="900" height="220"></canvas><button type="button" class="agents-signature-clear" id="terminationSignatureClear">Signatur löschen</button></div></div>
+              </div>
+              <div class="agents-termination-signature-grid">
+                <div><label class="agents-form-label">Kenntnisnahme Mitarbeiter – Name / Dienstgrad</label><input id="terminationEmployeeNameRank" class="agents-form-input" value="${escapeHtml(`${agent.name || ""} / ${rank}`)}"></div>
+                <div><label class="agents-form-label">Kenntnisnahme Mitarbeiter – Signatur (optional)</label><div class="agents-signature-wrap"><canvas id="terminationEmployeeSignatureCanvas" class="agents-signature-canvas" width="900" height="220"></canvas><button type="button" class="agents-signature-clear" id="terminationEmployeeSignatureClear">Signatur löschen</button></div></div>
+              </div>
+              <div class="agents-termination-actions"><button type="button" class="agents-system-button agents-system-button-primary" id="terminationSubmitButton">Beendigung dokumentieren &amp; Person deaktivieren</button></div>
+              <div class="agents-termination-hint">Nach der Erstellung ist das Dokument über den erzeugten externen Link dauerhaft einsehbar.</div>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    function terminationInput(id,label,value,disabled=false,type="text") { return `<div class="agents-form-group"><label class="agents-form-label">${escapeHtml(label)}${disabled ? "" : " *"}</label><input id="${id}" class="agents-form-input" type="${type}" value="${escapeHtml(value || "")}"${disabled ? " disabled" : ""}></div>`; }
+    function terminationTextarea(id,label,value) { return `<div class="agents-form-group agents-form-group-full"><label class="agents-form-label">${escapeHtml(label)} *</label><textarea id="${id}" class="agents-form-textarea" rows="3">${escapeHtml(value || "")}</textarea></div>`; }
+
+    function setupSignatureCanvas(canvas) {
+        if (!canvas) return {clear(){},data(){return "";}};
+        const ctx = canvas.getContext("2d"); ctx.lineWidth=3; ctx.lineCap="round"; ctx.strokeStyle="#102a43"; ctx.fillStyle="#fff"; ctx.fillRect(0,0,canvas.width,canvas.height);
+        let drawing=false,dirty=false;
+        const point=e=>{const r=canvas.getBoundingClientRect();return {x:(e.clientX-r.left)*canvas.width/r.width,y:(e.clientY-r.top)*canvas.height/r.height};};
+        const start=e=>{drawing=true;dirty=true;const p=point(e);ctx.beginPath();ctx.moveTo(p.x,p.y);e.preventDefault();};
+        const move=e=>{if(!drawing)return;const p=point(e);ctx.lineTo(p.x,p.y);ctx.stroke();e.preventDefault();};
+        const end=()=>{drawing=false;};
+        canvas.addEventListener("pointerdown",start);canvas.addEventListener("pointermove",move);canvas.addEventListener("pointerup",end);canvas.addEventListener("pointerleave",end);
+        return {clear(){ctx.clearRect(0,0,canvas.width,canvas.height);ctx.fillStyle="#fff";ctx.fillRect(0,0,canvas.width,canvas.height);dirty=false;},data(){return dirty?canvas.toDataURL("image/png",0.8):"";}};
+    }
+
+    function bindTerminationForm() {
+        if (state.modalTab !== "termination") return;
+        const issuer=setupSignatureCanvas($("terminationSignatureCanvas"));
+        const employee=setupSignatureCanvas($("terminationEmployeeSignatureCanvas"));
+        $("terminationSignatureClear")?.addEventListener("click",()=>issuer.clear());
+        $("terminationEmployeeSignatureClear")?.addEventListener("click",()=>employee.clear());
+        $("terminationSubmitButton")?.addEventListener("click",()=>{
+            const requiredIds=["terminationIssuingOffice","terminationProcessedBy","terminationDecidingOffice","terminationReason","terminationApproval","terminationEquipmentReturn","terminationUpdatedAt","terminationIssuerNameRank"];
+            const data={documentNumber:$("terminationDocumentNumber")?.value,issueDate:$("terminationIssueDate")?.value,issuingOffice:$("terminationIssuingOffice")?.value,processedBy:$("terminationProcessedBy")?.value,recipient:$("terminationRecipient")?.value,previousRank:$("terminationPreviousRank")?.value,departmentUnit:$("terminationDepartmentUnit")?.value,terminationType:$("terminationType")?.value,effectiveDate:$("terminationEffectiveDate")?.value,decidingOffice:$("terminationDecidingOffice")?.value,reason:$("terminationReason")?.value,approval:$("terminationApproval")?.value,equipmentReturn:$("terminationEquipmentReturn")?.value,updatedAt:$("terminationUpdatedAt")?.value,issuerNameRank:$("terminationIssuerNameRank")?.value,issuerSignature:issuer.data(),employeeNameRank:$("terminationEmployeeNameRank")?.value,employeeSignature:employee.data()};
+            if(requiredIds.some(id=>!String($(id)?.value||"").trim())){showAgentError("Bitte fülle alle Pflichtfelder des Beendigungsdokuments aus.");return;}
+            if(!data.issuerSignature){showAgentError("Bitte setze die Signatur der kündigenden Person.");return;}
+            const button=$("terminationSubmitButton"); if(button)button.disabled=true;
+            CloudApi.run.withSuccessHandler(result=>{
+                const targetId=String(state.selectedAgent.id);
+                state.agents=state.agents.map(item=>String(item.id)===targetId?{...item,active:false,approved:false,personnelStatus:"Ausgeschieden"}:item);
+                state.selectedAgent={...state.selectedAgent,active:false,approved:false,personnelStatus:"Ausgeschieden"};
+                filterAgents($("agentsSearchInput")?.value || "");
+                showAgentSuccess("Beendigung dokumentiert. Das dauerhafte externe Dokument wurde geöffnet.");
+                if(result.url) { try { window.open(new URL(result.url,window.location.origin).href,"_blank","noopener"); } catch(e) {} if(navigator.clipboard) navigator.clipboard.writeText(new URL(result.url,window.location.origin).href).catch(()=>{}); }
+                state.modalTab="history"; renderPersonnelModal(true); loadPersonnelHistory().catch(()=>{});
+            }).withFailureHandler(error=>{if(button)button.disabled=false;showAgentError(error?.message||"Die Beendigung konnte nicht dokumentiert werden.");}).createPersonnelTermination(getAgentsSessionToken(),String(state.selectedAgent.id),data);
+        });
     }
 
 

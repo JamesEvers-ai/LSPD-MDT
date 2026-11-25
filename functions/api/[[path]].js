@@ -307,6 +307,38 @@ async function dispatchCore(method,args,env,token){
   if(training&&!row.name)throw new Error("Bitte eine Bezeichnung für die Schulung angeben.");if(!training&&!row.title)throw new Error("Bitte einen Titel für den Vermerk angeben.");
   const rows=await db(env,training?"personnel_trainings":"personnel_notes",{method:"POST",query:{select:"*"},body:row,prefer:"return=representation"});const saved=rows?.[0]||row;await writePersonnelHistory(env,au,uid,training?"training_created":"note_created",training?`Schulung „${row.name}“ hinzugefügt.`:`Vermerk „${row.title}“ hinzugefügt.`);return training?normalizeTrainingRow(saved):normalizePersonnelNoteRow(saved);
  }
+ if(method==="createPersonnelTermination"){
+  const au=await authz(env,token,"officers.edit");
+  const uid=text(args[1]),d=args[2]||{};
+  if(!uid)throw new Error("Keine Benutzer-ID angegeben.");
+  const required=["documentNumber","issueDate","issuingOffice","processedBy","recipient","previousRank","departmentUnit","terminationType","effectiveDate","decidingOffice","reason","approval","equipmentReturn","updatedAt"];
+  if(!text(d.processedBy)) d.processedBy=au.user.name||au.user.username||"System";
+  if(!text(d.issuerNameRank)) d.issuerNameRank=au.user.name||au.user.username||"System";
+  for(const key of required)if(!text(d[key]))throw new Error(`Bitte fülle das Feld „${key}“ aus.`);
+  const signature=text(d.issuerSignature); if(!signature)throw new Error("Die Unterschrift der kündigenden Person ist erforderlich.");
+  if(!/^data:image\/png;base64,[A-Za-z0-9+/=]+$/i.test(signature)||signature.length>180000)throw new Error("Die Signatur ist ungültig oder zu groß.");
+  const userRows=await db(env,"users",{query:{select:"id,username,name,rank,active,approved",id:`eq.${uid}`,limit:"1"}});
+  if(!userRows?.length)throw Object.assign(new Error("Beamter nicht gefunden."),{status:404});
+  const people=await db(env,"personnel",{query:{select:"user_id,service_number,department,unit,personnel_status",user_id:`eq.${uid}`,limit:"1"}});
+  const p=people?.[0]||{};
+  const raw=[...crypto.getRandomValues(new Uint8Array(32))].map(b=>b.toString(16).padStart(2,"0")).join("");
+  const now=new Date().toISOString();
+  const payload={
+    documentNumber:text(d.documentNumber),issueDate:text(d.issueDate),issuingOffice:text(d.issuingOffice),processedBy:text(d.processedBy),recipient:text(d.recipient),
+    confidentiality:"Vertraulich – Personal",nameServerId:`${userRows[0].name||""} / ${p.service_number||userRows[0].username||uid}`,previousRank:text(d.previousRank),departmentUnit:text(d.departmentUnit),
+    terminationType:text(d.terminationType),effectiveDate:text(d.effectiveDate),decidingOffice:text(d.decidingOffice),reason:text(d.reason),approval:text(d.approval),equipmentReturn:text(d.equipmentReturn),updatedAt:text(d.updatedAt),
+    issuerNameRank:text(d.issuerNameRank),issuerSignature:signature,employeeNameRank:text(d.employeeNameRank),employeeSignature:text(d.employeeSignature||"")
+  };
+  const row={id:id("BE"),user_id:uid,document_number:payload.documentNumber,public_token_hash:await sha256(raw),payload,created_by:au.user.id,created_by_name:au.user.name,created_at:now};
+  const saved=await db(env,"personnel_terminations",{method:"POST",query:{select:"id,user_id,document_number,created_by_name,created_at",},body:row,prefer:"return=representation"});
+  await db(env,"users",{method:"PATCH",query:{id:`eq.${uid}`},body:{active:false,approved:false},prefer:"return=minimal"});
+  const existing=people?.[0];
+  if(existing)await db(env,"personnel",{method:"PATCH",query:{user_id:`eq.${uid}`},body:{personnel_status:"Ausgeschieden"},prefer:"return=minimal"});
+  else await db(env,"personnel",{method:"POST",body:{user_id:uid,department:p.department||payload.departmentUnit,unit:p.unit||"",personnel_status:"Ausgeschieden"},prefer:"return=minimal"});
+  await writePersonnelHistory(env,au,uid,"termination_created",`Dienstverhältnis beendet. Dokument ${payload.documentNumber}. Grund: ${payload.reason}`);
+  clearAuthCaches();
+  return {success:true,documentNumber:payload.documentNumber,url:`/?terminationShare=${raw}`,createdAt:now};
+ }
  if(method==="deletePersonnelTraining"||method==="deletePersonnelNote"){const au=await authz(env,token,"officers.edit");const uid=text(args[1]),entryId=text(args[2]),training=method==="deletePersonnelTraining",table=training?"personnel_trainings":"personnel_notes";const found=await db(env,table,{query:{select:training?"id,name":"id,title",id:`eq.${entryId}`,user_id:`eq.${uid}`,limit:"1"}});await db(env,table,{method:"DELETE",query:{id:`eq.${entryId}`,user_id:`eq.${uid}`},prefer:"return=minimal"});const label=found?.[0]?(training?found[0].name:found[0].title):entryId;await writePersonnelHistory(env,au,uid,training?"training_deleted":"note_deleted",training?`Schulung „${label}“ gelöscht.`:`Vermerk „${label}“ gelöscht.`);return {success:true};}
  // Master-only patrol roster display colors. Settings are persisted in Supabase.
  const PATROL_COLOR_DEFAULTS={callsignTypeBg:"#174a70",callsignTypeFg:"#d9efff",callsignNumberBg:"#2879b9",callsignNumberFg:"#ffffff",tenCodeBg:"#164e63",tenCodeFg:"#cffafe",locationBg:"#334155",locationFg:"#dbeafe",rankBg:"#2879b9",rankFg:"#ffffff",nameBg:"#475569",nameFg:"#cbd5e1",tenCodeByCode:{"10-1":{bg:"#166534",fg:"#dcfce7"},"10-3":{bg:"#991b1b",fg:"#fee2e2"},"10-6":{bg:"#854d0e",fg:"#fef3c7"},"10-23":{bg:"#1e40af",fg:"#dbeafe"},"10-76":{bg:"#155e75",fg:"#cffafe"}}};
@@ -345,7 +377,7 @@ async function dispatchCore(method,args,env,token){
  // patrols
  if(method==="getPatrols"){
   await authz(env,token,"patrols.view");const [ps,ms,us,rs,people]=await Promise.all([
-   db(env,"patrols",{query:{select:"id,callsign,number,vehicle_type,status,ten_code,location,activity,created_at,created_by,updated_at,updated_by",order:"updated_at.desc,created_at.desc"}}),db(env,"patrol_members",{query:{select:"id,patrol_id,user_id,position"}}),
+   db(env,"patrols",{query:{select:"id,callsign,number,vehicle_type,status,ten_code,location,activity,created_at,created_by,updated_at,updated_by",order:"updated_at.desc,created_at.desc"}}),db(env,"patrol_members",{query:{select:"patrol_id,user_id,position"}}),
    db(env,"users",{query:{select:"id,username,name,rank,active,approved,profile_image"}}),rankRows(env),
    db(env,"personnel",{query:{select:"user_id,call_sign,personnel_status"}})
   ]);
@@ -475,6 +507,8 @@ async function dispatchCore(method,args,env,token){
    ["personnel","user_id,service_number,phone,call_sign,department,unit,email,address,entry_date,personnel_status,note"],
    ["personnel_trainings","id,user_id,name,category,date,instructor,status,expiry_date,notes,created_by,created_by_name,created_at"],
    ["personnel_notes","id,user_id,type,title,content,created_by,created_by_name,created_at"],
+   ["personnel_history","id,user_id,action,detail,actor_id,actor_name,created_at"],
+   ["personnel_terminations","id,user_id,document_number,public_token_hash,payload,created_by,created_by_name,created_at"],
    ["fib_records","id,case_number,type,title,subject,status,classification,summary,content,created_at"],
    ["fib_wanted","id,status"],
    ["fib_record_shares","id,record_id,token_hash,expires_at,revoked_at"],
@@ -566,6 +600,15 @@ export async function onRequest({request,env}){
  if(request.method==="OPTIONS")return new Response(null,{status:204});
  const url=new URL(request.url);try{
   if(url.pathname.startsWith("/api/auth/")){if(request.method!=="POST")return bad("Methode nicht erlaubt.",405);const p=await readJson(request);const result=await handleAuth(url.pathname.slice("/api/auth/".length),request,env,p);if(result)return result;}
+  // Permanent public termination document. No MDT session is required; the token is verified by SHA-256 hash.
+  if(url.pathname==="/api/public/termination") {
+   if(request.method!=="GET") return bad("Methode nicht erlaubt.",405);
+   const raw=text(url.searchParams.get("token"));
+   if(!raw) return bad("Ungültiger Dokument-Link.",400);
+   const rows=await db(env,"personnel_terminations",{query:{select:"id,user_id,document_number,payload,created_by_name,created_at",public_token_hash:`eq.${await sha256(raw)}`,limit:"1"}});
+   const row=rows?.[0]; if(!row) throw Object.assign(new Error("Dieses Dokument wurde nicht gefunden."),{status:404});
+   return json({success:true,document:{...row.payload,id:row.id,documentNumber:row.document_number,createdBy:row.created_by_name,createdAt:row.created_at}});
+  }
   // Public, time-limited record share. No MDT session is required; the token
   // is verified by its SHA-256 hash and the record is returned in UI field names.
   if(url.pathname==="/api/public/record-share") {

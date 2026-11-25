@@ -2412,7 +2412,9 @@
        ===================================================== */
 
     body.record-share-mode #loginScreen,
-    body.record-share-mode #app {
+    body.record-share-mode #app,
+    body.termination-share-mode #loginScreen,
+    body.termination-share-mode #app {
       display: none !important;
     }
 
@@ -2427,9 +2429,18 @@
       color: #f5f7fa;
     }
 
-    body.record-share-mode #recordShareScreen {
+    body.record-share-mode #recordShareScreen,
+    body.termination-share-mode #recordShareScreen {
       display: block;
     }
+
+    .termination-share-public-shell{width:min(980px,100%);margin:0 auto;background:#fff;color:#102a43;border-radius:12px;box-shadow:0 20px 60px rgba(8,24,42,.22);overflow:hidden}
+    .termination-share-public-head{background:#17324d;color:#fff;padding:18px 22px;display:flex;justify-content:space-between;gap:16px;align-items:center}
+    .termination-share-public-head strong{font-size:15px;letter-spacing:.03em}.termination-share-public-head span{display:block;color:#c9d7e5;font-size:10px;margin-top:3px}
+    .termination-share-public-doc{padding:24px}.termination-share-public-eyebrow{font-size:10px;color:#60758a;font-weight:700;letter-spacing:.08em;text-transform:uppercase}.termination-share-public-title{font-size:27px;font-weight:800;color:#17324d;margin:6px 0 2px}.termination-share-public-sub{color:#60758a;font-size:11px;margin-bottom:18px}
+    .termination-share-grid{display:grid;grid-template-columns:1fr 1fr;border:1px solid #d5dee7}.termination-share-field{padding:10px 12px;border-right:1px solid #d5dee7;border-bottom:1px solid #d5dee7}.termination-share-field:nth-child(2n){border-right:0}.termination-share-field-label{font-size:9px;text-transform:uppercase;letter-spacing:.05em;color:#6b7e90;font-weight:700}.termination-share-field-value{margin-top:4px;font-size:12px;color:#1f3347;white-space:pre-wrap;overflow-wrap:anywhere}
+    .termination-share-section{margin-top:18px}.termination-share-section-title{background:#17324d;color:#fff;padding:7px 10px;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.05em}.termination-share-box{border:1px solid #d5dee7;border-top:0;padding:13px;font-size:12px;line-height:1.55;white-space:pre-wrap;min-height:30px}.termination-share-signatures{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:18px}.termination-share-signature{border:1px solid #d5dee7;padding:12px;min-height:130px}.termination-share-signature img{display:block;width:100%;height:72px;object-fit:contain;object-position:left bottom;border-bottom:1px solid #9aabba;margin-top:10px}.termination-share-footer{margin-top:20px;color:#708395;font-size:9px;text-align:center}
+    @media(max-width:700px){.termination-share-grid,.termination-share-signatures{grid-template-columns:1fr}.termination-share-field{border-right:0}.termination-share-public-doc{padding:14px}.termination-share-public-title{font-size:21px}}
 
     .record-share-public-shell {
       width: min(960px,100%);
@@ -7521,6 +7532,20 @@ const NAVIGATION = [
        TEMPORÄRE EXTERNE AKTENANSICHT
        ===================================================== */
 
+    function initializePublicTerminationShareMode() {
+      let token=""; try { token=new URLSearchParams(window.location.search).get("terminationShare")||""; } catch(e) {}
+      if(!token) return;
+      document.body.classList.add("termination-share-mode");
+      const recordRoot=document.getElementById("recordSharePublicRoot"); if(recordRoot) recordRoot.style.display="none";
+      const root=document.getElementById("terminationSharePublicRoot"); if(!root) return; root.style.display="block";
+      const esc=v=>String(v??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#039;");
+      const field=(label,value)=>`<div class="termination-share-field"><div class="termination-share-field-label">${esc(label)}</div><div class="termination-share-field-value">${esc(value||"—")}</div></div>`;
+      const section=(title,value)=>`<div class="termination-share-section"><div class="termination-share-section-title">${esc(title)}</div><div class="termination-share-box">${esc(value||"—")}</div></div>`;
+      fetch("/api/public/termination?token="+encodeURIComponent(token),{headers:{Accept:"application/json"}}).then(async r=>{let p={};try{p=await r.json()}catch(e){}if(!r.ok||!p.success||!p.document)throw new Error(p.message||"Dokument nicht verfügbar.");return p.document;}).then(d=>{
+        root.innerHTML=`<div class="termination-share-public-head"><div><strong>LOS SANTOS POLICE DEPARTMENT</strong><span>OFFICIAL DOCUMENT · VERTRAULICH – PERSONAL</span></div><div style="font-size:10px">${esc(d.documentNumber)}</div></div><article class="termination-share-public-doc"><div class="termination-share-public-eyebrow">Dokumentation einer Entlassung oder eines Austritts aus dem LSPD.</div><div class="termination-share-public-title">BEENDIGUNG DES DIENSTVERHÄLTNISSES</div><div class="termination-share-public-sub">Ausstellungsdatum: ${esc(d.issueDate)} · Wirksam zum: ${esc(d.effectiveDate)}</div><div class="termination-share-grid">${field("Dokumentennummer",d.documentNumber)}${field("Ausstellungsdatum",d.issueDate)}${field("Ausstellende Stelle",d.issuingOffice)}${field("Bearbeitet durch",d.processedBy)}${field("Empfänger / Betroffener",d.recipient)}${field("Vertraulichkeit",d.confidentiality)}${field("Name / Server-ID",d.nameServerId)}${field("Bisheriger Dienstgrad",d.previousRank)}${field("Division / Einheit",d.departmentUnit)}${field("Art der Beendigung",d.terminationType)}${field("Wirksam zum",d.effectiveDate)}${field("Entscheidende Stelle",d.decidingOffice)}</div>${section("Begründung / Anlass",d.reason)}${section("Zustimmung / Genehmigung",d.approval)}${section("Rückgabe von Dienstmitteln",d.equipmentReturn)}${section("Personalakte / MDT aktualisiert am",d.updatedAt)}<div class="termination-share-signatures"><div class="termination-share-signature"><strong>Ausgestellt durch</strong><div>${esc(d.issuerNameRank||"—")}</div>${d.issuerSignature?`<img src="${esc(d.issuerSignature)}" alt="Signatur">`:""}<div style="font-size:9px;color:#708395;margin-top:5px">Name / Dienstgrad · Datum / Unterschrift</div></div><div class="termination-share-signature"><strong>Kenntnisnahme Mitarbeiter</strong><div>${esc(d.employeeNameRank||"—")}</div>${d.employeeSignature?`<img src="${esc(d.employeeSignature)}" alt="Signatur">`:""}<div style="font-size:9px;color:#708395;margin-top:5px">Name / Dienstgrad · Datum / Unterschrift</div></div></div><div class="termination-share-footer">Dauerhaft öffentlich einsehbares LSPD-Dokument · Erstellt am ${esc(d.createdAt)}</div></article>`;
+      }).catch(e=>{root.innerHTML=`<div style="padding:35px;text-align:center;color:#7a2d2d;background:#fff;border-radius:12px"><strong>Dokument nicht verfügbar</strong><div style="margin-top:8px">${esc(e.message||"Der Link ist ungültig.")}</div></div>`;});
+    }
+
     function initializePublicRecordShareMode() {
       let shareToken = "";
       try {
@@ -7616,14 +7641,14 @@ const NAVIGATION = [
       });
     }
 
-    if (document.readyState === "loading") {
-      document.addEventListener(
-        "DOMContentLoaded",
-        initializePublicRecordShareMode,
-        { once: true }
-      );
-    } else {
+    function initializePublicShareModes() {
       initializePublicRecordShareMode();
+      initializePublicTerminationShareMode();
+    }
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", initializePublicShareModes, { once: true });
+    } else {
+      initializePublicShareModes();
     }
 
 </script>
@@ -8214,6 +8239,9 @@ const NAVIGATION = [
           Externe Aktenansicht wird geladen...
         </div>
       </div>
+    </div>
+    <div id="terminationSharePublicRoot" class="termination-share-public-shell" style="display:none">
+      <div style="padding:28px;text-align:center;color:#60758a">Beendigungsdokument wird geladen...</div>
     </div>
   </div>
 

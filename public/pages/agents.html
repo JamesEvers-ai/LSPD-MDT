@@ -46,6 +46,14 @@
 
 
 /* =========================================================
+   DEPARTMENT TABS
+========================================================= */
+.agents-department-tabs{display:flex;gap:6px;flex-wrap:wrap;width:100%;margin-bottom:10px;max-height:92px;overflow:auto;padding-bottom:2px}
+.agents-department-tab{border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.025);color:rgba(255,255,255,.48);border-radius:999px;padding:7px 10px;font:inherit;font-size:9px;white-space:nowrap;cursor:pointer;transition:.15s ease}
+.agents-department-tab:hover{background:rgba(255,255,255,.06);color:#fff}
+.agents-department-tab.active{background:#e8eef5;color:#102a43;border-color:#cfd9e4;font-weight:700}
+
+/* =========================================================
    SEARCH
 ========================================================= */
 
@@ -2107,6 +2115,27 @@
 
 
     <div class="agents-toolbar">
+
+        <div class="agents-department-tabs" role="tablist" aria-label="Abteilungen">
+            <button type="button" class="agents-department-tab active" data-agent-department="all">Alle</button>
+            <button type="button" class="agents-department-tab" data-agent-department="Internal Affairs Division">Internal Affairs Division</button>
+            <button type="button" class="agents-department-tab" data-agent-department="Central Division">Central Division</button>
+            <button type="button" class="agents-department-tab" data-agent-department="Northern Division">Northern Division</button>
+            <button type="button" class="agents-department-tab" data-agent-department="Patrol Division">Patrol Division</button>
+            <button type="button" class="agents-department-tab" data-agent-department="Investigative Division">Investigative Division</button>
+            <button type="button" class="agents-department-tab" data-agent-department="Metropolitan Division">Metropolitan Division</button>
+            <button type="button" class="agents-department-tab" data-agent-department="Support Division">Support Division</button>
+            <button type="button" class="agents-department-tab" data-agent-department="Internal Affairs">Internal Affairs</button>
+            <button type="button" class="agents-department-tab" data-agent-department="Patrol Unit">Patrol Unit</button>
+            <button type="button" class="agents-department-tab" data-agent-department="Detective Bureau">Detective Bureau</button>
+            <button type="button" class="agents-department-tab" data-agent-department="Special Weapons and Tactics">Special Weapons and Tactics</button>
+            <button type="button" class="agents-department-tab" data-agent-department="Gang Enforcement Detail">Gang Enforcement Detail</button>
+            <button type="button" class="agents-department-tab" data-agent-department="Canine (K9)">Canine (K9)</button>
+            <button type="button" class="agents-department-tab" data-agent-department="Police Academy">Police Academy</button>
+            <button type="button" class="agents-department-tab" data-agent-department="Public Relations Office">Public Relations Office</button>
+            <button type="button" class="agents-department-tab" data-agent-department="Air Support Division">Air Support Division</button>
+            <button type="button" class="agents-department-tab" data-agent-department="High Command">High Command</button>
+        </div>
 
         <div class="agents-search">
 
