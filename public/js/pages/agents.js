@@ -662,7 +662,6 @@
         bindAgentsSearch();
         bindDepartmentTabs();
 
-        bindGlobalEvents();
 
         loadAgents();
 
@@ -1636,12 +1635,12 @@
             false;
 
 
+        openAgentsModal();
+
+
         renderPersonnelModal(
             false
         );
-
-
-        openAgentsModal();
 
 
         const token =
@@ -1822,38 +1821,16 @@
     ====================================================== */
 
     function openAgentsModal() {
-        const overlay = $("agentsSystemModalOverlay");
-        const modalElement = $("agentsSystemModal");
-        if (!overlay || !modalElement) return;
-
-        // The personnel file owns its complete modal shell. Do not pass this
-        // node through the global modal manager: doing so nests one modal
-        // inside another and breaks the tab buttons, scrolling and styling.
-        if (modalElement.parentElement !== overlay) {
-            overlay.appendChild(modalElement);
-        }
-
-        overlay.classList.add("active");
-        overlay.setAttribute("aria-hidden", "false");
-        document.body.style.overflow = "hidden";
+        const manager = window.FIB_MDT_MODAL;
+        if (!manager || typeof manager.open !== "function") { showAgentError("Das globale MDT-Modal ist nicht verfügbar."); return false; }
+        manager.open({ title:"Personalakte", subtitle:"", body:"", modalClass:"agents", cancelText:"Schließen", cancelVisible:true, focus:false });
+        return true;
     }
 
     function closePersonnelFile() {
-        const overlay = $("agentsSystemModalOverlay");
-        const modalElement = $("agentsSystemModal");
-        if (overlay && modalElement && modalElement.parentElement !== overlay) {
-            overlay.appendChild(modalElement);
-        }
-        if (overlay) {
-            overlay.classList.remove("active");
-            overlay.setAttribute("aria-hidden", "true");
-        }
-        document.body.style.overflow = "";
-        closeRankDropdown();
-        state.selectedAgent = null;
-        state.bundleLoading = false;
+        if (window.FIB_MDT_MODAL && typeof window.FIB_MDT_MODAL.close === "function") window.FIB_MDT_MODAL.close();
+        state.selectedAgent=null; state.bundleLoading=false; state.bundleLoaded=false;
     }
-
 
 
     /* =====================================================
@@ -1901,15 +1878,15 @@
 
 
         const title =
-            $("agentsSystemModalTitle");
+            $("fibGlobalModalTitle");
 
 
         const description =
-            $("agentsSystemModalDescription");
+            $("fibGlobalModalSubtitle");
 
 
         const body =
-            $("agentsSystemModalBody");
+            $("fibGlobalModalBody");
 
 
         if (
@@ -1982,9 +1959,8 @@
 
 
         bindPersonnelTabEvents();
-        enhanceModalSelects();
-
-        bindRankDropdown();
+        populateRankSelect();
+        if (window.FIB_MDT_SELECTS && typeof window.FIB_MDT_SELECTS.refresh === "function") window.FIB_MDT_SELECTS.refresh();
 
         bindPersonalForm();
 
@@ -2086,113 +2062,16 @@
 
 
     function bindPersonnelTabEvents() {
-        const body = $("agentsSystemModalBody");
-        if (!body || body.dataset.personnelTabsBound === "true") return;
-
-        // Delegate once from the stable modal body. The tab row itself is
-        // re-rendered on every tab switch, so binding directly to the
-        // individual buttons was unnecessarily fragile.
-        body.dataset.personnelTabsBound = "true";
-        body.addEventListener("click", function (event) {
-            const button = event.target.closest("[data-personnel-tab]");
-            if (button && body.contains(button)) {
-                if (state.bundleLoading) return;
-                event.preventDefault();
-                state.modalTab = button.dataset.personnelTab || "personal";
-                renderPersonnelModal(true);
-                return;
-            }
-
-            if (!event.target.closest(".agents-custom-select")) {
-                closeAllModalSelects();
-            }
+        const body=$("fibGlobalModalBody");
+        if(!body || body.dataset.personnelTabsBound==="true") return;
+        body.dataset.personnelTabsBound="true";
+        body.addEventListener("click",function(event){
+            const button=event.target.closest("[data-personnel-tab]");
+            if(!button || !body.contains(button) || state.bundleLoading) return;
+            event.preventDefault(); state.modalTab=button.dataset.personnelTab||"personal"; renderPersonnelModal(true);
         });
     }
 
-
-    function enhanceModalSelects() {
-        const body = $("agentsSystemModalBody");
-        if (!body) return;
-
-        body.querySelectorAll("select.agents-form-select:not([data-modal-select-ready])").forEach(select => {
-            select.dataset.modalSelectReady = "true";
-
-            const wrapper = document.createElement("div");
-            wrapper.className = "agents-custom-select";
-            if (select.disabled) wrapper.classList.add("disabled");
-
-            const button = document.createElement("button");
-            button.type = "button";
-            button.className = "agents-custom-select-trigger";
-            button.disabled = select.disabled;
-            button.setAttribute("aria-haspopup", "listbox");
-            button.setAttribute("aria-expanded", "false");
-
-            const label = document.createElement("span");
-            label.className = "agents-custom-select-label";
-            const current = Array.from(select.options).find(option => option.value === select.value) || select.options[select.selectedIndex];
-            label.textContent = current ? current.textContent.trim() : "Auswählen";
-
-            const chevron = document.createElement("span");
-            chevron.className = "agents-custom-select-chevron";
-            chevron.textContent = "⌄";
-            button.append(label, chevron);
-
-            const menu = document.createElement("div");
-            menu.className = "agents-custom-select-menu";
-            menu.setAttribute("role", "listbox");
-
-            Array.from(select.options).forEach(option => {
-                const item = document.createElement("button");
-                item.type = "button";
-                item.className = "agents-custom-select-option";
-                item.dataset.value = option.value;
-                item.textContent = option.textContent.trim();
-                item.disabled = option.disabled;
-                item.setAttribute("role", "option");
-                item.setAttribute("aria-selected", option.value === select.value ? "true" : "false");
-                item.addEventListener("click", event => {
-                    event.preventDefault();
-                    if (item.disabled) return;
-                    select.value = option.value;
-                    label.textContent = option.textContent.trim();
-                    menu.querySelectorAll(".agents-custom-select-option").forEach(node => node.setAttribute("aria-selected", node === item ? "true" : "false"));
-                    select.dispatchEvent(new Event("change", { bubbles: true }));
-                    closeAllModalSelects();
-                });
-                menu.appendChild(item);
-            });
-
-            wrapper.appendChild(button);
-            wrapper.appendChild(menu);
-            wrapper.appendChild(select);
-            select.classList.add("agents-native-select-hidden");
-            select.setAttribute("tabindex", "-1");
-            select.setAttribute("aria-hidden", "true");
-
-            button.addEventListener("click", event => {
-                event.preventDefault();
-                if (button.disabled) return;
-                const isOpen = wrapper.classList.contains("open");
-                closeAllModalSelects();
-                if (!isOpen) {
-                    wrapper.classList.add("open");
-                    button.setAttribute("aria-expanded", "true");
-                }
-            });
-
-            select.parentElement?.insertBefore(wrapper, select);
-        });
-    }
-
-    function closeAllModalSelects() {
-        const body = $("agentsSystemModalBody");
-        if (!body) return;
-        body.querySelectorAll(".agents-custom-select.open").forEach(wrapper => {
-            wrapper.classList.remove("open");
-            wrapper.querySelector(".agents-custom-select-trigger")?.setAttribute("aria-expanded", "false");
-        });
-    }
 
     /* =====================================================
        PERSONAL TAB
@@ -2525,48 +2404,13 @@
                             </label>
 
 
-                            <div
-                                id="agentRankSelect"
-                                class="agents-rank-select"
-                            >
-
-                                <button
-                                    type="button"
-                                    id="agentRankSelectButton"
-                                    class="agents-rank-select-button"${editDisabled}
-                                >
-
-                                    <span
-                                        id="agentRankSelectLabel"
-                                        class="agents-rank-select-label"
-                                    >
-                                        ${escapeHtml(
-                                            rankLabel
-                                        )}
-                                    </span>
-
-
-                                    <span
-                                        class="agents-rank-select-chevron"
-                                    >
-                                        ⌄
-                                    </span>
-
-                                </button>
-
-
-                                <div
-                                    id="agentRankSelectMenu"
-                                    class="agents-rank-select-menu"
-                                ></div>
-
-                            </div>
-
-
                             <select
                                 id="agentRankNativeSelect"
-                                class="agents-hidden-select"
-                            ></select>
+                                class="agents-form-select fib-modal-select"${editDisabled}
+                            >
+                                <option value="">Rang auswählen...</option>
+                            </select>
+
 
                         </div>
 
@@ -2579,7 +2423,7 @@
 
                             <select
                                 id="agentDepartment"
-                                class="agents-form-select"${editDisabled}
+                                class="agents-form-select fib-modal-select"${editDisabled}
                             >
                                 <option value="">Keine Abteilung</option>
                                 ${DEPARTMENTS.map(item => `<option value="${escapeHtml(item)}" ${String(department)===String(item)?"selected":""}>${escapeHtml(item)}</option>`).join("")}
@@ -2746,437 +2590,17 @@
        RANK
     ====================================================== */
 
-    function getCurrentRankLabel(
-        rankId,
-        fallback
-    ) {
-
-        const found =
-            state.rankOptions.find(
-                rank =>
-                    String(
-                        getValue(
-                            rank,
-                            [
-                                "id",
-                                "ID"
-                            ],
-                            ""
-                        )
-                    ) ===
-                    String(
-                        rankId
-                    )
-            );
-
-
-        return found
-            ? String(
-                getValue(
-                    found,
-                    [
-                        "name",
-                        "Name"
-                    ],
-                    fallback
-                )
-              )
-            : (
-                fallback ||
-                "Kein Rang"
-              );
-
+    function getCurrentRankLabel(rankId, fallback) {
+        const found=(state.rankOptions||[]).find(rank=>String(getValue(rank,["id","ID"],""))===String(rankId));
+        return found?String(getValue(found,["name","Name"],fallback)):(fallback||"Kein Rang");
     }
 
-
-    function bindRankDropdown() {
-
-        if (!canEditOfficers()) {
-            return;
-        }
-
-        const wrapper =
-            $("agentRankSelect");
-
-
-        const button =
-            $("agentRankSelectButton");
-
-
-        if (!wrapper || !button) {
-            return;
-        }
-
-
-        button.onclick =
-            function(event) {
-
-                event.stopPropagation();
-
-
-                const isOpen =
-                    wrapper.classList.contains(
-                        "open"
-                    );
-
-
-                closeRankDropdown();
-
-
-                if (!isOpen) {
-
-                    wrapper.classList.add(
-                        "open"
-                    );
-
-
-                    renderRankOptions();
-
-                }
-
-            };
-
-
-        renderRankOptions();
-
-    }
-
-
-    function renderRankOptions() {
-
-        const menu =
-            $("agentRankSelectMenu");
-
-
-        const native =
-            $("agentRankNativeSelect");
-
-
-        const label =
-            $("agentRankSelectLabel");
-
-
-        if (
-            !menu ||
-            !native ||
-            !label
-        ) {
-            return;
-        }
-
-
-        menu.innerHTML =
-            "";
-
-
-        native.innerHTML =
-            "";
-
-
-        if (
-            !state.rankOptions.length
-        ) {
-
-            menu.innerHTML = `
-
-                <div class="agents-rank-empty">
-
-                    Keine Ränge verfügbar
-
-                </div>
-
-            `;
-
-            return;
-
-        }
-
-
-        const currentRankId =
-            String(
-                getValue(
-                    state.selectedAgent,
-                    [
-                        "rankId",
-                        "RankId"
-                    ],
-                    ""
-                )
-            );
-
-
-        const sortedRankOptions =
-            [
-                ...state.rankOptions
-            ].sort(
-                (a, b) => {
-
-                    const levelCompare =
-                        getRankLevel(b) -
-                        getRankLevel(a);
-
-                    if (levelCompare !== 0) {
-                        return levelCompare;
-                    }
-
-                    return String(
-                        getValue(
-                            a,
-                            [
-                                "name",
-                                "Name"
-                            ],
-                            ""
-                        )
-                    ).localeCompare(
-                        String(
-                            getValue(
-                                b,
-                                [
-                                    "name",
-                                    "Name"
-                                ],
-                                ""
-                            )
-                        ),
-                        "de-DE",
-                        { sensitivity: "base" }
-                    );
-
-                }
-            );
-
-
-        sortedRankOptions.forEach(
-            rank => {
-
-                const id =
-                    String(
-                        getValue(
-                            rank,
-                            [
-                                "id",
-                                "ID"
-                            ],
-                            ""
-                        )
-                    );
-
-
-                const name =
-                    String(
-                        getValue(
-                            rank,
-                            [
-                                "name",
-                                "Name"
-                            ],
-                            id
-                        )
-                    );
-
-
-                const nativeOption =
-                    document.createElement(
-                        "option"
-                    );
-
-
-                nativeOption.value =
-                    id;
-
-
-                nativeOption.textContent =
-                    name;
-
-
-                if (
-                    id ===
-                    currentRankId
-                ) {
-
-                    nativeOption.selected =
-                        true;
-
-
-                    label.textContent =
-                        name;
-
-                }
-
-
-                native.appendChild(
-                    nativeOption
-                );
-
-
-                const item =
-                    document.createElement(
-                        "button"
-                    );
-
-
-                item.type =
-                    "button";
-
-
-                item.className =
-                    "agents-rank-option";
-
-
-                item.dataset.rankId =
-                    id;
-
-
-                item.textContent =
-                    name;
-
-
-                if (
-                    id ===
-                    currentRankId
-                ) {
-
-                    item.classList.add(
-                        "selected"
-                    );
-
-                }
-
-
-                item.onclick =
-                    function(event) {
-
-                        event.stopPropagation();
-
-
-                        selectPersonnelRank(
-                            id,
-                            name
-                        );
-
-                    };
-
-
-                menu.appendChild(
-                    item
-                );
-
-            }
-        );
-
-
-        if (
-            !currentRankId
-        ) {
-
-            label.textContent =
-                "Rang auswählen...";
-
-        }
-
-    }
-
-
-    function selectPersonnelRank(
-        rankId,
-        rankName
-    ) {
-
-        if (!canEditOfficers()) {
-            return;
-        }
-
-        const native =
-            $("agentRankNativeSelect");
-
-
-        const label =
-            $("agentRankSelectLabel");
-
-
-        const wrapper =
-            $("agentRankSelect");
-
-
-        if (
-            !native ||
-            !label
-        ) {
-            return;
-        }
-
-
-        native.value =
-            String(
-                rankId
-            );
-
-
-        label.textContent =
-            rankName;
-
-
-        document
-            .querySelectorAll(
-                ".agents-rank-option"
-            )
-            .forEach(
-                option => {
-
-                    option.classList.toggle(
-                        "selected",
-                        String(
-                            option.dataset.rankId
-                        ) ===
-                        String(
-                            rankId
-                        )
-                    );
-
-                }
-            );
-
-
-        state.selectedAgent.rankId =
-            String(
-                rankId
-            );
-
-
-        state.selectedAgent.rankName =
-            rankName;
-
-
-        state.selectedAgent.rank =
-            rankName;
-
-
-        if (wrapper) {
-
-            wrapper.classList.remove(
-                "open"
-            );
-
-        }
-
-    }
-
-
-    function closeRankDropdown() {
-
-        const wrapper =
-            $("agentRankSelect");
-
-
-        if (wrapper) {
-
-            wrapper.classList.remove(
-                "open"
-            );
-
-        }
-
+    function populateRankSelect() {
+        const select=$("agentRankNativeSelect"); if(!select)return;
+        const currentRankId=String(getValue(state.selectedAgent,["rankId","RankId"],""));
+        const sorted=[...(state.rankOptions||[])].sort((a,b)=>{const level=getRankLevel(b)-getRankLevel(a);if(level!==0)return level;return String(getValue(a,["name","Name"],"")).localeCompare(String(getValue(b,["name","Name"],"")),"de-DE",{sensitivity:"base"});});
+        select.innerHTML=`<option value="">Rang auswählen...</option>`+sorted.map(rank=>{const id=String(getValue(rank,["id","ID"],""));const name=String(getValue(rank,["name","Name"],id));return `<option value="${escapeHtml(id)}" ${id===currentRankId?"selected":""}>${escapeHtml(name)}</option>`;}).join("");
+        select.onchange=function(){const selected=sorted.find(rank=>String(getValue(rank,["id","ID"],""))===String(select.value));if(!selected)return;const rankName=String(getValue(selected,["name","Name"],select.value));state.selectedAgent.rankId=String(select.value);state.selectedAgent.rankName=rankName;state.selectedAgent.rank=rankName;};
     }
 
 
@@ -3519,7 +2943,7 @@
             <div class="agents-section-card agents-department-workspace">
               <div class="agents-form-group">
                 <label class="agents-form-label">Abteilung</label>
-                <select id="agentDepartmentWorkspace" class="agents-form-select" ${canEditOfficers()?"":"disabled"}>
+                <select id="agentDepartmentWorkspace" class="agents-form-select fib-modal-select" ${canEditOfficers()?"":"disabled"}>
                   <option value="">Keine Abteilung</option>${departments}
                 </select>
               </div>
@@ -3684,7 +3108,7 @@
 
                                     <select
                                         id="trainingStatus"
-                                        class="agents-form-select"
+                                        class="agents-form-select fib-modal-select"
                                     >
 
                                         <option value="Bestanden">
@@ -4404,8 +3828,8 @@
                 ${terminationInput("terminationRecipient","Empfänger / Betroffener",agent.name || "",true)}
                 ${terminationInput("terminationConfidentiality","Vertraulichkeit","Vertraulich – Personal",true)}
                 ${terminationInput("terminationPreviousRank","Bisheriger Dienstgrad",rank,true)}
-                <div class="agents-form-group"><label class="agents-form-label">Division / Einheit *</label><select id="terminationDepartmentUnit" class="agents-form-select"><option value="">Keine Abteilung</option>${DEPARTMENTS.map(item => `<option value="${escapeHtml(item)}" ${String(department)===String(item)?"selected":""}>${escapeHtml(item)}</option>`).join("")}</select></div>
-                <div class="agents-form-group"><label class="agents-form-label">Art des Austritts / der Kündigung *</label><select id="terminationType" class="agents-form-select"><option>Entlassung</option><option>Freiwilliger Austritt</option><option>Sonstiger Grund</option></select></div>
+                <div class="agents-form-group"><label class="agents-form-label">Division / Einheit *</label><select id="terminationDepartmentUnit" class="agents-form-select fib-modal-select"><option value="">Keine Abteilung</option>${DEPARTMENTS.map(item => `<option value="${escapeHtml(item)}" ${String(department)===String(item)?"selected":""}>${escapeHtml(item)}</option>`).join("")}</select></div>
+                <div class="agents-form-group"><label class="agents-form-label">Art des Austritts / der Kündigung *</label><select id="terminationType" class="agents-form-select fib-modal-select"><option>Entlassung</option><option>Freiwilliger Austritt</option><option>Sonstiger Grund</option></select></div>
                 ${terminationInput("terminationEffectiveDate","Wirksam zum",now,false,"date")}
                 ${terminationInput("terminationDecidingOffice","Entscheidende Stelle",currentName ? `${currentName}${currentRank ? ` / ${currentRank}` : ""}` : "")}
               </div>
@@ -4534,7 +3958,7 @@
 
                                     <select
                                         id="noteType"
-                                        class="agents-form-select"
+                                        class="agents-form-select fib-modal-select"
                                     >
 
                                         <option value="Vermerk">
@@ -5139,99 +4563,6 @@
        GLOBAL EVENTS
     ====================================================== */
 
-    function bindGlobalEvents() {
-
-        if (
-            state.globalEventsBound
-        ) {
-            return;
-        }
-
-
-        state.globalEventsBound =
-            true;
-
-
-        window.__fibPageLifecycle.on(document, 
-            "click",
-            function(event) {
-
-                const rankSelect =
-                    $("agentRankSelect");
-
-
-                if (
-                    rankSelect &&
-                    !rankSelect.contains(
-                        event.target
-                    )
-                ) {
-
-                    closeRankDropdown();
-
-                }
-
-            }
-        );
-
-
-        window.__fibPageLifecycle.on(document, 
-            "keydown",
-            function(event) {
-
-                if (
-                    event.key !==
-                    "Escape"
-                ) {
-
-                    return;
-
-                }
-
-
-                const overlay =
-                    $("agentsSystemModalOverlay");
-
-
-                if (
-                    overlay &&
-                    overlay.classList.contains(
-                        "active"
-                    )
-                ) {
-
-                    closePersonnelFile();
-
-                }
-
-            }
-        );
-
-
-        window.__fibPageLifecycle.on(document, 
-            "click",
-            function(event) {
-
-                const overlay =
-                    $("agentsSystemModalOverlay");
-
-
-                if (
-                    overlay &&
-                    event.target ===
-                    overlay
-                ) {
-
-                    closePersonnelFile();
-
-                }
-
-            }
-        );
-
-    }
-
-
     /* =====================================================
        NOTIFICATIONS
     ====================================================== */
@@ -5340,8 +4671,8 @@
         if (!document.getElementById("agentsPage")) return;
         const method = String(event.detail && event.detail.method || "");
         if (!/Personnel|Agent|Training|Note|Rank|User|Termination|Sanction/i.test(method)) return;
-        const modal = document.getElementById("agentsSystemModalOverlay");
-        if (modal && modal.classList.contains("active") && state.selectedAgent) {
+        const modal = document.getElementById("fibGlobalModalOverlay");
+        if (modal && modal.classList.contains("open") && state.selectedAgent) {
             refreshOpenPersonnelFile();
         } else {
             loadAgents();

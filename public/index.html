@@ -1040,7 +1040,7 @@
       height: 40px;
       margin-top: 9px;
 
-      border: 1px solid #263244;
+      border:1px solid #cbd7e4;
       border-radius: 7px;
 
       background: rgba(15, 23, 42, 0.35);
@@ -1708,7 +1708,7 @@
       max-height: calc(100dvh - clamp(20px, 4.4vh, 48px));
       overflow: hidden;
       background: #0d131d;
-      border: 1px solid #263244;
+      border:1px solid #cbd7e4;
       border-radius: 14px;
       box-shadow: 0 28px 90px rgba(0,0,0,.55);
       display: flex;
@@ -1893,7 +1893,7 @@
 
       background: #0d131d;
 
-      border: 1px solid #263244;
+      border:1px solid #cbd7e4;
 
       border-radius: 14px;
 
@@ -2652,8 +2652,8 @@
       position: relative;
       width: 100%;
       min-width: 0;
-      color: #e7edf6;
-      font: inherit;
+      color:#243447;
+      font:inherit;
     }
     .fib-ui-select > select.fib-ui-native-select {
       position: absolute !important;
@@ -2672,10 +2672,10 @@
       width: 100%;
       min-height: 39px;
       padding: 9px 12px;
-      border: 1px solid #2b394d;
-      border-radius: 8px;
-      background: linear-gradient(180deg, #151e2b, #101722);
-      color: #e6edf7;
+      border:1px solid #cbd5e1;
+      border-radius:8px;
+      background:#fff;
+      color:#243447;
       font: inherit;
       font-size: 12px;
       line-height: 1.35;
@@ -2683,11 +2683,11 @@
       cursor: pointer;
       transition: border-color .14s ease, background .14s ease, box-shadow .14s ease;
     }
-    .fib-ui-select-trigger:hover { border-color: #47617f; background: #172233; }
-    .fib-ui-select-trigger:focus-visible { outline: none; border-color: #4d9eff; box-shadow: 0 0 0 3px rgba(77,158,255,.15); }
-    .fib-ui-select-trigger:disabled { opacity: .48; cursor: not-allowed; }
+    .fib-ui-select-trigger:hover { border-color:#8eabc5; background:#fff; }
+    .fib-ui-select-trigger:focus-visible { outline:none; border-color:#4388cf; box-shadow:0 0 0 3px rgba(67,136,207,.12); }
+    .fib-ui-select-trigger:disabled { opacity:.62; cursor:not-allowed; }
     .fib-ui-select-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .fib-ui-select-chevron { flex: 0 0 auto; color: #8294ab; font-size: 11px; transition: transform .15s ease; }
+    .fib-ui-select-chevron { flex:0 0 auto; color:#61758a; font-size:11px; transition:transform .15s ease; }
     .fib-ui-select.open .fib-ui-select-chevron { transform: rotate(180deg); }
     .fib-ui-select-menu {
       position: absolute;
@@ -2701,10 +2701,10 @@
       overscroll-behavior: contain;
       scrollbar-gutter: stable;
       padding: 5px;
-      border: 1px solid #2a3b52;
-      border-radius: 9px;
-      background: #0d1420;
-      box-shadow: 0 16px 38px rgba(0,0,0,.48);
+      border:1px solid #cbd7e4;
+      border-radius:9px;
+      background:#fff;
+      box-shadow:0 12px 30px rgba(16,40,71,.16);
     }
     .fib-ui-select.open .fib-ui-select-menu { display: block; }
     /* Open menus are portaled to body so modal overflow/paint containment cannot clip them. */
@@ -2729,17 +2729,17 @@
       padding: 8px 10px;
       border: 1px solid transparent;
       border-radius: 6px;
-      background: transparent;
-      color: #cbd5e1;
+      background:#fff;
+      color:#243b53;
       font: inherit;
       font-size: 12px;
       text-align: left;
       cursor: pointer;
     }
-    .fib-ui-select-option:hover, .fib-ui-select-option.active { background: #17263a; color: #fff; }
-    .fib-ui-select-option.selected { border-color: rgba(69,145,232,.25); background: rgba(37,99,235,.16); color: #93c5fd; }
-    .fib-ui-select-option:disabled { opacity: .38; cursor: not-allowed; }
-    .fib-ui-select-empty { padding: 10px; color: #8290a4; font-size: 11px; }
+    .fib-ui-select-option:hover, .fib-ui-select-option.active { background:#eaf2f9; color:#17395f; }
+    .fib-ui-select-option.selected { border-color:#cfe0ee; background:#eaf2f9; color:#17395f; }
+    .fib-ui-select-option:disabled { opacity:.55; cursor:not-allowed; }
+    .fib-ui-select-empty { padding:10px; color:#718399; font-size:11px; }
 
     /* Modal-Aktionen verwenden überall dieselbe Gestaltung. */
     .fib-global-modal button,
@@ -2749,100 +2749,29 @@
     }
 
     /* Personalakte content is mounted inside the same central modal shell. */
-    #fibGlobalModalOverlay.fib-modal-agents-mode .fib-global-modal { width: min(980px, 100%); max-height: min(900px, calc(100vh - 28px)); }
-    #fibGlobalModalOverlay.fib-modal-agents-mode .fib-global-modal-header { display: none; }
-    #fibGlobalModalOverlay.fib-modal-agents-mode .fib-global-modal-body { padding: 0; overflow: hidden; }
-    #fibGlobalModalOverlay.fib-modal-agents-mode .agents-system-modal { width: 100%; max-width: none; max-height: min(900px, calc(100dvh - 40px)); background: transparent; border: 0; border-radius: 0; box-shadow: none; font-family: inherit; color: #dbe5f2; }
-    #fibGlobalModalOverlay.fib-modal-agents-mode .agents-system-modal-header { padding: 17px 20px 15px; border-bottom: 1px solid #1e293b; background: linear-gradient(180deg, rgba(255,255,255,.018), transparent); }
-    #fibGlobalModalOverlay.fib-modal-agents-mode .agents-system-modal-title { color: #f1f5f9; font-size: 13px; font-weight: 700; letter-spacing: .01em; }
-    #fibGlobalModalOverlay.fib-modal-agents-mode .agents-system-modal-description { margin-top: 4px; color: #8290a4; font-size: 11px; line-height: 1.4; }
-    #fibGlobalModalOverlay.fib-modal-agents-mode .agents-system-modal-body { padding: 20px; overflow-y: auto; }
-    #fibGlobalModalOverlay.fib-modal-agents-mode .agents-system-modal-actions { padding: 13px 20px; gap: 8px; border-top: 1px solid #1e293b; background: rgba(255,255,255,.012); }
-    /* Existing bespoke controls use the same dimensions, typography and palette as the global select. */
-    #fibGlobalModalOverlay.fib-modal-agents-mode .agents-rank-select-button,
-    #fibGlobalModalOverlay.fib-modal-agents-mode .agents-form-select,
-    .system-custom-select-trigger {
-      min-height: 39px; height: auto; padding: 9px 12px; box-sizing: border-box;
-      border: 1px solid #2b394d; border-radius: 8px;
-      background: linear-gradient(180deg, #151e2b, #101722); color: #e6edf7;
-      font-family: inherit; font-size: 12px; line-height: 1.35; font-weight: 400;
-    }
-    #fibGlobalModalOverlay.fib-modal-agents-mode .agents-rank-select-button:hover,
-    .system-custom-select-trigger:hover { border-color: #47617f; background: #172233; color: #fff; }
-    #fibGlobalModalOverlay.fib-modal-agents-mode .agents-rank-select-menu,
-    .system-custom-select-menu { z-index: 20000; max-height: 240px; padding: 5px; border: 1px solid #2a3b52; border-radius: 9px; background: #0d1420; box-shadow: 0 16px 38px rgba(0,0,0,.48); }
-    #fibGlobalModalOverlay.fib-modal-agents-mode .agents-rank-option,
-    .system-custom-select-option { min-height: 33px; padding: 8px 10px; border: 1px solid transparent; border-radius: 6px; color: #cbd5e1; font-family: inherit; font-size: 12px; line-height: 1.35; }
-    #fibGlobalModalOverlay.fib-modal-agents-mode .agents-rank-option:hover,
-    #fibGlobalModalOverlay.fib-modal-agents-mode .agents-rank-option.selected,
-    .system-custom-select-option:hover,
-    .system-custom-select-option.selected { border-color: rgba(69,145,232,.25); background: rgba(37,99,235,.16); color: #93c5fd; }
-    .fib-modal-button {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 7px;
-      min-height: 36px;
-      padding: 8px 14px;
-      border: 1px solid #2b394d;
-      border-radius: 7px;
-      background: #151e2b;
-      color: #cbd5e1;
-      font: inherit;
-      font-size: 12px;
-      font-weight: 600;
-      line-height: 1.25;
-      white-space: nowrap;
-      cursor: pointer;
-      transition: background .14s ease, border-color .14s ease, transform .14s ease;
-    }
-    .fib-modal-button:hover { background: #202d40; border-color: #405572; color: #fff; }
-    .fib-modal-button:active { transform: translateY(1px); }
-    .fib-modal-button.primary { background: #1769c2; border-color: #287fd9; color: #fff; }
-    .fib-modal-button.primary:hover { background: #227bd8; }
-    .fib-modal-button.danger { background: rgba(185,28,28,.14); border-color: rgba(239,68,68,.35); color: #fca5a5; }
-    .fib-modal-button:disabled { opacity: .45; cursor: not-allowed; transform: none; }
-    /* Shared polished controls used by the patrol-partner picker. */
-    .patrol-add-member, .patrol-remove-member, .patrol-user-option {
-      appearance: none; -webkit-appearance: none; font: inherit; cursor: pointer;
-    }
-    .patrol-add-member {
-      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-      min-height: 32px; padding: 7px 11px; border: 1px solid #31577d; border-radius: 8px;
-      color: #dcecff; background: rgba(37,99,235,.16); font-size: 11px; font-weight: 650;
-      transition: background .15s ease, border-color .15s ease, transform .15s ease;
-    }
-    .patrol-add-member:hover { background: rgba(37,99,235,.27); border-color: #4c8ed0; }
-    .patrol-remove-member {
-      display: inline-flex; align-items: center; justify-content: center;
-      width: 30px; height: 30px; min-width: 30px; padding: 0;
-      border: 1px solid rgba(239,68,68,.28); border-radius: 8px;
-      background: rgba(185,28,28,.12); color: #fca5a5;
-      font-size: 17px; font-weight: 500; line-height: 1;
-      transition: background .14s ease, border-color .14s ease, color .14s ease;
-    }
-    .patrol-remove-member:hover { background: rgba(185,28,28,.24); border-color: rgba(239,68,68,.55); color: #fff; }
-    .patrol-remove-member:focus-visible { outline: 2px solid rgba(96,165,250,.8); outline-offset: 2px; }
-    .patrol-user-option {
-      width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 12px;
-      padding: 10px 12px; border: 1px solid #26364b; border-radius: 9px; margin: 5px 0;
-      text-align: left; color: #dbe5f2; background: #101a28; font-size: 12px;
-      transition: background .15s ease, border-color .15s ease;
-    }
-    .patrol-user-option:hover, .patrol-user-option:focus-visible { background: #18283b; border-color: #4776a5; outline: none; }
-    .patrol-user-option-info { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
-    .patrol-user-option-rank { color: #8297b1; font-size: 10px; }
-    .patrol-user-option-name { color: #f1f5f9; font-weight: 650; overflow-wrap: anywhere; }
-    .patrol-user-option > div:last-child { color: #8fbdf0 !important; font-size: 10px !important; white-space: nowrap; }
-    .patrol-member-position { min-width: 142px; max-width: 180px; }
+    #fibGlobalModalOverlay.fib-modal-agents-mode .fib-global-modal {width:min(980px,calc(100vw - 32px));min-width:0;max-width:980px;max-height:min(900px,calc(100dvh - 28px));background:#f4f7fa;border:1px solid #d6e0e9;border-radius:14px;box-shadow:0 24px 70px rgba(32,54,76,.20);color:#243447;font-size:12px;contain:layout paint style;}
+    #fibGlobalModalOverlay.fib-modal-agents-mode .fib-global-modal-header{padding:17px 20px 15px;border-bottom:1px solid #dfe6ed;background:#fff;}
+    #fibGlobalModalOverlay.fib-modal-agents-mode .fib-global-modal-title{color:#172536;font-size:16px;font-weight:700;}
+    #fibGlobalModalOverlay.fib-modal-agents-mode .fib-global-modal-subtitle{color:#667587;font-size:11px;}
+    #fibGlobalModalOverlay.fib-modal-agents-mode .fib-global-modal-body{padding:18px 20px;background:#f4f7fa;color:#243447;overflow-y:auto;}
+    #fibGlobalModalOverlay.fib-modal-agents-mode .fib-global-modal-footer{padding:12px 20px;border-top:1px solid #dfe6ed;background:#fff;}
+    #fibGlobalModalOverlay.fib-modal-agents-mode .fib-global-modal-close{border-color:#d8e2eb;background:#edf3f8;color:#5d7084;}
+    #fibGlobalModalOverlay.fib-modal-agents-mode .fib-global-modal-close:hover{background:#e2edf6;color:#17324b;}
+    #fibGlobalModalOverlay.fib-modal-agents-mode .fib-modal-button{min-height:32px;border:1px solid #cbd7e4;border-radius:7px;background:#fff;color:#31475d;}
+    #fibGlobalModalOverlay.fib-modal-agents-mode .fib-modal-button:hover{background:#edf4fa;border-color:#b9c9d8;}
+    #fibGlobalModalOverlay.fib-modal-agents-mode .fib-modal-button.primary{background:#2f78b7;border-color:#2f78b7;color:#fff;}
+
     #fibGlobalModalBody input:not([type="checkbox"]):not([type="radio"]),
     #fibGlobalModalBody textarea {
       width: 100%; min-height: 38px; padding: 9px 11px;
-      border: 1px solid #2b394d; border-radius: 8px;
-      background: #0a111b; color: #e6edf7; font: inherit; font-size: 12px;
+      border: 1px solid #cbd5e1; border-radius: 8px;
+      background: #fff; color: #243447; font: inherit; font-size: 12px; color-scheme: light;
       outline: none;
     }
-    #fibGlobalModalBody input:focus, #fibGlobalModalBody textarea:focus { border-color: #438fe5; box-shadow: 0 0 0 3px rgba(67,143,229,.12); }
+    #fibGlobalModalBody input:focus, #fibGlobalModalBody textarea:focus { border-color: #4388cf; box-shadow: 0 0 0 3px rgba(67,136,207,.12); }
+    #fibGlobalModalBody input::placeholder, #fibGlobalModalBody textarea::placeholder { color:#8995a5; }
+    #fibGlobalModalBody select { color:#243447; background:#fff; border:1px solid #cbd5e1; color-scheme:light; }
+    #fibGlobalModalBody select option { color:#243447; background:#fff; }
     @media (max-width: 620px) {
       .fib-global-modal { width: 100%; max-height: calc(100dvh - 20px); }
       #fibGlobalModalOverlay { padding: 10px; }
@@ -7728,7 +7657,7 @@ const NAVIGATION = [
     if (!body) return;
 
     const first = body.querySelector(
-      "input:not([readonly]):not([type='hidden']), textarea, .fib-ui-select-trigger, button:not(.agents-hidden-select)"
+      "input:not([readonly]):not([type='hidden']), textarea, .fib-ui-select-trigger, button"
     );
 
     if (first) {
@@ -7762,11 +7691,8 @@ const NAVIGATION = [
     if (subtitle) subtitle.textContent = String(config.subtitle || "");
 
     if (config.body !== undefined) {
-      if (typeof config.body === "string") {
-        body.innerHTML = config.body;
-      } else if (config.body instanceof Node) {
-        body.replaceChildren(config.body);
-      }
+      if (typeof config.body === "string") body.innerHTML=config.body;
+      else if (config.body instanceof Node) body.replaceChildren(config.body);
     }
 
     if (save) {
@@ -7893,13 +7819,8 @@ const NAVIGATION = [
   }
 
   function setBody(content) {
-    const body = byId("fibGlobalModalBody");
-    if (!body) return;
-    if (typeof content === "string") {
-      body.innerHTML = content;
-    } else if (content instanceof Node) {
-      body.replaceChildren(content);
-    }
+    const body=byId("fibGlobalModalBody"); if(!body)return;
+    if(typeof content==="string") body.innerHTML=content; else if(content instanceof Node) body.replaceChildren(content);
   }
 
   function setFooterButtons(buttons, options) {
@@ -8146,7 +8067,7 @@ const NAVIGATION = [
   function enhance(select) {
     if (!(select instanceof HTMLSelectElement) || select.dataset.fibUiEnhanced === "true") return;
     if (select.multiple || select.size > 1) return;
-    if (select.matches(".agents-hidden-select, .system-select-hidden, [data-fib-select-native-only], [aria-hidden='true']")) return;
+    if (select.matches(".system-select-hidden, [data-fib-select-native-only], [aria-hidden='true']")) return;
     if (!select.parentElement) return;
     select.dataset.fibUiEnhanced = "true";
     select.classList.add("fib-ui-native-select");

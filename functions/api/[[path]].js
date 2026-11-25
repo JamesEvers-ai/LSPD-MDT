@@ -315,7 +315,7 @@ async function dispatchCore(method,args,env,token){
   const rows=await db(env,training?"personnel_trainings":"personnel_notes",{method:"POST",query:{select:"*"},body:row,prefer:"return=representation"});const saved=rows?.[0]||row;await writePersonnelHistory(env,au,uid,training?"training_created":"note_created",training?`Schulung „${row.name}“ hinzugefügt.`:`Vermerk „${row.title}“ hinzugefügt.`);return training?normalizeTrainingRow(saved):normalizePersonnelNoteRow(saved);
  }
  if(method==="createPersonnelTermination"){
-  const au=await authz(env,token,"officers.edit");
+  const au=await authz(env,token,"officers.terminate");
   const uid=text(args[1]),d=args[2]||{};
   if(!uid)throw new Error("Keine Benutzer-ID angegeben.");
   const required=["documentNumber","issueDate","issuingOffice","processedBy","recipient","previousRank","departmentUnit","terminationType","effectiveDate","decidingOffice","reason","approval","equipmentReturn","updatedAt"];

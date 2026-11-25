@@ -91,7 +91,7 @@ button{cursor:pointer}
 .content .ifines-page{padding:0 24px 70px!important;color:var(--lspd-text)!important;overflow:visible!important}.content .ifines-top{position:relative!important;top:auto!important;margin:0 -24px 18px!important;padding:22px 24px 14px!important;background:var(--lspd-navy-900)!important;border-bottom:3px solid var(--lspd-gold)!important;backdrop-filter:none!important;box-shadow:none!important}.content .ifines-top :is(h1,h2,h3,p,span){color:inherit!important}.content .ifines-eyebrow{color:var(--lspd-gold)!important}.content .ifines-title{color:#fff!important}.content .ifines-subtitle{color:#d1deeb!important}.content .ifines-tabs{border-bottom:1px solid rgba(255,255,255,.22)!important;gap:6px!important}.content .ifines-tab{background:rgba(255,255,255,.08)!important;color:#e2eaf2!important;border:1px solid rgba(255,255,255,.13)!important;border-bottom:0!important;border-radius:7px 7px 0 0!important}.content .ifines-tab.active{background:#fff!important;color:var(--lspd-navy-900)!important;border-color:#fff!important;box-shadow:inset 0 -3px var(--lspd-gold)!important}.content .ifines-panel{color:var(--lspd-text)!important}.content .ifines-toolbar{margin:14px 0!important}.content .ifines-search{max-width:100%!important}.content .ifines-card,.content .ifines-lawbook-table{background:#fff!important;border:1px solid var(--lspd-line)!important;border-radius:9px!important;box-shadow:var(--lspd-shadow)!important}.content .ifines-card h3,.content .ifines-row-title{color:var(--lspd-navy-900)!important}.content .ifines-muted,.content .ifines-row-meta,.content .ifines-note,.content .ifines-status,.content .ifines-row-desc{color:var(--lspd-muted)!important}.content .ifines-field label{color:var(--lspd-text-2)!important}.content .ifines-page input,.content .ifines-page select,.content .ifines-page textarea{background:#fff!important;color:var(--lspd-text)!important;border:1px solid var(--lspd-line-strong)!important}.content .ifines-page button{background:var(--lspd-navy-800)!important;border:1px solid var(--lspd-navy-800)!important;color:#fff!important;border-radius:7px!important}.content .ifines-page button.secondary{background:var(--lspd-surface-2)!important;border-color:var(--lspd-line-strong)!important;color:var(--lspd-text-2)!important}.content .ifines-page button.danger{background:var(--lspd-danger-bg)!important;border-color:#efc6ca!important;color:var(--lspd-danger)!important}.content .ifines-row,.content .ifines-inline-form{background:#fff!important;border:1px solid var(--lspd-line)!important;border-radius:8px!important}.content .ifines-value{color:var(--lspd-navy-800)!important}.content .ifines-chip{background:var(--lspd-blue-100)!important;color:var(--lspd-blue-600)!important}.content .ifines-chip.termination{background:var(--lspd-danger-bg)!important;color:var(--lspd-danger)!important}.content .ifines-empty{background:var(--lspd-surface-2)!important;color:var(--lspd-muted)!important;border:1px dashed var(--lspd-line-strong)!important}.content .ifines-warning,.content .ifines-confirm{background:var(--lspd-warning-bg)!important;color:var(--lspd-warning)!important;border-color:#ecdcae!important}.content .if-component{background:var(--lspd-surface-2)!important;border:1px solid var(--lspd-line)!important;border-radius:7px!important}.content .ifines-table-wrapper{background:#fff!important;border:1px solid var(--lspd-line)!important;border-radius:9px!important;overflow:auto!important}.content .ifines-table{background:#fff!important}.content .ifines-table th{background:var(--lspd-surface-3)!important;color:var(--lspd-navy-800)!important;border-bottom:1px solid var(--lspd-line)!important}.content .ifines-table td{background:#fff!important;color:var(--lspd-text-2)!important;border-bottom:1px solid #e6ecf2!important}.content .ifines-category-row td{background:#edf3f8!important;color:var(--lspd-navy-800)!important}
 
 /* Personnel and personnel file */
-.content .agents-page{padding:22px 24px 36px!important}.content .agents-page-title{color:var(--lspd-navy-900)!important}.content :is(.agents-page-subtitle,.agents-page-count,.agents-agent-rank,.agents-service-number,.agents-agent-username,.agents-state,.agents-entry-meta span,.agents-entry-content){color:var(--lspd-muted)!important}.content .agents-search input{background:#fff!important;color:var(--lspd-text)!important;border:1px solid var(--lspd-line-strong)!important}.content .agents-list-header{background:var(--lspd-surface-3)!important}.content .agents-list-row{border-bottom:1px solid #e6ecf2!important}.content .agents-system-modal-overlay,.content .system-modal-overlay{background:rgba(8,24,42,.62)!important;backdrop-filter:blur(3px)!important}.content .agents-system-modal,.content .system-modal{background:#fff!important;border:1px solid var(--lspd-line)!important;border-radius:12px!important;box-shadow:var(--lspd-shadow-lg)!important;color:var(--lspd-text)!important}.content :is(.agents-system-modal-header,.system-modal-header){background:var(--lspd-navy-900)!important;border-bottom:3px solid var(--lspd-gold)!important}.content :is(.agents-system-modal-title,.system-modal-title){color:#fff!important}.content :is(.agents-system-modal-description,.system-modal-description){color:#d3dfeb!important}.content :is(.agents-system-modal-body,.system-modal-body){background:#fff!important;color:var(--lspd-text)!important}.content :is(.agents-system-modal-actions,.system-modal-actions){background:var(--lspd-surface-2)!important;border-top:1px solid var(--lspd-line)!important}.content .agents-personnel-tab{color:var(--lspd-muted)!important}.content .agents-personnel-tab.active{color:var(--lspd-navy-900)!important}.content .agents-personnel-tab.active:after{background:var(--lspd-gold)!important}.content .agents-section-card,.content .agents-entry-item{background:#fff!important;border:1px solid var(--lspd-line)!important}.content .agents-entry-title{color:var(--lspd-navy-900)!important}.content .agents-rank-select-menu,.content .system-custom-select-menu{background:#fff!important;border:1px solid var(--lspd-line)!important;box-shadow:var(--lspd-shadow-lg)!important}.content :is(.agents-rank-option:hover,.agents-rank-option.selected){background:var(--lspd-blue-100)!important;color:var(--lspd-navy-900)!important}
+.content .agents-page{padding:22px 24px 36px!important}.content .agents-page-title{color:var(--lspd-navy-900)!important}.content :is(.agents-page-subtitle,.agents-page-count,.agents-agent-rank,.agents-service-number,.agents-agent-username,.agents-state,.agents-entry-meta span,.agents-entry-content){color:var(--lspd-muted)!important}.content .agents-search input{background:#fff!important;color:var(--lspd-text)!important;border:1px solid var(--lspd-line-strong)!important}.content .agents-list-header{background:var(--lspd-surface-3)!important}.content .agents-list-row{border-bottom:1px solid #e6ecf2!important}.content .agents-personnel-tab{color:var(--lspd-muted)!important}.content .agents-personnel-tab.active{color:var(--lspd-navy-900)!important}.content .agents-personnel-tab.active:after{background:var(--lspd-gold)!important}.content .agents-section-card,.content .agents-entry-item{background:#fff!important;border:1px solid var(--lspd-line)!important}.content .agents-entry-title{color:var(--lspd-navy-900)!important}.content :is(.agents-rank-option:hover,.agents-rank-option.selected){background:var(--lspd-blue-100)!important;color:var(--lspd-navy-900)!important}
 
 /* Dispatch / patrol board */
 .content .patrols-page{padding:22px 24px 80px!important}.content .patrols-title{color:var(--lspd-navy-900)!important}.content .patrols-subtitle{color:var(--lspd-muted)!important}.content .patrols-eyebrow{color:#967a12!important}.content .patrol-own-status{background:#fff!important;border:1px solid var(--lspd-line)!important}.content .patrol-own-status-heading{color:#967a12!important}.content .patrol-own-status-name,.content .patrol-own-status-value{color:var(--lspd-navy-900)!important}.content :is(.patrol-own-status-caption,.patrol-own-status-label,.patrol-own-status-value.is-idle){color:var(--lspd-muted)!important}.content .patrol-header-button:not(.secondary){background:var(--lspd-navy-800)!important;border:1px solid var(--lspd-gold)!important;color:#fff!important}.content .patrol-header-button.secondary{background:var(--lspd-surface-2)!important;color:var(--lspd-text-2)!important}.content :is(.patrol-members-box,.patrol-selected-information,.patrol-display-config){background:#fff!important;border:1px solid var(--lspd-line)!important;border-radius:9px!important}.content :is(.patrol-toolbar,.patrol-toolbar-section,.patrol-group-controls){background:var(--lspd-surface-2)!important;border-color:var(--lspd-line)!important}.content :is(.patrol-group-button,.patrol-add-member,.patrol-action-button){background:#fff!important;border:1px solid var(--lspd-line-strong)!important;color:var(--lspd-text-2)!important}.content .patrol-group-button.active{background:var(--lspd-blue-100)!important;color:var(--lspd-navy-900)!important;border-color:#a9bfd4!important}.content :is(.patrol-member,.patrol-user-option,.patrol-selected-member){background:var(--lspd-surface-2)!important;border:1px solid var(--lspd-line)!important;color:var(--lspd-text)!important}.content :is(.patrol-member-name,.patrol-selected-name,.patrol-user-option-name){color:var(--lspd-navy-900)!important}.content :is(.patrol-member-rank,.patrol-member-position,.patrol-user-option-rank){color:var(--lspd-muted)!important}
@@ -106,10 +106,7 @@ button{cursor:pointer}
 .content .system-page{padding:22px 24px 70px!important}.content .system-section{background:#fff!important;border:1px solid var(--lspd-line)!important}.content .system-section.active{border-color:#9eb7ce!important}.content :is(.permission-category,.permission-item,.rank-permission-layout,.rank-permission-sidebar){background:var(--lspd-surface-2)!important;border-color:var(--lspd-line)!important;color:var(--lspd-text)!important}.content :is(.permission-category-title,.permission-item-name,.rank-permission-title){color:var(--lspd-navy-900)!important}.content :is(.permission-item-key,.permission-item-content,.rank-permission-description){color:var(--lspd-muted)!important}.content .system-custom-select-trigger{background:#fff!important;border:1px solid var(--lspd-line-strong)!important;color:var(--lspd-text)!important}.content .system-custom-select-menu{background:#fff!important;border:1px solid var(--lspd-line)!important;box-shadow:var(--lspd-shadow-lg)!important}
 
 /* Generic CRUD modules: announcements, bonuses, calendar, gangs, logs, vacations */
-.content .mdt-module{max-width:1320px!important;margin:0 auto!important;padding:24px!important;color:var(--lspd-text)!important}.content .mdt-module h2{font-size:23px!important;font-weight:800!important;color:var(--lspd-navy-900)!important;margin:0 0 6px!important}.content .mdt-module .sub{color:var(--lspd-muted)!important;margin-bottom:20px!important}.content .mdt-module .toolbar{gap:9px!important;margin:16px 0!important}.content .mdt-module .form{background:#fff!important;border:1px solid var(--lspd-line)!important;border-radius:10px!important;padding:16px!important;box-shadow:var(--lspd-shadow)!important}.content .mdt-module .item{background:#fff!important;border:1px solid var(--lspd-line)!important;border-radius:9px!important;padding:16px!important;box-shadow:var(--lspd-shadow)!important}.content .mdt-module .item h3{color:var(--lspd-navy-900)!important}.content .mdt-module .meta,.content .mdt-module .message,.content .mdt-module .empty{color:var(--lspd-muted)!important}.content .mdt-module .empty{background:var(--lspd-surface-2)!important;border:1px dashed var(--lspd-line-strong)!important}.content .mdt-module input,.content .mdt-module textarea,.content .mdt-module select{background:#fff!important;color:var(--lspd-text)!important;border:1px solid var(--lspd-line-strong)!important;border-radius:7px!important}.content .mdt-module button{background:var(--lspd-navy-800)!important;color:#fff!important;border:1px solid var(--lspd-navy-800)!important;border-radius:7px!important}.content .mdt-module button.secondary{background:var(--lspd-surface-2)!important;color:var(--lspd-text-2)!important;border:1px solid var(--lspd-line-strong)!important}.content .mdt-module button.danger{background:var(--lspd-danger-bg)!important;color:var(--lspd-danger)!important;border:1px solid #efc6ca!important}
-
-/* Modal, dropdown, toast, empty/loading states */
-.content :is(.modal,.modal-content,.modal-dialog,.dropdown-menu,[role="listbox"],.popover,.agents-rank-select-menu,.patrol-member-picker,.system-custom-select-menu,.wanted-modal-surface){background:#fff!important;color:var(--lspd-text)!important;border:1px solid var(--lspd-line)!important;border-radius:10px!important;box-shadow:var(--lspd-shadow-lg)!important}.content :is(.modal-header,.modal-footer){background:var(--lspd-surface-2)!important;border-color:var(--lspd-line)!important}.content :is(.modal-title,.dropdown-item,.agents-rank-option,.patrol-user-option){color:var(--lspd-text)!important}.content :is(.dropdown-item:hover,.agents-rank-option:hover,.patrol-user-option:hover){background:var(--lspd-blue-100)!important;color:var(--lspd-navy-900)!important}.content :is(.empty,.dashboard-empty,.agents-empty-list,.patrol-empty,.classification-empty,.records-empty,.wanted-state,.warrants-empty,.vc-empty,.ifines-empty){color:var(--lspd-muted)!important}.content :is(.loading,.agents-loading,.classification-loading,.records-loading,.wanted-state.loading,.warrants-loading,.vc-loading){color:var(--lspd-muted)!important}
+.content .mdt-module{max-width:1320px!important;margin:0 auto!important;padding:24px!important;color:var(--lspd-text)!important}.content .mdt-module h2{font-size:23px!important;font-weight:800!important;color:var(--lspd-navy-900)!important;margin:0 0 6px!important}.content .mdt-module .sub{color:var(--lspd-muted)!important;margin-bottom:20px!important}.content .mdt-module .toolbar{gap:9px!important;margin:16px 0!important}.content .mdt-module .form{background:#fff!important;border:1px solid var(--lspd-line)!important;border-radius:10px!important;padding:16px!important;box-shadow:var(--lspd-shadow)!important}.content .mdt-module .item{background:#fff!important;border:1px solid var(--lspd-line)!important;border-radius:9px!important;padding:16px!important;box-shadow:var(--lspd-shadow)!important}.content .mdt-module .item h3{color:var(--lspd-navy-900)!important}.content .mdt-module .meta,.content .mdt-module .message,.content .mdt-module .empty{color:var(--lspd-muted)!important}.content .mdt-module .empty{background:var(--lspd-surface-2)!important;border:1px dashed var(--lspd-line-strong)!important}.content .mdt-module input,.content .mdt-module textarea,.content .mdt-module select{background:#fff!important;color:var(--lspd-text)!important;border:1px solid var(--lspd-line-strong)!important;border-radius:7px!important}.content .mdt-module button{background:var(--lspd-navy-800)!important;color:#fff!important;border:1px solid var(--lspd-navy-800)!important;border-radius:7px!important}.content .mdt-module button.secondary{background:var(--lspd-surface-2)!important;color:var(--lspd-text-2)!important;border:1px solid var(--lspd-line-strong)!important}.content .mdt-module button.danger{background:var(--lspd-danger-bg)!important;color:var(--lspd-danger)!important;border:1px solid #efc6ca!important}.content :is(.modal-header,.modal-footer){background:var(--lspd-surface-2)!important;border-color:var(--lspd-line)!important}.content :is(.modal-title,.dropdown-item,.agents-rank-option,.patrol-user-option){color:var(--lspd-text)!important}.content :is(.dropdown-item:hover,.agents-rank-option:hover,.patrol-user-option:hover){background:var(--lspd-blue-100)!important;color:var(--lspd-navy-900)!important}.content :is(.empty,.dashboard-empty,.agents-empty-list,.patrol-empty,.classification-empty,.records-empty,.wanted-state,.warrants-empty,.vc-empty,.ifines-empty){color:var(--lspd-muted)!important}.content :is(.loading,.agents-loading,.classification-loading,.records-loading,.wanted-state.loading,.warrants-loading,.vc-loading){color:var(--lspd-muted)!important}
 .mdt-notification{background:#fff!important;border:1px solid var(--lspd-line)!important;border-left:4px solid var(--lspd-blue-600)!important;border-radius:9px!important;box-shadow:var(--lspd-shadow-lg)!important;color:var(--lspd-text)!important}.mdt-notification-title{color:var(--lspd-navy-900)!important}.mdt-notification-message{color:var(--lspd-muted)!important}
 
 /* Independent external classification request page */
@@ -249,25 +246,6 @@ html body #pageContainer .fines-sticky-top .fines-disclaimer{
 }
 #fibGlobalModalOverlay .fib-global-modal-close:hover{
  background:#e3edf6!important;color:var(--lspd-navy-950)!important;
-}
-/* Special profile/personnel modal variants must not restore the dark FIB palette. */
-#fibGlobalModalOverlay.fib-modal-agents-mode .agents-system-modal,
-#fibGlobalModalOverlay.fib-modal-agents-mode .agents-system-modal-body{
- background:#fff!important;color:var(--lspd-text)!important;
-}
-#fibGlobalModalOverlay.fib-modal-agents-mode .agents-system-modal-header,
-#fibGlobalModalOverlay.fib-modal-agents-mode .agents-system-modal-actions{
- background:#f5f8fb!important;border-color:var(--lspd-line)!important;
-}
-#fibGlobalModalOverlay.fib-modal-agents-mode .agents-system-modal-title,
-#fibGlobalModalOverlay.fib-modal-agents-mode .agents-system-modal-body :is(h1,h2,h3,h4,label,strong){
- color:var(--lspd-navy-900)!important;
-}
-#fibGlobalModalOverlay.fib-modal-agents-mode .agents-system-modal-description{
- color:var(--lspd-muted)!important;
-}
-#fibGlobalModalOverlay.fib-modal-agents-mode :is(.agents-rank-select-button,.agents-form-select,.system-custom-select-trigger){
- background:#fff!important;color:var(--lspd-text)!important;border-color:var(--lspd-line-strong)!important;
 }
 #profileModal{background:rgba(8,24,42,.56)!important}
 #profileModal .profile-modal{background:#fff!important;color:var(--lspd-text)!important;border:1px solid var(--lspd-line)!important;border-top:4px solid #e2c52b!important}
@@ -411,8 +389,6 @@ html body #pageContainer .dashboard-permission-info{
 html body #pageContainer .dashboard-permission-label{color:#40566e!important}
 html body #pageContainer .dashboard-permission-value{color:#17395f!important}
 html body #pageContainer .dashboard-permission-value.granted{color:#237a4b!important}
-#fibGlobalModalOverlay.fib-modal-agents-mode .agents-system-modal *:not(button):not(.agents-button):not(.agents-btn){color:#1a2d42!important}
-#fibGlobalModalOverlay.fib-modal-agents-mode .agents-system-modal :is(.agents-system-modal-description,.agents-form-hint,.agents-muted,.muted){color:#718399!important}
 
 html body #pageContainer :is(.lspd-module-head,.mdt-module-head,.lspd-page-heading,.vc-head){
  background:linear-gradient(105deg,#102847 0%,#1d5687 100%)!important;
@@ -932,143 +908,4 @@ html body #pageContainer .content :is(
     min-height: 0 !important;
     padding: 18px 20px !important;
   }
-}
-
-/* Personnel file v3: force the complete modal body into the same light visual system as the Personalien tab. */
-#fibGlobalModalOverlay.fib-modal-agents-mode .agents-system-modal-body,
-#fibGlobalModalOverlay.fib-modal-agents-mode .agents-system-modal-body * {
-  --agents-modal-text: #243b53;
-  --agents-modal-muted: #718399;
-}
-#fibGlobalModalOverlay.fib-modal-agents-mode .agents-system-modal-body { background:#fff!important;color:#243b53!important; }
-#fibGlobalModalOverlay.fib-modal-agents-mode .agents-system-modal-body :is(.agents-form,.agents-section,.agents-section-card,.agents-entry-item,.agents-history-item,.agents-note-list,.agents-history-list) { background:#fff!important;color:#243b53!important;border-color:#d8e2ec!important; }
-#fibGlobalModalOverlay.fib-modal-agents-mode .agents-system-modal-body :is(input,select,textarea,.agents-form-input,.agents-form-select,.agents-form-textarea) { background:#fff!important;color:#243b53!important;border-color:#cbd7e4!important; }
-#fibGlobalModalOverlay.fib-modal-agents-mode .agents-system-modal-body :is(.agents-section-title,.agents-entry-title,.agents-history-title) { color:#17395f!important; }
-#fibGlobalModalOverlay.fib-modal-agents-mode .agents-system-modal-body :is(.agents-entry-meta,.agents-history-meta,.agents-history-detail,.agents-sanction-meta,.agents-sanction-reason,.agents-form-hint,.agents-muted,.muted) { color:#718399!important; }
-#fibGlobalModalOverlay.fib-modal-agents-mode .agents-system-modal-body :is(.agents-personnel-tab,.agents-personnel-tab.active) { color:#40566e!important; background:transparent!important; }
-#fibGlobalModalOverlay.fib-modal-agents-mode .agents-system-modal-body .agents-personnel-tab.active { color:#17395f!important; }
-#fibGlobalModalOverlay.fib-modal-agents-mode .agents-system-modal-body .agents-history-list { display:grid!important; gap:10px!important; }
-#fibGlobalModalOverlay.fib-modal-agents-mode .agents-system-modal-body .agents-history-item { display:flex!important; gap:12px!important; padding:12px!important; border:1px solid #d8e2ec!important; border-radius:9px!important; box-shadow:0 3px 10px rgba(16,40,71,.04)!important; }
-#fibGlobalModalOverlay.fib-modal-agents-mode .agents-system-modal-body .agents-history-dot { width:8px!important;height:8px!important;flex:0 0 8px!important;margin-top:5px!important;border-radius:50%!important;background:#e2c52b!important;box-shadow:0 0 0 3px #f8f3d8!important; }
-#fibGlobalModalOverlay.fib-modal-agents-mode .agents-system-modal-body .agents-history-main { min-width:0!important; }
-#fibGlobalModalOverlay.fib-modal-agents-mode .agents-system-modal-body .agents-history-title { font-weight:800!important; }
-#fibGlobalModalOverlay.fib-modal-agents-mode .agents-system-modal-body .agents-history-detail { margin-top:6px!important; white-space:pre-wrap!important; }
-#fibGlobalModalOverlay.fib-modal-agents-mode .agents-system-modal-body .agents-sanction-meta { color:#718399!important; }
-#fibGlobalModalOverlay.fib-modal-agents-mode .agents-system-modal-body .agents-sanction-component { background:#f5f8fb!important;border:1px solid #e1e8ef!important;color:#40566e!important; }
-#fibGlobalModalOverlay.fib-modal-agents-mode .agents-system-modal-body .agents-sanction-component strong { color:#17395f!important; }
-#fibGlobalModalOverlay.fib-modal-agents-mode .agents-system-modal-body .agents-sanction-reason { color:#40566e!important; }
-
-/* v11 – Personnel modal: force light, custom dropdowns, compact rendering */
-#agentsSystemModalOverlay .agents-system-modal-body .agents-custom-select {
-  position: relative !important;
-  width: 100% !important;
-}
-#agentsSystemModalOverlay .agents-system-modal-body .agents-custom-select-trigger {
-  width: 100% !important;
-  min-height: 38px !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: space-between !important;
-  gap: 10px !important;
-  padding: 8px 11px !important;
-  border: 1px solid #cbd7e4 !important;
-  border-radius: 7px !important;
-  background: #fff !important;
-  color: #243b53 !important;
-  -webkit-text-fill-color: #243b53 !important;
-  box-shadow: none !important;
-  font: inherit !important;
-  text-align: left !important;
-  cursor: pointer !important;
-  color-scheme: light !important;
-}
-#agentsSystemModalOverlay .agents-system-modal-body .agents-custom-select-trigger:hover,
-#agentsSystemModalOverlay .agents-system-modal-body .agents-custom-select.open .agents-custom-select-trigger {
-  border-color: #8eabc5 !important;
-  background: #fff !important;
-}
-#agentsSystemModalOverlay .agents-system-modal-body .agents-custom-select-trigger:disabled {
-  opacity: .65 !important;
-  cursor: not-allowed !important;
-}
-#agentsSystemModalOverlay .agents-system-modal-body .agents-custom-select-chevron {
-  color: #61758a !important;
-  flex: 0 0 auto !important;
-}
-#agentsSystemModalOverlay .agents-system-modal-body .agents-custom-select-menu {
-  position: absolute !important;
-  z-index: 2000 !important;
-  left: 0 !important;
-  right: 0 !important;
-  top: calc(100% + 4px) !important;
-  display: none !important;
-  max-height: 240px !important;
-  overflow: auto !important;
-  padding: 5px !important;
-  background: #fff !important;
-  border: 1px solid #cbd7e4 !important;
-  border-radius: 8px !important;
-  box-shadow: 0 12px 30px rgba(16,40,71,.16) !important;
-}
-#agentsSystemModalOverlay .agents-system-modal-body .agents-custom-select.open .agents-custom-select-menu {
-  display: block !important;
-}
-#agentsSystemModalOverlay .agents-system-modal-body .agents-custom-select-option {
-  display: block !important;
-  width: 100% !important;
-  min-height: 34px !important;
-  padding: 7px 9px !important;
-  border: 0 !important;
-  border-radius: 6px !important;
-  background: #fff !important;
-  color: #243b53 !important;
-  -webkit-text-fill-color: #243b53 !important;
-  text-align: left !important;
-  font: inherit !important;
-  cursor: pointer !important;
-}
-#agentsSystemModalOverlay .agents-system-modal-body .agents-custom-select-option:hover,
-#agentsSystemModalOverlay .agents-system-modal-body .agents-custom-select-option[aria-selected="true"] {
-  background: #eaf2f9 !important;
-  color: #17395f !important;
-  -webkit-text-fill-color: #17395f !important;
-}
-#agentsSystemModalOverlay .agents-system-modal-body .agents-custom-select-option:disabled {
-  color: #9aa8b6 !important;
-  cursor: not-allowed !important;
-  background: #fff !important;
-}
-#agentsSystemModalOverlay .agents-system-modal-body .agents-native-select-hidden {
-  position: absolute !important;
-  width: 1px !important;
-  height: 1px !important;
-  opacity: 0 !important;
-  pointer-events: none !important;
-  inset: auto !important;
-}
-#agentsSystemModalOverlay .agents-system-modal-body select,
-#agentsSystemModalOverlay .agents-system-modal-body select option {
-  color-scheme: light !important;
-  background: #fff !important;
-  color: #243b53 !important;
-  -webkit-text-fill-color: #243b53 !important;
-}
-#agentsSystemModalOverlay .agents-system-modal-body {
-  scrollbar-color: #c4d1de #f6f8fa !important;
-}
-#agentsSystemModalOverlay .agents-system-modal-body * {
-  color-scheme: light !important;
-}
-
-/* v11 modal shell fallback: the personnel page uses its own overlay id. */
-#agentsSystemModalOverlay,
-#agentsSystemModalOverlay .agents-system-modal,
-#agentsSystemModalOverlay .agents-system-modal-body {
-  color-scheme: light !important;
-}
-#agentsSystemModalOverlay .agents-system-modal-body .agents-form-select {
-  background: #fff !important;
-  color: #243b53 !important;
-  -webkit-text-fill-color: #243b53 !important;
-  border-color: #cbd7e4 !important;
 }
