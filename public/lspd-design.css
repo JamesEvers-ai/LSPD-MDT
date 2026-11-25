@@ -288,8 +288,6 @@ html body #pageContainer .patrols-page :is(.patrols-filter input,.patrol-filter 
  height:32px!important;min-height:32px!important;padding:5px 9px!important;
  font-size:11px!important;max-width:220px!important;
 }
-#pageContainer #patrolDisplayConfigButton,
-#pageContainer #patrolDisplayConfigPanel{display:none!important}
 
 /* Tables and tabs use readable contrast in every state. */
 html body #pageContainer :is(.ifines-tab,.fines-tab,[role=tab]){

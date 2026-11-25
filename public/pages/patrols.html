@@ -441,8 +441,6 @@
 }
 
 
-/* Phase 3.36: master-configurable roster colors */
-:root { --patrol-callsign-type-bg:#174a70; --patrol-callsign-type-fg:#d9efff; --patrol-callsign-number-bg:#2879b9; --patrol-callsign-number-fg:#ffffff; --patrol-ten-code-bg:#164e63; --patrol-ten-code-fg:#cffafe; --patrol-location-bg:#334155; --patrol-location-fg:#dbeafe; --patrol-rank-bg:#2879b9; --patrol-rank-fg:#ffffff; --patrol-name-bg:rgba(71,85,105,.45); --patrol-name-fg:#cbd5e1; }
 /* Phase 3.33 roster layout: larger rounded chips, source fields preserved */
 .patrol-card { gap: 7px; min-height: 44px; margin-bottom: 6px; padding: 6px 8px; border-radius: 11px; background: #202b3b; border: 1px solid rgba(148,163,184,.22); box-shadow: 0 2px 7px rgba(0,0,0,.12); }
 .patrol-card:hover { background: #26364a; border-color: rgba(56,189,248,.35); transform: translateY(-1px); }
@@ -455,17 +453,6 @@
 .patrol-join-button { min-width: 32px !important; min-height: 32px !important; font-size: 20px !important; }
 
 .patrol-ten-code-top { display:flex; align-items:center; gap:7px; color:#9fb3ca; font-size:11px; font-weight:700; } .patrol-ten-code-top select { min-height:34px; max-width:130px; padding:6px 9px; color:#e5edf7; background:#172536; border:1px solid rgba(148,163,184,.3); border-radius:8px; }
-.patrol-display-config { margin: 12px 0; padding: 16px; border: 1px solid rgba(148,163,184,.25); border-radius: 12px; background: #17212e; }
-.patrol-display-config[hidden] { display:none !important; }
-.patrol-display-config-head,.patrol-display-config-actions { display:flex; align-items:center; justify-content:space-between; gap:10px; }
-.patrol-display-config-head button { background:transparent; border:0; color:inherit; font-size:22px; cursor:pointer; }
-.patrol-display-config-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:12px; margin:14px 0; }
-.patrol-display-config-grid label { display:flex; align-items:center; justify-content:space-between; gap:10px; font-size:12px; color:#d5deea; }
-.patrol-display-config-grid input[type=color] { width:44px; height:30px; padding:2px; border:1px solid #475569; border-radius:6px; background:#202b3b; cursor:pointer; flex:0 0 44px; }
-.patrol-display-config-grid label { flex-wrap:wrap; } .patrol-display-config-grid input[data-patrol-hex] { width:86px; min-width:86px; padding:6px 7px; color:#e5edf7; background:#0d1520; border:1px solid #475569; border-radius:6px; font:12px ui-monospace,monospace; }
-.patrol-color-preview { display:flex; align-items:center; gap:0; border:1px solid rgba(148,163,184,.3); border-radius:9px; overflow:hidden; width:max-content; max-width:100%; margin:8px 0 12px; } .patrol-color-preview span { padding:8px 12px; font-size:12px; font-weight:750; }
-.patrol-display-config-actions { justify-content:flex-end; }
-#patrolDisplayConfigMessage { margin-top:8px; font-size:12px; color:#93c5fd; }
 
 /* =========================================================
    CALLSIGN
@@ -492,8 +479,8 @@
     padding: 6px 10px;
     border: 0;
     border-radius: 0;
-    background: var(--patrol-callsign-type-bg);
-    color: var(--patrol-callsign-type-fg);
+    background: #dceafa;
+    color: #245581;
     font-size: 12px;
     font-weight: 700;
     overflow: hidden;
@@ -510,8 +497,8 @@
     border: 0;
     border-left: 1px solid rgba(255,255,255,.12);
     border-radius: 0;
-    background: var(--patrol-callsign-number-bg);
-    color: var(--patrol-callsign-number-fg);
+    background: #286eae;
+    color: #ffffff;
     font-size: 12px;
     font-weight: 800;
 }
@@ -577,9 +564,9 @@
     min-width: 80px;
     padding: 6px 10px;
     border: 1px solid rgba(148,163,184,.14);
-    background: var(--patrol-location-bg);
+    background: #e9eef5;
     border-radius: 8px;
-    color: var(--patrol-location-fg);
+    color: #34465a;
     font-size: 12px;
     white-space: nowrap;
     overflow: hidden;
@@ -641,8 +628,8 @@
     padding: 5px 8px;
     border: 0;
     border-radius: 0;
-    background: var(--patrol-rank-bg);
-    color: var(--patrol-rank-fg);
+    background: #dceafa;
+    color: #245581;
     font-size: 11px;
     font-weight: 800;
     overflow: hidden;
@@ -656,8 +643,8 @@
     border: 0;
     border-left: 1px solid rgba(255,255,255,.12);
     border-radius: 0;
-    background: var(--patrol-name-bg);
-    color: var(--patrol-name-fg);
+    background: #f0f3f7;
+    color: #34465a;
     font-size: 12px;
     font-weight: 600;
     overflow: hidden;
@@ -895,23 +882,6 @@
 
 /* Grundfarben und konfigurierbare Standard-Rosterfarben */
 :root {
-    --patrol-callsign-type-bg: #dceafa;
-    --patrol-callsign-type-fg: #245581;
-
-    --patrol-callsign-number-bg: #286eae;
-    --patrol-callsign-number-fg: #ffffff;
-
-    --patrol-ten-code-bg: #d9eff2;
-    --patrol-ten-code-fg: #155b6a;
-
-    --patrol-location-bg: #e9eef5;
-    --patrol-location-fg: #34465a;
-
-    --patrol-rank-bg: #dceafa;
-    --patrol-rank-fg: #245581;
-
-    --patrol-name-bg: #f0f3f7;
-    --patrol-name-fg: #34465a;
 }
 
 /* =========================================================
@@ -1208,51 +1178,6 @@
    ANZEIGENKONFIGURATION
    ========================================================= */
 
-.patrol-display-config {
-    background: #ffffff !important;
-    border: 1px solid #dce3eb !important;
-    box-shadow: 0 3px 12px rgba(30, 55, 80, .05);
-}
-
-.patrol-display-config,
-.patrol-display-config * {
-    color: #34465a;
-}
-
-.patrol-display-config-head {
-    color: #1e3045 !important;
-}
-
-.patrol-display-config-head button {
-    color: #64748b !important;
-}
-
-.patrol-display-config-head button:hover {
-    color: #286eae !important;
-}
-
-.patrol-display-config-grid label {
-    color: #34465a !important;
-}
-
-.patrol-display-config-grid input[type="color"] {
-    background: #ffffff !important;
-    border-color: #cbd5e1 !important;
-}
-
-.patrol-display-config-grid input[data-patrol-hex] {
-    background: #f7f9fc !important;
-    color: #26384c !important;
-    border-color: #cbd5e1 !important;
-}
-
-.patrol-color-preview {
-    border-color: #dce3eb !important;
-}
-
-#patrolDisplayConfigMessage {
-    color: #286eae !important;
-}
 
 /* =========================================================
    TEN-CODE-AUSWAHL
@@ -2248,8 +2173,7 @@
         const patrolLocation = String(patrol.location || "").trim();
         const patrolDisplayStatus = String(patrol.tenCode || patrol.ten_code || patrol.status || "Unbekannt").trim();
         const patrolActivityStatus = String(patrol.activity || "").trim();
-        const tenCodeStyle = patrolDisplayColors.tenCodeByCode?.[patrolDisplayStatus] || null;
-        const tenCodeStyleAttr = tenCodeStyle ? `style="background:${escapeHtml(tenCodeStyle.bg || "#164e63")};color:${escapeHtml(tenCodeStyle.fg || "#cffafe")};border-color:${escapeHtml(tenCodeStyle.bg || "#164e63")}"` : "";
+        const tenCodeStyleAttr = "";
         const splitCallsign = patrolCallsign.match(/^(.+?)[- ]?(\d{1,3})$/);
         const displayCallsign = splitCallsign ? splitCallsign[1].trim() : patrolCallsign;
         // Older rows sometimes stored the complete callsign in both columns.
@@ -3124,7 +3048,7 @@
         }
 
         applyPermissionUI();
-        loadConfiguredTenCodes().then(function(){ const select=document.getElementById("patrolModalStatus"); if(select){const selected=select.value;select.innerHTML=STATUSES.map(v=>`<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join("");if(STATUSES.includes(selected))select.value=selected;} renderTenCodeColorSettings(); });
+        loadConfiguredTenCodes().then(function(){ const select=document.getElementById("patrolModalStatus"); if(select){const selected=select.value;select.innerHTML=STATUSES.map(v=>`<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join("");if(STATUSES.includes(selected))select.value=selected;} });
         buildFilters();
         bindStaticEvents();
 

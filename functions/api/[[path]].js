@@ -340,40 +340,6 @@ async function dispatchCore(method,args,env,token){
   return {success:true,documentNumber:payload.documentNumber,url:`/?terminationShare=${raw}`,createdAt:now};
  }
  if(method==="deletePersonnelTraining"||method==="deletePersonnelNote"){const au=await authz(env,token,"officers.edit");const uid=text(args[1]),entryId=text(args[2]),training=method==="deletePersonnelTraining",table=training?"personnel_trainings":"personnel_notes";const found=await db(env,table,{query:{select:training?"id,name":"id,title",id:`eq.${entryId}`,user_id:`eq.${uid}`,limit:"1"}});await db(env,table,{method:"DELETE",query:{id:`eq.${entryId}`,user_id:`eq.${uid}`},prefer:"return=minimal"});const label=found?.[0]?(training?found[0].name:found[0].title):entryId;await writePersonnelHistory(env,au,uid,training?"training_deleted":"note_deleted",training?`Schulung „${label}“ gelöscht.`:`Vermerk „${label}“ gelöscht.`);return {success:true};}
- // Master-only patrol roster display colors. Settings are persisted in Supabase.
- const PATROL_COLOR_DEFAULTS={callsignTypeBg:"#174a70",callsignTypeFg:"#d9efff",callsignNumberBg:"#2879b9",callsignNumberFg:"#ffffff",tenCodeBg:"#164e63",tenCodeFg:"#cffafe",locationBg:"#334155",locationFg:"#dbeafe",rankBg:"#2879b9",rankFg:"#ffffff",nameBg:"#475569",nameFg:"#cbd5e1",tenCodeByCode:{"10-1":{bg:"#166534",fg:"#dcfce7"},"10-3":{bg:"#991b1b",fg:"#fee2e2"},"10-6":{bg:"#854d0e",fg:"#fef3c7"},"10-23":{bg:"#1e40af",fg:"#dbeafe"},"10-76":{bg:"#155e75",fg:"#cffafe"}}};
- if(method==="getPatrolTenCodes"){
-  await authz(env,token,"patrols.view");
-  const defaults=["10-1","10-3","10-6","10-23","10-76"];
-  for(const key of ["patrol_ten_codes","ten_codes","patrol_status_codes"]){
-   try{const rows=await db(env,"fib_mdt_settings",{query:{select:"value",key:`eq.${key}`,limit:"1"}});const value=rows?.[0]?.value;const list=Array.isArray(value)?value:(value&&Array.isArray(value.codes)?value.codes:null);if(list?.length)return {codes:list};}catch(e){}
-  }
-  return {codes:defaults};
- }
- if(method==="savePatrolTenCodes"){
-  const au=await authz(env,token,"patrols.edit");
-  const raw=Array.isArray(args[1])?args[1]:[];
-  const codes=[...new Set(raw.map(v=>text(typeof v==="string"?v:(v?.code||v?.value||v?.name||""))).filter(v=>/^10-\d{1,2}$/.test(v)))];
-  if(!codes.length)throw new Error("Mindestens ein gültiger Ten Code muss vorhanden sein.");
-  if(codes.length>40)throw new Error("Es können höchstens 40 Ten Codes konfiguriert werden.");
-  const existing=await db(env,"fib_mdt_settings",{query:{select:"key",key:"eq.patrol_ten_codes",limit:"1"}});
-  if(existing?.length)await db(env,"fib_mdt_settings",{method:"PATCH",query:{key:"eq.patrol_ten_codes"},body:{value:codes,updated_at:new Date().toISOString(),updated_by:au.user.id},prefer:"return=minimal"});
-  else await db(env,"fib_mdt_settings",{method:"POST",body:{key:"patrol_ten_codes",value:codes,updated_at:new Date().toISOString(),updated_by:au.user.id},prefer:"return=minimal"});
-  return {success:true,codes};
- }
- if(method==="getPatrolDisplayConfig"){
-  const au=await authz(env,token,"patrols.view");let colors={...PATROL_COLOR_DEFAULTS};
-  try{const rows=await db(env,"fib_mdt_settings",{query:{select:"value",key:"eq.patrol_display_colors",limit:"1"}});if(rows?.[0]?.value&&typeof rows[0].value==="object")colors={...colors,...rows[0].value,tenCodeByCode:{...PATROL_COLOR_DEFAULTS.tenCodeByCode,...(rows[0].value.tenCodeByCode||{})}};}catch(e){/* SQL migration may not have been applied yet; defaults remain usable. */}
-  return {master:au.master,colors};
- }
- if(method==="savePatrolDisplayConfig"){
-  const au=await authz(env,token);if(!au.master)throw Object.assign(new Error("Nur der Master-Account darf die Darstellungsfarben ändern."),{status:403});
-  const incoming=args[1]||{},colors={};for(const key of Object.keys(PATROL_COLOR_DEFAULTS)){if(key==="tenCodeByCode")continue;const value=String(incoming[key]||PATROL_COLOR_DEFAULTS[key]);if(!/^#[0-9a-f]{6}$/i.test(value))throw new Error("Ungültiger Farbwert für "+key+".");colors[key]=value;}colors.tenCodeByCode={...PATROL_COLOR_DEFAULTS.tenCodeByCode};for(const [code,parts] of Object.entries(incoming.tenCodeByCode||{})){if(!/^10-\d{1,2}$/.test(code))continue;const bg=String(parts?.bg||colors.tenCodeByCode[code]?.bg||"#164e63"),fg=String(parts?.fg||colors.tenCodeByCode[code]?.fg||"#cffafe");if(!/^#[0-9a-f]{6}$/i.test(bg)||!/^#[0-9a-f]{6}$/i.test(fg))throw new Error("Ungültige Ten-Code-Farbe für "+code+".");colors.tenCodeByCode[code]={bg,fg};}
-  const existing=await db(env,"fib_mdt_settings",{query:{select:"key",key:"eq.patrol_display_colors",limit:"1"}});
-  if(existing?.length)await db(env,"fib_mdt_settings",{method:"PATCH",query:{key:"eq.patrol_display_colors"},body:{value:colors,updated_at:new Date().toISOString(),updated_by:au.user.id},prefer:"return=minimal"});
-  else await db(env,"fib_mdt_settings",{method:"POST",body:{key:"patrol_display_colors",value:colors,updated_at:new Date().toISOString(),updated_by:au.user.id},prefer:"return=minimal"});
-  return {success:true,colors};
- }
  // patrols
  if(method==="getPatrols"){
   await authz(env,token,"patrols.view");const [ps,ms,us,rs,people]=await Promise.all([
@@ -535,7 +501,7 @@ const READ_ONLY_METHODS = new Set([
  "getVehicleCatalog","getDashboardStatistics","getMyPermissions","getAllAgents",
  "getInternalFineCases",
  "getInternalFineCatalog","getInternalFinePersonnel","getInternalSanctionsOverview",
- "getPatrolDisplayConfig","getPatrolEligibleUsers","getPatrolTenCodes","getPatrols",
+ "getPatrolEligibleUsers","getPatrolTenCodes","getPatrols",
  "getPersonnelFile","getPersonnelFileBundle","getPersonnelHistory","getPersonnelList","getPersonnelNotes",
  "getPersonnelRankOptions","getPersonnelTrainings","getRankById","getRecord",
  "getRecordShares","getRecords","getRecordsConfig","getWanted","getWantedConfig",

@@ -551,42 +551,9 @@
         return state.patrolUsersPromise;
     }
 
-    const PATROL_COLOR_DEFAULTS = {callsignTypeBg:"#174a70",callsignTypeFg:"#d9efff",callsignNumberBg:"#2879b9",callsignNumberFg:"#ffffff",tenCodeBg:"#164e63",tenCodeFg:"#cffafe",locationBg:"#334155",locationFg:"#dbeafe",rankBg:"#2879b9",rankFg:"#ffffff",nameBg:"#475569",nameFg:"#cbd5e1",tenCodeByCode:{"10-1":{bg:"#166534",fg:"#dcfce7"},"10-3":{bg:"#991b1b",fg:"#fee2e2"},"10-6":{bg:"#854d0e",fg:"#fef3c7"},"10-23":{bg:"#1e40af",fg:"#dbeafe"},"10-76":{bg:"#155e75",fg:"#cffafe"}}};
-    const PATROL_COLOR_VARS = {callsignTypeBg:"--patrol-callsign-type-bg",callsignTypeFg:"--patrol-callsign-type-fg",callsignNumberBg:"--patrol-callsign-number-bg",callsignNumberFg:"--patrol-callsign-number-fg",tenCodeBg:"--patrol-ten-code-bg",tenCodeFg:"--patrol-ten-code-fg",locationBg:"--patrol-location-bg",locationFg:"--patrol-location-fg",rankBg:"--patrol-rank-bg",rankFg:"--patrol-rank-fg",nameBg:"--patrol-name-bg",nameFg:"--patrol-name-fg"};
-    let patrolDisplayColors = {...PATROL_COLOR_DEFAULTS};
-    function applyPatrolDisplayColors(colors) {
-      patrolDisplayColors = {...PATROL_COLOR_DEFAULTS, ...(colors || {}), tenCodeByCode:{...PATROL_COLOR_DEFAULTS.tenCodeByCode, ...((colors || {}).tenCodeByCode || {})}};
-      Object.keys(PATROL_COLOR_VARS).forEach(function(key){ document.documentElement.style.setProperty(PATROL_COLOR_VARS[key], patrolDisplayColors[key]); });
-      const topbarMap={callsignType:['callsignTypeBg','callsignTypeFg'],callsignNumber:['callsignNumberBg','callsignNumberFg'],tenCode:['tenCodeBg','tenCodeFg'],location:['locationBg','locationFg'],rank:['rankBg','rankFg'],name:['nameBg','nameFg']};
-      Object.entries(topbarMap).forEach(([slot,keys])=>{document.querySelectorAll(`[data-patrol-topbar-color="${slot}"]`).forEach(el=>{el.style.setProperty('--patrol-topbar-bg',patrolDisplayColors[keys[0]]);el.style.setProperty('--patrol-topbar-fg',patrolDisplayColors[keys[1]]);});});
-      document.querySelectorAll("[data-patrol-color]").forEach(function(input){ const value=patrolDisplayColors[input.dataset.patrolColor]; if(/^#[0-9a-f]{6}$/i.test(value||"")) input.value=value; });
-      document.querySelectorAll("[data-patrol-hex]").forEach(function(input){input.value=patrolDisplayColors[input.dataset.patrolHex]||PATROL_COLOR_DEFAULTS[input.dataset.patrolHex];});
-      document.querySelectorAll("[data-ten-code-color]").forEach(function(input){const code=input.dataset.tenCodeColor,part=input.dataset.part;input.value=patrolDisplayColors.tenCodeByCode?.[code]?.[part]||PATROL_COLOR_DEFAULTS.tenCodeByCode[code]?.[part]||"#64748b";});
-      const preview={patrolColorPreviewType:['callsignTypeBg','callsignTypeFg'],patrolColorPreviewNumber:['callsignNumberBg','callsignNumberFg'],patrolColorPreviewTenCode:['tenCodeBg','tenCodeFg'],patrolColorPreviewLocation:['locationBg','locationFg'],patrolColorPreviewRank:['rankBg','rankFg'],patrolColorPreviewName:['nameBg','nameFg']};
-      Object.entries(preview).forEach(([id,keys])=>{const el=document.getElementById(id);if(el){el.style.background=patrolDisplayColors[keys[0]];el.style.color=patrolDisplayColors[keys[1]];}});
-    }
-    function renderTenCodeColorSettings() {
-      const root=document.getElementById("patrolTenCodeColorFields"); if(!root)return;
-      const codes=[...new Set((STATUSES||DEFAULT_STATUSES).map(v=>String(v||"").trim()).filter(v=>/^10-\d{1,2}$/.test(v)))];
-      root.innerHTML=codes.map(code=>{const colors=patrolDisplayColors.tenCodeByCode?.[code]||{};const bg=colors.bg||"#64748b",fg=colors.fg||"#ffffff";return `<label>${escapeHtml(code)} – Hintergrund<input type="color" data-ten-code-color="${escapeHtml(code)}" data-part="bg" value="${bg}"></label><label>${escapeHtml(code)} – Text<input type="color" data-ten-code-color="${escapeHtml(code)}" data-part="fg" value="${fg}"></label>`;}).join("")||'<div style="color:#9eafc4">Keine Ten Codes konfiguriert.</div>';
-    }
-    window.renderTenCodeColorSettings = renderTenCodeColorSettings;
-    async function loadPatrolDisplayConfig() {
-      try { const result = await window.runServer("getPatrolDisplayConfig"); applyPatrolDisplayColors(result && result.colors); window.renderTenCodeColorSettings(); const button=document.getElementById("patrolDisplayConfigButton"); if(button) button.hidden = !(result && result.master === true); }
-      catch(error) { console.warn("Patrol display config could not be loaded", error); window.renderTenCodeColorSettings(); }
-    }
-    function initPatrolDisplayConfig() {
-      const panel=document.getElementById("patrolDisplayConfigPanel"), button=document.getElementById("patrolDisplayConfigButton");
-      if(!panel || panel.dataset.bound) return; panel.dataset.bound="1";
-      let savedColors={...patrolDisplayColors}; const close=()=>{applyPatrolDisplayColors(savedColors);panel.hidden=true;};
-      button?.addEventListener("click",()=>{if(button.hidden)return;savedColors={...patrolDisplayColors};applyPatrolDisplayColors(patrolDisplayColors);panel.hidden=false;});
-      document.getElementById("patrolDisplayConfigClose")?.addEventListener("click",close);
-      document.getElementById("patrolDisplayConfigCancel")?.addEventListener("click",close);
-      panel.querySelectorAll("[data-patrol-color]").forEach(input=>input.addEventListener("input",()=>{patrolDisplayColors[input.dataset.patrolColor]=input.value;applyPatrolDisplayColors(patrolDisplayColors);}));
-      panel.querySelectorAll("[data-patrol-hex]").forEach(input=>input.addEventListener("change",()=>{const key=input.dataset.patrolHex,value=input.value.trim();if(!/^#[0-9a-f]{6}$/i.test(value)){input.value=patrolDisplayColors[key];return;}patrolDisplayColors[key]=value;applyPatrolDisplayColors(patrolDisplayColors);}));
-      panel.addEventListener("input",event=>{const input=event.target.closest("[data-ten-code-color]");if(!input)return;const code=input.dataset.tenCodeColor,part=input.dataset.part;patrolDisplayColors.tenCodeByCode=patrolDisplayColors.tenCodeByCode||{};patrolDisplayColors.tenCodeByCode[code]=patrolDisplayColors.tenCodeByCode[code]||{};patrolDisplayColors.tenCodeByCode[code][part]=input.value;});
-      document.getElementById("patrolDisplayConfigSave")?.addEventListener("click",async()=>{const msg=document.getElementById("patrolDisplayConfigMessage"),save=document.getElementById("patrolDisplayConfigSave");save.disabled=true;msg.textContent="Speichere…";try{const result=await window.runServer("savePatrolDisplayConfig",sessionStorage.getItem("fib_mdt_session")||sessionStorage.getItem("lspd_mdt_session")||"",patrolDisplayColors);if(!result||result.success!==true)throw new Error(result?.message||"Speichern fehlgeschlagen.");savedColors={...patrolDisplayColors};applyPatrolDisplayColors(result.colors||patrolDisplayColors);msg.textContent="Farben gespeichert.";}catch(error){msg.textContent=error.message||"Farben konnten nicht gespeichert werden.";}finally{save.disabled=false;}});
-    }
+    // Patrol display colors are intentionally fixed.
+    // The former master-only color customization was removed so patrol rendering
+    // no longer depends on a persisted color configuration or optional globals.
 
     function refreshPatrolData() {
         clearPatrolsCache();
@@ -733,8 +700,7 @@
         const patrolLocation = String(patrol.location || "").trim();
         const patrolDisplayStatus = String(patrol.tenCode || patrol.ten_code || patrol.status || "Unbekannt").trim();
         const patrolActivityStatus = String(patrol.activity || "").trim();
-        const tenCodeStyle = patrolDisplayColors.tenCodeByCode?.[patrolDisplayStatus] || null;
-        const tenCodeStyleAttr = tenCodeStyle ? `style="background:${escapeHtml(tenCodeStyle.bg || "#164e63")};color:${escapeHtml(tenCodeStyle.fg || "#cffafe")};border-color:${escapeHtml(tenCodeStyle.bg || "#164e63")}"` : "";
+        const tenCodeStyleAttr = "";
         const splitCallsign = patrolCallsign.match(/^(.+?)[- ]?(\d{1,3})$/);
         const displayCallsign = splitCallsign ? splitCallsign[1].trim() : patrolCallsign;
         // Older rows sometimes stored the complete callsign in both columns.
@@ -1609,9 +1575,7 @@
         }
 
         applyPermissionUI();
-        initPatrolDisplayConfig();
-        loadPatrolDisplayConfig();
-        loadConfiguredTenCodes().then(function(){ const select=document.getElementById("patrolModalStatus"); if(select){const selected=select.value;select.innerHTML=STATUSES.map(v=>`<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join("");if(STATUSES.includes(selected))select.value=selected;} window.renderTenCodeColorSettings(); });
+        loadConfiguredTenCodes().then(function(){ const select=document.getElementById("patrolModalStatus"); if(select){const selected=select.value;select.innerHTML=STATUSES.map(v=>`<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join("");if(STATUSES.includes(selected))select.value=selected;} });
         buildFilters();
         bindStaticEvents();
 
