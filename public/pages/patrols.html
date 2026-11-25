@@ -1296,14 +1296,91 @@
 .patrols-page select option { background:#fff!important; color:#26384c!important; }
 </style>
 <style id="lspd-patrol-compact-layout">
-.patrol-toolbar{display:block!important;padding:0!important;margin:0 0 14px!important;border-radius:12px!important;overflow:visible!important}
-.patrol-toolbar-section{padding:10px 13px!important}
-.patrol-toolbar-section+.patrol-toolbar-section{border-top:1px solid #e8edf2!important}
-.patrol-toolbar-top{margin-bottom:6px!important}
-.patrol-toolbar-description{display:none!important}
-.patrol-filter-group{gap:5px!important}
-.patrol-filter{height:28px!important;padding:0 10px!important;border-radius:7px!important;font-size:10px!important}
-.patrol-toolbar-label{font-size:10px!important;text-transform:uppercase;letter-spacing:.05em}
+/* Kompakte Leitstellenansicht im aktuellen LSPD-Design */
+.patrol-group-toolbar{
+  display:block!important;
+  padding:0!important;
+  margin:0 0 12px!important;
+  border-radius:10px!important;
+  overflow:visible!important;
+  background:#fff!important;
+}
+.patrol-group-toolbar .patrol-group-toolbar-inner{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:12px!important;
+  min-height:42px!important;
+  padding:7px 10px!important;
+}
+.patrol-group-toolbar-title{display:flex!important;align-items:center!important;gap:8px!important;min-width:0!important}
+.patrol-group-toolbar .patrol-toolbar-label{font-size:10px!important;font-weight:800!important;text-transform:uppercase!important;letter-spacing:.06em!important;color:#40546a!important}
+.patrol-group-toolbar .patrol-toolbar-meta{font-size:9px!important;color:#8996a6!important;white-space:nowrap!important}
+.patrol-group-toolbar .patrol-group-controls{display:flex!important;align-items:center!important;gap:3px!important;padding:3px!important;background:#f1f5f9!important;border:1px solid #dce5ee!important;border-radius:8px!important}
+.patrol-group-toolbar .patrol-group-button{height:27px!important;min-width:72px!important;padding:0 11px!important;border:0!important;border-radius:6px!important;background:transparent!important;color:#617286!important;font-size:10px!important;font-weight:800!important;box-shadow:none!important}
+.patrol-group-toolbar .patrol-group-button:hover{background:#e7f0f8!important;color:#245b91!important}
+.patrol-group-toolbar .patrol-group-button.active{background:#2868a9!important;color:#fff!important;box-shadow:0 1px 3px rgba(30,75,115,.16)!important}
+
+.patrols-content{display:flex!important;flex-direction:column!important;gap:8px!important}
+.patrol-group{margin:0!important}
+.patrol-group-title{display:flex!important;align-items:center!important;gap:7px!important;margin:0 0 4px!important;padding:0 3px!important;color:#53677d!important;font-size:10px!important;font-weight:800!important;text-transform:uppercase!important;letter-spacing:.055em!important}
+.patrol-group-count{min-width:18px!important;height:18px!important;background:#e6f0fa!important;color:#286eae!important;border:1px solid #c9dced!important;font-size:8px!important}
+
+/* Aktive Streifen: kompakte Einsatzzeile statt großer Karten */
+.patrol-card{
+  display:grid!important;
+  grid-template-columns:minmax(88px,auto) 66px minmax(88px,auto) minmax(110px,1.05fr) minmax(74px,auto) minmax(150px,1.55fr) 32px 32px!important;
+  align-items:stretch!important;
+  gap:3px!important;
+  min-height:42px!important;
+  margin:0 0 3px!important;
+  padding:3px!important;
+  overflow:hidden!important;
+  border-radius:8px!important;
+  background:#fff!important;
+  border:1px solid #dce5ee!important;
+  box-shadow:0 1px 4px rgba(28,57,84,.045)!important;
+  transform:none!important;
+}
+.patrol-card:hover{background:#f8fbfe!important;border-color:#b9cee2!important;transform:none!important;box-shadow:0 2px 8px rgba(28,57,84,.08)!important}
+.patrol-callsign,.patrol-status,.patrol-location,.patrol-vehicle,.patrol-member{border-radius:6px!important}
+.patrol-callsign{display:flex!important;min-width:0!important;background:#eef4f9!important;border:1px solid #d7e2ec!important}
+.patrol-callsign-type{min-width:0!important;padding:0 9px!important;background:#dceafa!important;color:#245b91!important;font-size:10px!important;font-weight:850!important}
+.patrol-callsign-number{padding:0 9px!important;background:#2868a9!important;color:#fff!important;border-left:1px solid rgba(255,255,255,.25)!important;font-size:10px!important;font-weight:850!important}
+.patrol-status{min-height:34px!important;justify-content:center!important;padding:0 8px!important;border:1px solid #d9e3ec!important;background:#eef3f7!important;color:#40536a!important;border-radius:6px!important;font-size:10px!important;font-weight:850!important}
+.patrol-status.status-10-1{background:#e8f6ee!important;color:#24724b!important;border-color:#bfe4cc!important}
+.patrol-status.status-10-3{background:#fff0f0!important;color:#a33d3d!important;border-color:#eccaca!important}
+.patrol-status.status-10-6{background:#fff8df!important;color:#8a6710!important;border-color:#eedb9e!important}
+.patrol-status.status-10-19,.patrol-status.status-10-23{background:#eaf3fb!important;color:#2c6799!important;border-color:#c9dced!important}
+.patrol-status.status-10-76{background:#e7f1fb!important;color:#286eae!important;border-color:#c2d8ec!important}
+.patrol-activity-status{display:flex!important;align-items:center!important;justify-content:center!important;min-height:34px!important;padding:0 8px!important;border-radius:6px!important;background:#edf3f8!important;color:#3f5870!important;border:1px solid #d7e2ec!important;font-size:9px!important;font-weight:850!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+.patrol-location{display:flex!important;align-items:center!important;min-width:0!important;min-height:34px!important;padding:0 9px!important;background:#f5f8fb!important;color:#43576d!important;border:1px solid #dce5ee!important;font-size:9px!important;font-weight:700!important;overflow:hidden!important;text-overflow:ellipsis!important}
+.patrol-vehicle{display:flex!important;align-items:center!important;justify-content:center!important;min-height:34px!important;padding:0 9px!important;background:#e6f4f7!important;color:#1c6673!important;border:1px solid #c9e2e8!important;font-size:9px!important;font-weight:850!important}
+.patrol-members{min-width:0!important;display:flex!important;align-items:stretch!important;gap:3px!important;overflow:hidden!important}
+.patrol-member{max-width:none!important;min-width:0!important;flex:1 1 0!important;background:#f1f5f8!important;border:1px solid #dce5ee!important}
+.patrol-member-rank{max-width:70px!important;display:flex!important;align-items:center!important;padding:0 7px!important;background:#e2edf7!important;color:#315d84!important;font-size:8px!important;font-weight:850!important}
+.patrol-member-name{display:flex!important;align-items:center!important;min-width:0!important;padding:0 8px!important;background:#f6f8fa!important;color:#43566a!important;font-size:9px!important;font-weight:700!important}
+.patrol-member-callsign{font-size:8px!important;color:#4a82b5!important}
+.patrol-action-button{width:32px!important;height:34px!important;min-height:34px!important;flex:0 0 32px!important;border-radius:6px!important;background:#f0f5f9!important;border:1px solid #d5e0ea!important;color:#587088!important;font-size:15px!important}
+.patrol-action-button:hover{background:#e6f0fa!important;border-color:#a9c7e5!important;color:#286eae!important}
+.patrol-join-button{font-size:17px!important;color:#286eae!important;background:#e8f2fb!important;border-color:#bfd7eb!important}
+.patrol-no-action{width:32px!important;flex:0 0 32px!important}
+
+@media (max-width:1050px){
+  .patrol-card{grid-template-columns:minmax(78px,auto) 60px minmax(82px,auto) minmax(95px,1fr) 68px minmax(130px,1.35fr) 30px 30px!important}
+}
+@media (max-width:820px){
+  .patrol-card{grid-template-columns:minmax(82px,auto) 60px minmax(82px,auto) minmax(105px,1fr) 66px minmax(125px,1.2fr) 30px 30px!important}
+  .patrol-members{display:none!important}
+}
+@media (max-width:650px){
+  .patrol-group-toolbar .patrol-group-toolbar-inner{align-items:flex-start!important;flex-direction:column!important}
+  .patrol-group-toolbar .patrol-group-controls{width:100%!important}
+  .patrol-group-toolbar .patrol-group-button{flex:1 1 0!important}
+  .patrol-card{grid-template-columns:minmax(82px,1fr) 58px minmax(82px,auto) minmax(95px,1fr) 60px 30px 30px!important}
+  .patrol-card .patrol-location{display:none!important}
+  .patrol-activity-status{display:none!important}
+}
 </style>
 
 <div class="patrols-page">
@@ -1371,17 +1448,15 @@
          FILTER
     ====================================================== -->
 
-    <div class="patrol-toolbar patrol-group-toolbar">
-        <div class="patrol-toolbar-section">
-            <div class="patrol-group-toolbar-inner">
-                <div class="patrol-group-toolbar-title">
-                    <span class="patrol-toolbar-label">Gruppierung</span>
-                    <span class="patrol-toolbar-meta" id="patrolCount">0 Streifen</span>
-                </div>
-                <div class="patrol-group-controls" role="group" aria-label="Streifen gruppieren nach">
-                    <button type="button" class="patrol-group-button active" data-group="callsign">Callsign</button>
-                    <button type="button" class="patrol-group-button" data-group="status">Status</button>
-                </div>
+    <div class="patrol-toolbar patrol-group-toolbar" aria-label="Leitstellenansicht">
+        <div class="patrol-group-toolbar-inner">
+            <div class="patrol-group-toolbar-title">
+                <span class="patrol-toolbar-label">Gruppieren nach</span>
+                <span class="patrol-toolbar-meta" id="patrolCount">0 Streifen</span>
+            </div>
+            <div class="patrol-group-controls" role="group" aria-label="Streifen gruppieren nach">
+                <button type="button" class="patrol-group-button active" data-group="callsign">Callsign</button>
+                <button type="button" class="patrol-group-button" data-group="status">Status</button>
             </div>
         </div>
     </div>
@@ -1449,17 +1524,6 @@
         edit: "patrols.edit",
         delete: "patrols.delete"
     });
-
-    const CALLSIGNS = [
-        "ADAM",
-        "DAVID",
-        "EDWARD",
-        "KING",
-        "LINCOLN",
-        "SAM",
-        "TOM",
-        "VICTOR"
-    ];
 
     const VEHICLES = [
         "STR",
@@ -1751,21 +1815,6 @@
         `;
     }
 
-    // Liefert den Funkrufnamen-Typ aus Kennungen wie "Victor-02" oder "ADAM 01".
-    // Dadurch entstehen keine separaten Filter für jede einzelne Streifennummer.
-    function getCallsignType(value) {
-        const raw = String(value || "").trim();
-        if (!raw) return "";
-        const normalized = raw.toUpperCase().replace(/[–—]/g, "-").trim();
-        const known = CALLSIGNS.find(function (type) {
-            return normalized === type || normalized.startsWith(type + "-") || normalized.startsWith(type + " ");
-        });
-        if (known) return known;
-        // Fallback für künftig ergänzte Funkrufnamen im Muster "NAME-02".
-        const match = normalized.match(/^([A-ZÄÖÜ]+)[\s-]+\d+[A-Z]?$/);
-        return match ? match[1] : raw;
-    }
-
     function fetchPatrols(forceReload) {
         const cache = window.fibCache.patrols;
 
@@ -1911,7 +1960,7 @@
                     </div>
                     <div class="patrol-empty-title">Keine Streifen gefunden</div>
                     <div class="patrol-empty-text">
-                        Für die aktuelle Filterauswahl sind keine Streifen eingetragen.
+                        Aktuell ist keine aktive Streifeneinheit eingetragen.
                     </div>
                 </div>
             `;
@@ -1921,10 +1970,16 @@
         const groups = Object.create(null);
 
         filtered.forEach(function (patrol) {
-            const group =
-                state.patrolFilters.group === "callsign"
-                    ? String(patrol.callsign || "Unbekannt").trim()
-                    : String(patrol.tenCode || patrol.ten_code || patrol.status || "Unbekannt").trim();
+            const leadMember = (patrol.members || []).find(function (member) {
+                return String(member.position || "").toLowerCase() === "lead";
+            }) || (patrol.members || [])[0];
+            const callsign = String(
+                leadMember?.callSign || patrol.callsign || "Unbekannt"
+            ).trim() || "Unbekannt";
+            const status = String(
+                patrol.tenCode || patrol.ten_code || patrol.status || "Unbekannt"
+            ).trim() || "Unbekannt";
+            const group = state.patrolFilters.group === "callsign" ? callsign : status;
 
             if (!groups[group]) groups[group] = [];
             groups[group].push(patrol);
@@ -2007,7 +2062,10 @@
 
         // Older duty rows may contain the callsign in both callsign/number and
         // accidentally in location. Avoid displaying duplicate values in the UI.
-        const patrolCallsign = String(patrol.callsign || patrol.number || "Unbekannt").trim();
+        const leadMember = members.find(function (member) {
+            return String(member.position || "").toLowerCase() === "lead";
+        }) || members[0];
+        const patrolCallsign = String(leadMember?.callSign || patrol.callsign || "Unbekannt").trim();
         const patrolNumber = String(patrol.number || "").trim();
         const patrolLocation = String(patrol.location || "").trim();
         const patrolDisplayStatus = String(patrol.tenCode || patrol.ten_code || patrol.status || "Unbekannt").trim();

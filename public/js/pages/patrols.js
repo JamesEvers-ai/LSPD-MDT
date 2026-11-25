@@ -1,4 +1,3 @@
-
 (function () {
     "use strict";
 
@@ -14,9 +13,7 @@
         patrolDataPromise: null,
         patrolUsersPromise: null,
         patrolFilters: {
-            callsign: null,
-            status: null,
-            group: "status"
+            group: "callsign"
         },
         initialized: false,
         instanceId: "",
@@ -32,17 +29,6 @@
         edit: "patrols.edit",
         delete: "patrols.delete"
     });
-
-    const CALLSIGNS = [
-        "ADAM",
-        "DAVID",
-        "EDWARD",
-        "KING",
-        "LINCOLN",
-        "SAM",
-        "TOM",
-        "VICTOR"
-    ];
 
     const VEHICLES = [
         "STR",
@@ -334,86 +320,6 @@
         `;
     }
 
-    // Liefert den Funkrufnamen-Typ aus Kennungen wie "Victor-02" oder "ADAM 01".
-    // Dadurch entstehen keine separaten Filter für jede einzelne Streifennummer.
-    function getCallsignType(value) {
-        const raw = String(value || "").trim();
-        if (!raw) return "";
-        const normalized = raw.toUpperCase().replace(/[–—]/g, "-").trim();
-        const known = CALLSIGNS.find(function (type) {
-            return normalized === type || normalized.startsWith(type + "-") || normalized.startsWith(type + " ");
-        });
-        if (known) return known;
-        // Fallback für künftig ergänzte Funkrufnamen im Muster "NAME-02".
-        const match = normalized.match(/^([A-ZÄÖÜ]+)[\s-]+\d+[A-Z]?$/);
-        return match ? match[1] : raw;
-    }
-
-    function getAvailableCallsigns() {
-        const values = new Set(CALLSIGNS);
-        (state.patrolData || []).forEach(function (patrol) {
-            const value = getCallsignType(patrol.callsign);
-            if (value) values.add(value);
-        });
-        return Array.from(values).sort(function (a, b) { return a.localeCompare(b, "de"); });
-    }
-
-    function refreshCallsignFilters() {
-        const container = document.getElementById("patrolCallsignFilters");
-        if (!container) return;
-        container.innerHTML = "";
-        createFilterButton(container, "Alle", null, "callsign");
-        getAvailableCallsigns().forEach(function (value) {
-            createFilterButton(container, value, value, "callsign");
-        });
-    }
-
-    function buildFilters() {
-        const callsignContainer = document.getElementById("patrolCallsignFilters");
-        const statusContainer = document.getElementById("patrolStatusFilters");
-        if (!callsignContainer || !statusContainer) return;
-
-        callsignContainer.innerHTML = "";
-        statusContainer.innerHTML = "";
-
-        createFilterButton(callsignContainer, "Alle", null, "callsign");
-        getAvailableCallsigns().forEach(function (value) {
-            createFilterButton(callsignContainer, value, value, "callsign");
-        });
-
-        createFilterButton(statusContainer, "Alle", null, "status");
-        STATUSES.forEach(function (value) {
-            createFilterButton(statusContainer, value, value, "status");
-        });
-    }
-
-    function createFilterButton(container, label, value, type) {
-        const button = document.createElement("button");
-        button.type = "button";
-        button.className = "patrol-filter";
-
-        if (state.patrolFilters[type] === value) {
-            button.classList.add("active");
-        }
-
-        button.textContent = label;
-
-        button.addEventListener("click", function () {
-            state.patrolFilters[type] = value;
-
-            container
-                .querySelectorAll(".patrol-filter")
-                .forEach(function (item) {
-                    item.classList.remove("active");
-                });
-
-            button.classList.add("active");
-            renderPatrols();
-        });
-
-        container.appendChild(button);
-    }
-
     function fetchPatrols(forceReload) {
         const cache = window.fibCache.patrols;
 
@@ -445,7 +351,6 @@
                     state.patrolDataPromise = null;
                     setLoading(false);
                     updateCount();
-                    refreshCallsignFilters();
                     renderPatrols();
                     renderOwnStatus();
                     restoreOwnDutyPicker();
@@ -550,27 +455,7 @@
 
         updateCount();
 
-        const filtered = state.patrolData.filter(function (patrol) {
-            const callsign = String(patrol.callsign || "").trim();
-            const vehicle = String(patrol.vehicleType || "").trim();
-
-            if (
-                state.patrolFilters.callsign &&
-                getCallsignType(callsign) !== state.patrolFilters.callsign
-            ) {
-                return false;
-            }
-
-            const patrolStatus = String(patrol.tenCode || patrol.ten_code || patrol.status || "").trim();
-            if (
-                state.patrolFilters.status &&
-                patrolStatus !== state.patrolFilters.status
-            ) {
-                return false;
-            }
-
-            return true;
-        });
+        const filtered = state.patrolData.slice();
 
         if (!filtered.length) {
             container.innerHTML = `
@@ -580,7 +465,7 @@
                     </div>
                     <div class="patrol-empty-title">Keine Streifen gefunden</div>
                     <div class="patrol-empty-text">
-                        Für die aktuelle Filterauswahl sind keine Streifen eingetragen.
+                        Aktuell ist keine aktive Streifeneinheit eingetragen.
                     </div>
                 </div>
             `;
@@ -590,10 +475,16 @@
         const groups = Object.create(null);
 
         filtered.forEach(function (patrol) {
-            const group =
-                state.patrolFilters.group === "callsign"
-                    ? String(patrol.callsign || "Unbekannt").trim()
-                    : String(patrol.tenCode || patrol.ten_code || patrol.status || "Unbekannt").trim();
+            const leadMember = (patrol.members || []).find(function (member) {
+                return String(member.position || "").toLowerCase() === "lead";
+            }) || (patrol.members || [])[0];
+            const callsign = String(
+                leadMember?.callSign || patrol.callsign || "Unbekannt"
+            ).trim() || "Unbekannt";
+            const status = String(
+                patrol.tenCode || patrol.ten_code || patrol.status || "Unbekannt"
+            ).trim() || "Unbekannt";
+            const group = state.patrolFilters.group === "callsign" ? callsign : status;
 
             if (!groups[group]) groups[group] = [];
             groups[group].push(patrol);
@@ -676,7 +567,10 @@
 
         // Older duty rows may contain the callsign in both callsign/number and
         // accidentally in location. Avoid displaying duplicate values in the UI.
-        const patrolCallsign = String(patrol.callsign || patrol.number || "Unbekannt").trim();
+        const leadMember = members.find(function (member) {
+            return String(member.position || "").toLowerCase() === "lead";
+        }) || members[0];
+        const patrolCallsign = String(leadMember?.callSign || patrol.callsign || "Unbekannt").trim();
         const patrolNumber = String(patrol.number || "").trim();
         const patrolLocation = String(patrol.location || "").trim();
         const patrolDisplayStatus = String(patrol.tenCode || patrol.ten_code || patrol.status || "Unbekannt").trim();
@@ -1557,7 +1451,6 @@
 
         applyPermissionUI();
         loadConfiguredTenCodes().then(function(){ const select=document.getElementById("patrolModalStatus"); if(select){const selected=select.value;select.innerHTML=STATUSES.map(v=>`<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join("");if(STATUSES.includes(selected))select.value=selected;} });
-        buildFilters();
         bindStaticEvents();
 
         if (cacheValid(window.fibCache.patrols)) {

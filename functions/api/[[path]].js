@@ -369,7 +369,11 @@ async function dispatchCore(method,args,env,token){
   const ranksByName=new Map((rs||[]).map(r=>[String(r.name),r]));
   const membersByPatrol=new Map();
   for(const m of (ms||[])){const key=String(m.patrol_id);const list=membersByPatrol.get(key);if(list)list.push(m);else membersByPatrol.set(key,[m]);}
-  return (ps||[]).map(p=>({...p,tenCode:p.ten_code||p.status,vehicleType:p.vehicle_type,members:(membersByPatrol.get(String(p.id))||[]).map(m=>{const u=usersById.get(String(m.user_id))||{};const person=peopleByUserId.get(String(m.user_id))||{};const r=ranksById.get(String(u.rank))||ranksByName.get(String(u.rank));return {id:u.id,name:u.name,username:u.username,rank:r?.name||u.rank||"Kein Rang",rankShortName:r?.short_name||r?.shortName||r?.name||u.rank||"Kein Rang",rankId:r?.id||u.rank,profileImage:u.profile_image||"",callSign:text(person.call_sign),position:m.position||"Member"};})}));
+  return (ps||[]).map(p=>{
+   const members=(membersByPatrol.get(String(p.id))||[]).map(m=>{const u=usersById.get(String(m.user_id))||{};const person=peopleByUserId.get(String(m.user_id))||{};const r=ranksById.get(String(u.rank))||ranksByName.get(String(u.rank));return {id:u.id,name:u.name,username:u.username,rank:r?.name||u.rank||"Kein Rang",rankShortName:r?.short_name||r?.shortName||r?.name||u.rank||"Kein Rang",rankId:r?.id||u.rank,profileImage:u.profile_image||"",callSign:text(person.call_sign),position:m.position||"Member"};});
+   const lead=members.find(m=>String(m.position||"").toLowerCase()==="lead")||members[0];
+   return {...p,callsign:text(lead?.callSign)||text(p.callsign),tenCode:p.ten_code||p.status,vehicleType:p.vehicle_type,members};
+  });
  }
  if(method==="getPatrolEligibleUsers"){
   await authz(env,token,"patrols.view");const [us,ms,rs,people]=await Promise.all([
@@ -397,11 +401,16 @@ async function dispatchCore(method,args,env,token){
   const leadCount=members.filter(m=>m.position==="Lead").length;if(leadCount>1)throw new Error("Eine Streife kann nur einen Streifenführer haben.");
   const validUsers=memberIds.length?await db(env,"users",{query:{select:"id,username,name,rank,active,approved,profile_image",id:`in.(${memberIds.join(",")})`,active:"eq.true",approved:"eq.true"}}):[];
   if(validUsers.length!==memberIds.length)throw new Error("Mindestens ein ausgewählter Agent ist nicht mehr aktiv oder freigegeben. Bitte aktualisiere die Mitgliederliste.");
+  const personnelRows=memberIds.length?await db(env,"personnel",{query:{select:"user_id,call_sign",user_id:`in.(${memberIds.join(",")})`}}):[];
+  const personnelByUserId=new Map((personnelRows||[]).map(p=>[String(p.user_id),p]));
+  const leadMember=members.find(m=>m.position==="Lead")||members[0];
+  const leadCallSign=leadMember?text(personnelByUserId.get(String(leadMember.id||leadMember.user_id))?.call_sign):"";
+  if(leadCallSign)row.callsign=leadCallSign;
   if(method==="createPatrol"){row.created_at=now;row.created_by=au.user.id;await db(env,"patrols",{method:"POST",body:row,prefer:"return=minimal"});}
   else {const existing=await db(env,"patrols",{query:{select:"id",id:`eq.${pid}`,limit:"1"}});if(!existing?.length)throw Object.assign(new Error("Die Streife wurde nicht gefunden. Bitte aktualisiere die Leitstelle."),{status:404});await db(env,"patrols",{method:"PATCH",query:{id:`eq.${pid}`},body:row,prefer:"return=minimal"});}
   await db(env,"patrol_members",{method:"DELETE",query:{patrol_id:`eq.${pid}`},prefer:"return=minimal"});
   if(memberIds.length)await db(env,"patrol_members",{method:"POST",body:memberIds.map(uid=>{const m=members.find(x=>text(x.id||x.user_id)===uid)||{};return {patrol_id:pid,user_id:uid,position:m.position==="Lead"?"Lead":"Member"};}),prefer:"return=minimal"});
-  const ranks=await rankRows(env);const enriched=memberIds.map(uid=>{const u=validUsers.find(x=>String(x.id)===uid)||{},m=members.find(x=>text(x.id||x.user_id)===uid)||{},r=(ranks||[]).find(x=>String(x.id)===String(u.rank)||x.name===u.rank);return {id:u.id,name:u.name,username:u.username,rank:r?.name||u.rank||"Kein Rang",rankShortName:r?.short_name||r?.name||u.rank||"Kein Rang",rankId:r?.id||u.rank,profileImage:u.profile_image||"",position:m.position==="Lead"?"Lead":"Member"};});
+  const ranks=await rankRows(env);const enriched=memberIds.map(uid=>{const u=validUsers.find(x=>String(x.id)===uid)||{},m=members.find(x=>text(x.id||x.user_id)===uid)||{},r=(ranks||[]).find(x=>String(x.id)===String(u.rank)||x.name===u.rank);return {id:u.id,name:u.name,username:u.username,rank:r?.name||u.rank||"Kein Rang",rankShortName:r?.short_name||r?.name||u.rank||"Kein Rang",rankId:r?.id||u.rank,profileImage:u.profile_image||"",callSign:text(personnelByUserId.get(uid)?.call_sign),position:m.position==="Lead"?"Lead":"Member"};});
   return {success:true,patrol:{...row,id:pid,tenCode:row.ten_code,vehicleType:row.vehicle_type,members:enriched}};
  }
  if(method==="joinPatrol"){
