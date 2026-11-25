@@ -54,9 +54,13 @@
 
             departmentFilter: "all",
 
-            globalEventsBound: false,
+            viewMode: "active",
 
-            lastTerminationUrl: ""
+            terminatedRecords: [],
+
+            terminatedLoaded: false,
+
+            globalEventsBound: false
 
         };
 
@@ -252,6 +256,21 @@
             "officers.edit"
         );
 
+    }
+
+
+    function canTerminateSelectedAgent() {
+        const agent = state.selectedAgent;
+        if (!agent || !canEditOfficers()) return false;
+        const currentId = (typeof currentUser !== "undefined" && currentUser) ? (currentUser.id || currentUser.userId || currentUser.ID || "") : "";
+        if (String(currentId) === String(agent.id || agent.userId || "")) return false;
+        if (agent.active === false) return false;
+        if (typeof isMaster !== "undefined" && isMaster === true) return true;
+        const currentRankValue = (typeof currentUser !== "undefined" && currentUser) ? (currentUser.rank || "") : "";
+        const actorRank = (state.rankOptions || []).find(r => String(r.id) === String(currentRankValue) || String(r.name) === String(currentRankValue));
+        const targetRank = (state.rankOptions || []).find(r => String(r.id) === String(agent.rankId || agent.rank) || String(r.name) === String(agent.rankName || agent.rank));
+        if (!actorRank || !targetRank) return false;
+        return Number(targetRank.level || 0) <= Number(actorRank.level || 0);
     }
 
 
@@ -673,9 +692,20 @@
     function bindDepartmentTabs() {
         document.querySelectorAll("[data-agent-department]").forEach(button => {
             button.onclick = function() {
+                state.viewMode = "active";
                 state.departmentFilter = button.dataset.agentDepartment || "all";
                 document.querySelectorAll("[data-agent-department]").forEach(item => item.classList.toggle("active", item === button));
+                document.querySelectorAll("[data-agent-view]").forEach(item => item.classList.toggle("active", item.dataset.agentView === "active"));
                 filterAgents($("agentsSearchInput")?.value || "");
+            };
+        });
+        document.querySelectorAll("[data-agent-view]").forEach(button => {
+            button.onclick = function() {
+                state.viewMode = button.dataset.agentView || "active";
+                document.querySelectorAll("[data-agent-view]").forEach(item => item.classList.toggle("active", item === button));
+                document.querySelectorAll("[data-agent-department]").forEach(item => item.classList.toggle("active", item.dataset.agentDepartment === "all" && state.viewMode === "active"));
+                if (state.viewMode === "terminated") loadTerminatedAgents();
+                else filterAgents($("agentsSearchInput")?.value || "");
             };
         });
     }
@@ -720,6 +750,17 @@
             .trim()
             .toLowerCase();
 
+
+        if (state.viewMode === "terminated") {
+            const records = Array.isArray(state.terminatedRecords) ? state.terminatedRecords : [];
+            state.filteredAgents = records.filter(record => {
+                const p = record.payload || {};
+                const haystack = [p.recipient, p.previousRank, p.departmentUnit, p.documentNumber, p.terminationType, p.reason, record.createdByName].map(v => String(v ?? "").toLowerCase()).join(" ");
+                return !value || haystack.includes(value);
+            });
+            renderTerminatedList();
+            return;
+        }
 
         const department = String(state.departmentFilter || "all");
         const source = department === "all" ? state.agents : state.agents.filter(agent => String(agent.department || "") === department);
@@ -993,6 +1034,54 @@
     }
 
 
+    function loadTerminatedAgents() {
+        const list = $("agentsList");
+        if (!list) return;
+        if (state.terminatedLoaded) { filterAgents($("agentsSearchInput")?.value || ""); return; }
+        list.innerHTML = `<div class="agents-state"><div class="agents-loading"><div class="agents-loading-spinner"></div>Gekündigte Personen werden geladen...</div></div>`;
+        const token = getAgentsSessionToken();
+        if (!token) { renderAgentsError("Keine aktive Sitzung."); return; }
+        CloudApi.run.withSuccessHandler(rows => {
+            state.terminatedRecords = Array.isArray(rows) ? rows : [];
+            state.terminatedLoaded = true;
+            filterAgents($("agentsSearchInput")?.value || "");
+        }).withFailureHandler(error => {
+            console.error("LSPD MDT – Kündigungsarchiv:", error);
+            renderAgentsError(error?.message || "Die gekündigten Personen konnten nicht geladen werden.");
+        }).getPersonnelTerminations(token);
+    }
+
+    function renderTerminatedList() {
+        const list = $("agentsList");
+        if (!list) return;
+        const records = Array.isArray(state.filteredAgents) ? state.filteredAgents : [];
+        const count = $("agentsPageCount");
+        if (count) count.textContent = records.length === 1 ? "1 Kündigungsschreiben" : `${records.length} Kündigungsschreiben`;
+        if (!records.length) {
+            list.innerHTML = `<div class="agents-state">Keine Kündigungsschreiben gefunden.</div>`;
+            return;
+        }
+        list.innerHTML = records.map(record => {
+            const p = record.payload || {};
+            const url = record.publicToken ? `/?terminationShare=${encodeURIComponent(record.publicToken)}` : "";
+            return `<article class="agents-terminated-row">
+                <div class="agents-terminated-main">
+                    <div class="agents-agent-name">${escapeHtml(p.recipient || "Unbekannte Person")}</div>
+                    <div class="agents-agent-rank">${escapeHtml(p.previousRank || "Kein Rang")} · ${escapeHtml(p.departmentUnit || "Keine Abteilung")}</div>
+                    <div class="agents-organization-meta"><span>${escapeHtml(p.documentNumber || record.documentNumber || "Ohne Dokumentennummer")}</span><span>${escapeHtml(p.terminationType || "Kündigung / Austritt")}</span><span>${record.createdAt ? escapeHtml(new Date(record.createdAt).toLocaleString("de-DE")) : ""}</span></div>
+                </div>
+                <div class="agents-terminated-actions">
+                    ${url ? `<a class="agents-file-button" href="${escapeHtml(url)}" target="_blank" rel="noopener">Dokument öffnen</a>` : `<span class="agents-terminated-legacy">Dokument erstellt · Link aus älterer Version nicht im Archiv verfügbar</span>`}
+                    ${record.userId ? `<button type="button" class="agents-file-button" data-terminated-agent-id="${escapeHtml(record.userId)}">Personalakte</button>` : ""}
+                </div>
+            </article>`;
+        }).join("");
+        list.querySelectorAll("[data-terminated-agent-id]").forEach(button => {
+            button.addEventListener("click", event => { event.stopPropagation(); openPersonnelFile(button.dataset.terminatedAgentId); });
+        });
+    }
+
+
     function updateAgentsCount() {
 
         const element =
@@ -1004,8 +1093,7 @@
         }
 
 
-        const count =
-            state.agents.length;
+        const count = state.viewMode === "terminated" ? state.terminatedRecords.length : state.agents.length;
 
 
         element.textContent =
@@ -1512,6 +1600,7 @@
         state.historyLoaded = false;
         state.sanctionsVisible = false;
         state.sanctionsLoaded = false;
+        state.terminations = [];
 
 
         state.trainingsLoaded =
@@ -1635,6 +1724,7 @@
                             : [];
 
                     state.sanctions = Array.isArray(bundle.sanctions) ? bundle.sanctions : [];
+                    state.terminations = Array.isArray(bundle.terminations) ? bundle.terminations : [];
                     state.history = Array.isArray(bundle.history) ? bundle.history : [];
                     state.historyLoaded = true;
                     state.sanctionsVisible = bundle.sanctionsVisible === true;
@@ -1853,7 +1943,7 @@
         else if (state.modalTab === "history") {
             body.innerHTML = renderHistoryTab();
         }
-        else if (state.modalTab === "termination" && canEditOfficers()) {
+        else if (state.modalTab === "termination" && canTerminateSelectedAgent()) {
             body.innerHTML = renderTerminationTab();
         }
         else {
@@ -1960,7 +2050,7 @@
 
                 <button type="button" class="agents-personnel-tab ${activeTab === "history" ? "active" : ""}" data-personnel-tab="history">Historie</button>
 
-                ${canEditOfficers() ? `<button type="button" class="agents-personnel-tab ${activeTab === "termination" ? "active" : ""}" data-personnel-tab="termination">Kündigung / Austritt</button>` : ""}
+                ${canTerminateSelectedAgent() ? `<button type="button" class="agents-personnel-tab ${activeTab === "termination" ? "active" : ""}" data-personnel-tab="termination">Kündigung / Austritt</button>` : ""}
 
             </div>
 
@@ -4234,7 +4324,7 @@
     }
 
     function bindTerminationForm() {
-        if (state.modalTab !== "termination") return;
+        if (state.modalTab !== "termination" || !canTerminateSelectedAgent()) return;
         const issuer=setupSignatureCanvas($("terminationSignatureCanvas"));
                 $("terminationSignatureClear")?.addEventListener("click",()=>issuer.clear());
                 $("terminationSubmitButton")?.addEventListener("click",()=>{
@@ -4247,10 +4337,11 @@
                 const targetId=String(state.selectedAgent.id);
                 state.agents=state.agents.map(item=>String(item.id)===targetId?{...item,active:false,approved:false,personnelStatus:"Ausgeschieden"}:item);
                 state.selectedAgent={...state.selectedAgent,active:false,approved:false,personnelStatus:"Ausgeschieden"};
+                if (result.termination) state.terminations = [result.termination, ...(state.terminations || [])];
                 filterAgents($("agentsSearchInput")?.value || "");
                 showAgentSuccess("Kündigung dokumentiert. Das dauerhafte externe Dokument wurde geöffnet.");
                 if(result.url) { try { window.open(new URL(result.url,window.location.origin).href,"_blank","noopener"); } catch(e) {} if(navigator.clipboard) navigator.clipboard.writeText(new URL(result.url,window.location.origin).href).catch(()=>{}); }
-                state.lastTerminationUrl = result.url ? new URL(result.url,window.location.origin).href : ""; state.modalTab="history"; renderPersonnelModal(true); loadPersonnelHistory().catch(()=>{});
+                state.modalTab="history"; renderPersonnelModal(true); loadPersonnelHistory().catch(()=>{});
             }).withFailureHandler(error=>{if(button)button.disabled=false;showAgentError(error?.message||"Das Kündigungsschreiben konnte nicht erstellt werden.");}).createPersonnelTermination(getAgentsSessionToken(),String(state.selectedAgent.id),data);
         });
     }
@@ -4271,8 +4362,10 @@
 
     function renderHistoryTab() {
         const entries = Array.isArray(state.history) ? state.history : [];
+        const terminations = Array.isArray(state.terminations) ? state.terminations : [];
         const actionLabels = { profile_updated: "Stammdaten geändert", rank_changed: "Dienstgrad geändert", training_created: "Schulung hinzugefügt", training_deleted: "Schulung gelöscht", note_created: "Vermerk hinzugefügt", note_deleted: "Vermerk gelöscht", sanction_issued: "Interne Sanktion festgesetzt", termination_created: "Kündigung / Austritt dokumentiert" };
-        return `${renderTabs("history")}<div class="agents-form">${state.lastTerminationUrl ? `<div class="agents-section"><div class="agents-section-title">Kündigungsschreiben</div><div class="agents-section-card agents-termination-link-card"><div class="agents-history-detail">Das Dokument wurde dauerhaft veröffentlicht.</div><a class="agents-system-button agents-system-button-primary agents-termination-link" href="${escapeHtml(state.lastTerminationUrl)}" target="_blank" rel="noopener">Dauerhaftes Dokument öffnen</a></div></div>` : ""}<div class="agents-section"><div class="agents-section-title">Änderungshistorie</div><div class="agents-history-list">${!state.historyLoaded ? `<div class="agents-personnel-loading-strip">Historie wird geladen …</div>` : !entries.length ? `<div class="agents-empty-list">Für diese Personalakte sind noch keine Änderungen protokolliert.</div>` : entries.map(row => { const date = row.created_at || row.createdAt; return `<article class="agents-history-item"><div class="agents-history-dot"></div><div class="agents-history-main"><div class="agents-history-title">${escapeHtml(actionLabels[row.action] || row.action || "Änderung")}</div><div class="agents-history-meta">${date ? escapeHtml(new Date(date).toLocaleString("de-DE")) : "Datum unbekannt"} · ${escapeHtml(row.actor_name || row.actorName || "System")}</div>${row.detail ? `<div class="agents-history-detail">${escapeHtml(row.detail)}</div>` : ""}</div></article>`; }).join("")}</div></div></div>`;
+        const terminationCards = terminations.length ? `<div class="agents-section"><div class="agents-section-title">Kündigungsschreiben / Austritte</div><div class="agents-termination-history-list">${terminations.map(t=>{const p=t.payload||{};const url=t.publicToken?`/?terminationShare=${encodeURIComponent(t.publicToken)}`:"";return `<div class="agents-section-card agents-termination-link-card"><div><div class="agents-entry-title">${escapeHtml(p.documentNumber||t.documentNumber||"Kündigungsschreiben")}</div><div class="agents-entry-meta"><span>${escapeHtml(p.terminationType||"Kündigung / Austritt")}</span><span>${escapeHtml(p.effectiveDate||"")}</span><span>${escapeHtml(t.createdByName||"System")}</span></div><div class="agents-history-detail">${escapeHtml(p.reason||"Keine Begründung hinterlegt.")}</div></div>${url?`<a class="agents-system-button agents-system-button-primary agents-termination-link" href="${escapeHtml(url)}" target="_blank" rel="noopener">Dokument öffnen</a>`:`<span class="agents-terminated-legacy">Dokument vorhanden · kein öffentlicher Link im Datensatz</span>`}</div>`}).join("")}</div></div>` : `<div class="agents-section"><div class="agents-section-title">Kündigungsschreiben / Austritte</div><div class="agents-empty-list">Für diese Personalakte wurden noch keine Kündigungsschreiben gespeichert.</div></div>`;
+        return `${renderTabs("history")}<div class="agents-form">${terminationCards}<div class="agents-section"><div class="agents-section-title">Änderungshistorie</div><div class="agents-history-list">${!state.historyLoaded ? `<div class="agents-personnel-loading-strip">Historie wird geladen …</div>` : !entries.length ? `<div class="agents-empty-list">Für diese Personalakte sind noch keine Änderungen protokolliert.</div>` : entries.map(row => { const date = row.created_at || row.createdAt; return `<article class="agents-history-item"><div class="agents-history-dot"></div><div class="agents-history-main"><div class="agents-history-title">${escapeHtml(actionLabels[row.action] || row.action || "Änderung")}</div><div class="agents-history-meta">${date ? escapeHtml(new Date(date).toLocaleString("de-DE")) : "Datum unbekannt"} · ${escapeHtml(row.actor_name || row.actorName || "System")}</div>${row.detail ? `<div class="agents-history-detail">${escapeHtml(row.detail)}</div>` : ""}</div></article>`; }).join("")}</div></div></div>`;
     }
 
 

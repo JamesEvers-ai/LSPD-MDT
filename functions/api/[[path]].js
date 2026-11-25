@@ -260,15 +260,21 @@ async function dispatchCore(method,args,env,token){
   });
  }
  if(method==="getPersonnelRankOptions"){await authz(env,token,"officers.view");return await rankRows(env);}
+ if(method==="getPersonnelTerminations") {
+  const au=await authz(env,token,"officers.view");
+  const rows=await db(env,"personnel_terminations",{query:{select:"id,user_id,document_number,payload,created_by_name,created_at",order:"created_at.desc",limit:"500"}});
+  return (rows||[]).map(r=>({id:r.id,userId:r.user_id,documentNumber:r.document_number,publicToken:r.payload?.publicToken||"",payload:r.payload||{},createdByName:r.created_by_name||"System",createdAt:r.created_at||""}));
+ }
  if(method==="getPersonnelFileBundle"||method==="getPersonnelFile"){
   const au=await authz(env,token,"officers.view");const uid=text(args[1]);if(!uid)throw new Error("Keine Benutzer-ID angegeben.");
   const us=await db(env,"users",{query:{select:"id,username,name,rank,active,approved,profile_image",id:`eq.${uid}`,limit:"1"}});if(!us?.length)throw Object.assign(new Error("Beamter nicht gefunden."),{status:404});
-  const [pp,tt,nn,ss,hh,ranks]=await Promise.all([
+  const [pp,tt,nn,ss,hh,tx,ranks]=await Promise.all([
    db(env,"personnel",{query:{select:"*",user_id:`eq.${uid}`,limit:"1"}}),
    db(env,"personnel_trainings",{query:{select:"*",user_id:`eq.${uid}`,order:"created_at.desc"}}),
    db(env,"personnel_notes",{query:{select:"*",user_id:`eq.${uid}`,order:"created_at.desc"}}),
    db(env,"fib_internal_fines",{query:{select:"id,title,description,status,event_date,metadata,created_at", "metadata->>personnel_id":`eq.${uid}`,"metadata->>record_type":"eq.internal_fine_case",order:"created_at.desc",limit:"300"}}),
    db(env,"personnel_history",{query:{select:"id,user_id,action,detail,actor_id,actor_name,created_at",user_id:`eq.${uid}`,order:"created_at.desc",limit:"300"}}).catch(()=>[]),
+   db(env,"personnel_terminations",{query:{select:"id,user_id,document_number,payload,created_by_name,created_at",user_id:`eq.${uid}`,order:"created_at.desc",limit:"100"}}).catch(()=>[]),
    rankRows(env)
   ]);
   const u=us[0],p=normalizePersonnelRow(pp?.[0]||{}),rank=(ranks||[]).find(r=>String(r.id)===String(u.rank)||r.name===u.rank);
@@ -276,7 +282,8 @@ async function dispatchCore(method,args,env,token){
   const canViewSanctions=au.master===true||!!(viewerRank&&rank&&Number(rank.level)<Number(viewerRank.level));
   const agent={...u,...p,rank:rank?.name||u.rank||"Kein Rang",rankId:rank?.id||u.rank||"",rankName:rank?.name||u.rank||"Kein Rang",profileImage:u.profile_image||p.profileImage||""};
   const sanctions=canViewSanctions?(ss||[]).filter(r=>r.metadata?.record_type==="internal_fine_case").map(normalizeModuleRow):[];
-  return {agent,personnel:p,trainings:(tt||[]).map(normalizeTrainingRow),notes:(nn||[]).map(normalizePersonnelNoteRow),sanctions,sanctionsVisible:canViewSanctions,history:hh||[],rankOptions:ranks||[]};
+  const terminations=(tx||[]).map(r=>({id:r.id,userId:r.user_id,documentNumber:r.document_number,publicToken:r.payload?.publicToken||"",payload:r.payload||{},createdByName:r.created_by_name||"System",createdAt:r.created_at||""}));
+  return {agent,personnel:p,trainings:(tt||[]).map(normalizeTrainingRow),notes:(nn||[]).map(normalizePersonnelNoteRow),sanctions,sanctionsVisible:canViewSanctions,history:hh||[],terminations,rankOptions:ranks||[]};
  }
  if(method==="savePersonnelProfile"){
   const au=await authz(env,token,"officers.edit");const uid=text(args[1]),data=args[2]||{};if(!uid)throw new Error("Keine Benutzer-ID angegeben.");
@@ -319,6 +326,14 @@ async function dispatchCore(method,args,env,token){
   if(!/^data:image\/png;base64,[A-Za-z0-9+/=]+$/i.test(signature)||signature.length>180000)throw new Error("Die Signatur ist ungültig oder zu groß.");
   const userRows=await db(env,"users",{query:{select:"id,username,name,rank,active,approved",id:`eq.${uid}`,limit:"1"}});
   if(!userRows?.length)throw Object.assign(new Error("Beamter nicht gefunden."),{status:404});
+  if(String(au.user.id)===String(uid))throw Object.assign(new Error("Du kannst dich nicht selbst kündigen."),{status:403,code:"SELF_TERMINATION_FORBIDDEN"});
+  const ranks=await rankRows(env);
+  const actorRank=ranks.find(r=>String(r.id)===String(au.user.rank)||String(r.name)===String(au.user.rank));
+  const targetRank=ranks.find(r=>String(r.id)===String(userRows[0].rank)||String(r.name)===String(userRows[0].rank));
+  if(!au.master){
+    if(!actorRank)throw Object.assign(new Error("Dein eigener Dienstgrad konnte nicht eindeutig bestimmt werden."),{status:403,code:"ACTOR_RANK_UNKNOWN"});
+    if(targetRank&&Number(targetRank.level)>Number(actorRank.level))throw Object.assign(new Error("Du kannst keine Person kündigen, die im Rang über dir steht."),{status:403,code:"HIGHER_RANK_TERMINATION_FORBIDDEN"});
+  }
   const people=await db(env,"personnel",{query:{select:"user_id,service_number,department,unit,personnel_status",user_id:`eq.${uid}`,limit:"1"}});
   const p=people?.[0]||{};
   const raw=[...crypto.getRandomValues(new Uint8Array(32))].map(b=>b.toString(16).padStart(2,"0")).join("");
@@ -329,6 +344,7 @@ async function dispatchCore(method,args,env,token){
     terminationType:text(d.terminationType),effectiveDate:text(d.effectiveDate),decidingOffice:text(d.decidingOffice),reason:text(d.reason),approval:text(d.approval),equipmentReturn:text(d.equipmentReturn),updatedAt:text(d.updatedAt),
     issuerNameRank:text(d.issuerNameRank),issuerSignature:signature
   };
+  payload.publicToken=raw;
   const row={id:id("BE"),user_id:uid,document_number:payload.documentNumber,public_token_hash:await sha256(raw),payload,created_by:au.user.id,created_by_name:au.user.name,created_at:now};
   const saved=await db(env,"personnel_terminations",{method:"POST",query:{select:"id,user_id,document_number,created_by_name,created_at",},body:row,prefer:"return=representation"});
   await db(env,"users",{method:"PATCH",query:{id:`eq.${uid}`},body:{active:false,approved:false},prefer:"return=minimal"});
@@ -337,7 +353,7 @@ async function dispatchCore(method,args,env,token){
   else await db(env,"personnel",{method:"POST",body:{user_id:uid,department:p.department||payload.departmentUnit,unit:p.unit||"",personnel_status:"Ausgeschieden"},prefer:"return=minimal"});
   await writePersonnelHistory(env,au,uid,"termination_created",`Dienstverhältnis beendet. Dokument ${payload.documentNumber}. Grund: ${payload.reason}`);
   clearAuthCaches();
-  return {success:true,documentNumber:payload.documentNumber,url:`/?terminationShare=${raw}`,createdAt:now};
+  return {success:true,documentNumber:payload.documentNumber,url:`/?terminationShare=${raw}`,createdAt:now,termination:{id:row.id,userId:uid,documentNumber:payload.documentNumber,publicToken:raw,payload,createdByName:au.user.name||"System",createdAt:now}};
  }
  if(method==="deletePersonnelTraining"||method==="deletePersonnelNote"){const au=await authz(env,token,"officers.edit");const uid=text(args[1]),entryId=text(args[2]),training=method==="deletePersonnelTraining",table=training?"personnel_trainings":"personnel_notes";const found=await db(env,table,{query:{select:training?"id,name":"id,title",id:`eq.${entryId}`,user_id:`eq.${uid}`,limit:"1"}});await db(env,table,{method:"DELETE",query:{id:`eq.${entryId}`,user_id:`eq.${uid}`},prefer:"return=minimal"});const label=found?.[0]?(training?found[0].name:found[0].title):entryId;await writePersonnelHistory(env,au,uid,training?"training_deleted":"note_deleted",training?`Schulung „${label}“ gelöscht.`:`Vermerk „${label}“ gelöscht.`);return {success:true};}
  // patrols
@@ -502,7 +518,7 @@ const READ_ONLY_METHODS = new Set([
  "getInternalFineCases",
  "getInternalFineCatalog","getInternalFinePersonnel","getInternalSanctionsOverview",
  "getPatrolEligibleUsers","getPatrolTenCodes","getPatrols",
- "getPersonnelFile","getPersonnelFileBundle","getPersonnelHistory","getPersonnelList","getPersonnelNotes",
+ "getPersonnelFile","getPersonnelFileBundle","getPersonnelHistory","getPersonnelList","getPersonnelNotes","getPersonnelTerminations",
  "getPersonnelRankOptions","getPersonnelTrainings","getRankById","getRecord",
  "getRecordShares","getRecords","getRecordsConfig","getWanted","getWantedConfig",
  "getWantedEntries","getWantedEntry","getWarrantStatistics","getWarrants",
