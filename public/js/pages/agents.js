@@ -1527,8 +1527,13 @@
 
 
     function openPersonnelFile(
-        userId
+        userIdOrAgent
     ) {
+
+        const requestedId =
+            userIdOrAgent && typeof userIdOrAgent === "object"
+                ? getValue(userIdOrAgent, ["id", "ID", "userId", "user_id"], "")
+                : userIdOrAgent;
 
         if (!canViewOfficers()) {
 
@@ -1540,7 +1545,7 @@
 
         }
 
-        const agent =
+        let agent =
             state.agents.find(
                 item =>
                     String(
@@ -1548,25 +1553,45 @@
                             item,
                             [
                                 "id",
-                                "ID"
+                                "ID",
+                                "userId",
+                                "user_id"
                             ],
                             ""
                         )
                     ) ===
-                    String(
-                        userId
-                    )
+                    String(requestedId)
             );
 
+        // Gekündigte/inaktive Personen sind absichtlich nicht in der aktiven
+        // Beamtenliste. Für diese Fälle nehmen wir den archivierten Datensatz
+        // als leichten Platzhalter und laden die vollständige Personalakte
+        // anschließend über das bestehende Bundle nach.
+        if (!agent && state.viewMode === "terminated") {
+            const termination = (state.terminatedRecords || []).find(
+                record => String(record?.userId || "") === String(requestedId)
+            );
+            if (termination) {
+                const payload = termination.payload || {};
+                agent = {
+                    id: String(termination.userId || requestedId),
+                    userId: String(termination.userId || requestedId),
+                    name: payload.recipient || "Unbekannte Person",
+                    rank: payload.previousRank || "Kein Rang",
+                    rankName: payload.previousRank || "Kein Rang",
+                    department: payload.departmentUnit || "",
+                    active: false,
+                    approved: false,
+                    personnelStatus: "Ausgeschieden"
+                };
+            }
+        }
 
         if (!agent) {
-
             showAgentError(
                 "Der ausgewählte Beamte konnte nicht gefunden werden."
             );
-
             return;
-
         }
 
 
@@ -1652,7 +1677,7 @@
                             state.selectedAgent.id
                         ) !==
                         String(
-                            userId
+                            requestedId
                         )
                     ) {
 
@@ -1786,7 +1811,7 @@
 
             .getPersonnelFileBundle(
                 token,
-                userId
+                requestedId
             );
 
     }
@@ -1957,6 +1982,7 @@
 
 
         bindPersonnelTabEvents();
+        enhanceModalSelects();
 
         bindRankDropdown();
 
@@ -2069,15 +2095,104 @@
         body.dataset.personnelTabsBound = "true";
         body.addEventListener("click", function (event) {
             const button = event.target.closest("[data-personnel-tab]");
-            if (!button || !body.contains(button)) return;
+            if (button && body.contains(button)) {
+                if (state.bundleLoading) return;
+                event.preventDefault();
+                state.modalTab = button.dataset.personnelTab || "personal";
+                renderPersonnelModal(true);
+                return;
+            }
 
-            if (state.bundleLoading) return;
-            event.preventDefault();
-            state.modalTab = button.dataset.personnelTab || "personal";
-            renderPersonnelModal(true);
+            if (!event.target.closest(".agents-custom-select")) {
+                closeAllModalSelects();
+            }
         });
     }
 
+
+    function enhanceModalSelects() {
+        const body = $("agentsSystemModalBody");
+        if (!body) return;
+
+        body.querySelectorAll("select.agents-form-select:not([data-modal-select-ready])").forEach(select => {
+            select.dataset.modalSelectReady = "true";
+
+            const wrapper = document.createElement("div");
+            wrapper.className = "agents-custom-select";
+            if (select.disabled) wrapper.classList.add("disabled");
+
+            const button = document.createElement("button");
+            button.type = "button";
+            button.className = "agents-custom-select-trigger";
+            button.disabled = select.disabled;
+            button.setAttribute("aria-haspopup", "listbox");
+            button.setAttribute("aria-expanded", "false");
+
+            const label = document.createElement("span");
+            label.className = "agents-custom-select-label";
+            const current = Array.from(select.options).find(option => option.value === select.value) || select.options[select.selectedIndex];
+            label.textContent = current ? current.textContent.trim() : "Auswählen";
+
+            const chevron = document.createElement("span");
+            chevron.className = "agents-custom-select-chevron";
+            chevron.textContent = "⌄";
+            button.append(label, chevron);
+
+            const menu = document.createElement("div");
+            menu.className = "agents-custom-select-menu";
+            menu.setAttribute("role", "listbox");
+
+            Array.from(select.options).forEach(option => {
+                const item = document.createElement("button");
+                item.type = "button";
+                item.className = "agents-custom-select-option";
+                item.dataset.value = option.value;
+                item.textContent = option.textContent.trim();
+                item.disabled = option.disabled;
+                item.setAttribute("role", "option");
+                item.setAttribute("aria-selected", option.value === select.value ? "true" : "false");
+                item.addEventListener("click", event => {
+                    event.preventDefault();
+                    if (item.disabled) return;
+                    select.value = option.value;
+                    label.textContent = option.textContent.trim();
+                    menu.querySelectorAll(".agents-custom-select-option").forEach(node => node.setAttribute("aria-selected", node === item ? "true" : "false"));
+                    select.dispatchEvent(new Event("change", { bubbles: true }));
+                    closeAllModalSelects();
+                });
+                menu.appendChild(item);
+            });
+
+            wrapper.appendChild(button);
+            wrapper.appendChild(menu);
+            wrapper.appendChild(select);
+            select.classList.add("agents-native-select-hidden");
+            select.setAttribute("tabindex", "-1");
+            select.setAttribute("aria-hidden", "true");
+
+            button.addEventListener("click", event => {
+                event.preventDefault();
+                if (button.disabled) return;
+                const isOpen = wrapper.classList.contains("open");
+                closeAllModalSelects();
+                if (!isOpen) {
+                    wrapper.classList.add("open");
+                    button.setAttribute("aria-expanded", "true");
+                }
+            });
+
+            select.parentElement?.insertBefore(wrapper, select);
+        });
+    }
+
+    function closeAllModalSelects() {
+        const body = $("agentsSystemModalBody");
+        if (!body) return;
+        body.querySelectorAll(".agents-custom-select.open").forEach(wrapper => {
+            wrapper.classList.remove("open");
+            wrapper.querySelector(".agents-custom-select-trigger")?.setAttribute("aria-expanded", "false");
+        });
+    }
 
     /* =====================================================
        PERSONAL TAB
@@ -3341,6 +3456,7 @@
                     }
 
 
+                    renderPersonnelModal(true);
                     loadPersonnelHistory().catch(function () {});
                     showAgentSuccess(
                         "Die Personalakte wurde erfolgreich gespeichert."
@@ -5172,13 +5288,65 @@
     }
 
 
+    async function refreshOpenPersonnelFile() {
+        const agent = state.selectedAgent;
+        const token = getAgentsSessionToken();
+        if (!agent || !token || state.bundleLoading) return;
+
+        const idValue = String(agent.id || agent.userId || "");
+        if (!idValue) return;
+
+        try {
+            state.bundleLoading = true;
+            const bundle = await new Promise((resolve, reject) => {
+                CloudApi.run
+                    .withSuccessHandler(resolve)
+                    .withFailureHandler(reject)
+                    .getPersonnelFileBundle(token, idValue);
+            });
+
+            if (!state.selectedAgent || String(state.selectedAgent.id || state.selectedAgent.userId || "") !== idValue) return;
+
+            state.selectedAgent = { ...state.selectedAgent, ...(bundle?.agent || {}) };
+            state.rankOptions = Array.isArray(bundle?.rankOptions) ? bundle.rankOptions : state.rankOptions;
+            state.trainings = Array.isArray(bundle?.trainings) ? bundle.trainings : [];
+            state.notes = Array.isArray(bundle?.notes) ? bundle.notes : [];
+            state.sanctions = Array.isArray(bundle?.sanctions) ? bundle.sanctions : [];
+            state.terminations = Array.isArray(bundle?.terminations) ? bundle.terminations : [];
+            state.history = Array.isArray(bundle?.history) ? bundle.history : [];
+            state.sanctionsVisible = bundle?.sanctionsVisible === true;
+            state.trainingsLoaded = true;
+            state.notesLoaded = true;
+            state.sanctionsLoaded = true;
+            state.historyLoaded = true;
+            state.bundleLoaded = true;
+        } catch (error) {
+            console.warn("LSPD MDT – Offene Personalakte konnte nicht aktualisiert werden:", error);
+        } finally {
+            state.bundleLoading = false;
+            if (state.selectedAgent && String(state.selectedAgent.id || state.selectedAgent.userId || "") === idValue) {
+                renderPersonnelModal(true);
+            }
+        }
+    }
+
     /* =====================================================
        GLOBAL FUNCTIONS
     ====================================================== */
 
     window.__fibPageLifecycle.on(window, "fib-mdt:refresh-request", function (event) { if (document.getElementById("agentsPage") && !(event.detail && event.detail.source === "mutation")) loadAgents(); });
 
-    window.__fibPageLifecycle.on(window, "fib-mdt:data-changed", function (event) { const modal=document.getElementById("fibGlobalModalOverlay"); if (document.getElementById("agentsPage") && !(modal && modal.classList.contains("open")) && /Personnel|Agent|Training|Note|Rank|User/i.test(String(event.detail && event.detail.method || ""))) loadAgents(); });
+    window.__fibPageLifecycle.on(window, "fib-mdt:data-changed", function (event) {
+        if (!document.getElementById("agentsPage")) return;
+        const method = String(event.detail && event.detail.method || "");
+        if (!/Personnel|Agent|Training|Note|Rank|User|Termination|Sanction/i.test(method)) return;
+        const modal = document.getElementById("agentsSystemModalOverlay");
+        if (modal && modal.classList.contains("active") && state.selectedAgent) {
+            refreshOpenPersonnelFile();
+        } else {
+            loadAgents();
+        }
+    });
 
     window.openPersonnelFile =
         openPersonnelFile;

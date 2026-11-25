@@ -8,9 +8,11 @@ const SESSION_HOURS = 8;
 // per API request. A fresh isolate simply behaves exactly as before.
 const SESSION_CACHE_TTL_MS = 5_000;
 const PERMISSION_CACHE_TTL_MS = 15_000;
+const RANK_NAME_CACHE_TTL_MS = 60_000;
 const MAX_AUTH_CACHE_ENTRIES = 500;
 const sessionCache = new Map();
 const permissionCache = new Map();
+const rankNameCache = new Map();
 
 function pruneCache(cache, maxAgeMs) {
   const now = Date.now();
@@ -38,6 +40,7 @@ function cacheSet(cache, key, value, ttl) {
 export function clearAuthCaches() {
   sessionCache.clear();
   permissionCache.clear();
+  rankNameCache.clear();
 }
 const encoder = new TextEncoder();
 const toHex = bytes => [...new Uint8Array(bytes)].map(b => b.toString(16).padStart(2, "0")).join("");
@@ -101,14 +104,47 @@ export async function requireSession(env, token) {
   const remainingMs = Math.max(0, Date.parse(session.expires_at) - Date.now());
   return cacheSet(sessionCache, cacheKey, auth, Math.min(SESSION_CACHE_TTL_MS, remainingMs));
 }
-export function publicUser(user) {
+export async function publicUser(env, user) {
+  let rankName = String(user?.rank || "").trim();
+  const rankValue = String(user?.rank || "").trim();
+
+  // Older accounts may store the rank UUID in users.rank. The UI should
+  // never expose that internal identifier as the visible rank. Resolve it
+  // at the auth boundary and cache the small display mapping briefly.
+  if (rankValue) {
+    pruneCache(rankNameCache, RANK_NAME_CACHE_TTL_MS);
+    const cachedRankName = cacheGet(rankNameCache, rankValue);
+    if (cachedRankName) {
+      rankName = cachedRankName;
+    } else {
+      try {
+        const byName = await db(env, "ranks", {
+          query: { select: "id,name,short_name,level,active", name: `eq.${rankValue}`, limit: "1" }
+        });
+        if (Array.isArray(byName) && byName[0]?.name) {
+          rankName = String(byName[0].name);
+        } else {
+          const byId = await db(env, "ranks", {
+            query: { select: "id,name,short_name,level,active", id: `eq.${rankValue}`, limit: "1" }
+          });
+          if (Array.isArray(byId) && byId[0]?.name) rankName = String(byId[0].name);
+        }
+        if (rankName && rankName !== rankValue) cacheSet(rankNameCache, rankValue, rankName, RANK_NAME_CACHE_TTL_MS);
+      } catch (error) {
+        // Keep the stored value as a last-resort fallback; authentication itself
+        // must not fail just because the rank catalogue is temporarily unavailable.
+      }
+    }
+  }
+
   return {
-    id: String(user.id || ""),
-    username: String(user.username || ""),
-    name: String(user.name || ""),
-    rank: String(user.rank || ""),
-    master: user.master === true,
-    profileImage: String(user.profile_image || "")
+    id: String(user?.id || ""),
+    username: String(user?.username || ""),
+    name: String(user?.name || ""),
+    rank: rankName,
+    rankId: rankValue,
+    master: user?.master === true,
+    profileImage: String(user?.profile_image || "")
   };
 }
 export async function getPermissions(env, user) {

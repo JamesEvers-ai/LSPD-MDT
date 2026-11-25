@@ -957,3 +957,118 @@ html body #pageContainer .content :is(
 #fibGlobalModalOverlay.fib-modal-agents-mode .agents-system-modal-body .agents-sanction-component { background:#f5f8fb!important;border:1px solid #e1e8ef!important;color:#40566e!important; }
 #fibGlobalModalOverlay.fib-modal-agents-mode .agents-system-modal-body .agents-sanction-component strong { color:#17395f!important; }
 #fibGlobalModalOverlay.fib-modal-agents-mode .agents-system-modal-body .agents-sanction-reason { color:#40566e!important; }
+
+/* v11 – Personnel modal: force light, custom dropdowns, compact rendering */
+#agentsSystemModalOverlay .agents-system-modal-body .agents-custom-select {
+  position: relative !important;
+  width: 100% !important;
+}
+#agentsSystemModalOverlay .agents-system-modal-body .agents-custom-select-trigger {
+  width: 100% !important;
+  min-height: 38px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 10px !important;
+  padding: 8px 11px !important;
+  border: 1px solid #cbd7e4 !important;
+  border-radius: 7px !important;
+  background: #fff !important;
+  color: #243b53 !important;
+  -webkit-text-fill-color: #243b53 !important;
+  box-shadow: none !important;
+  font: inherit !important;
+  text-align: left !important;
+  cursor: pointer !important;
+  color-scheme: light !important;
+}
+#agentsSystemModalOverlay .agents-system-modal-body .agents-custom-select-trigger:hover,
+#agentsSystemModalOverlay .agents-system-modal-body .agents-custom-select.open .agents-custom-select-trigger {
+  border-color: #8eabc5 !important;
+  background: #fff !important;
+}
+#agentsSystemModalOverlay .agents-system-modal-body .agents-custom-select-trigger:disabled {
+  opacity: .65 !important;
+  cursor: not-allowed !important;
+}
+#agentsSystemModalOverlay .agents-system-modal-body .agents-custom-select-chevron {
+  color: #61758a !important;
+  flex: 0 0 auto !important;
+}
+#agentsSystemModalOverlay .agents-system-modal-body .agents-custom-select-menu {
+  position: absolute !important;
+  z-index: 2000 !important;
+  left: 0 !important;
+  right: 0 !important;
+  top: calc(100% + 4px) !important;
+  display: none !important;
+  max-height: 240px !important;
+  overflow: auto !important;
+  padding: 5px !important;
+  background: #fff !important;
+  border: 1px solid #cbd7e4 !important;
+  border-radius: 8px !important;
+  box-shadow: 0 12px 30px rgba(16,40,71,.16) !important;
+}
+#agentsSystemModalOverlay .agents-system-modal-body .agents-custom-select.open .agents-custom-select-menu {
+  display: block !important;
+}
+#agentsSystemModalOverlay .agents-system-modal-body .agents-custom-select-option {
+  display: block !important;
+  width: 100% !important;
+  min-height: 34px !important;
+  padding: 7px 9px !important;
+  border: 0 !important;
+  border-radius: 6px !important;
+  background: #fff !important;
+  color: #243b53 !important;
+  -webkit-text-fill-color: #243b53 !important;
+  text-align: left !important;
+  font: inherit !important;
+  cursor: pointer !important;
+}
+#agentsSystemModalOverlay .agents-system-modal-body .agents-custom-select-option:hover,
+#agentsSystemModalOverlay .agents-system-modal-body .agents-custom-select-option[aria-selected="true"] {
+  background: #eaf2f9 !important;
+  color: #17395f !important;
+  -webkit-text-fill-color: #17395f !important;
+}
+#agentsSystemModalOverlay .agents-system-modal-body .agents-custom-select-option:disabled {
+  color: #9aa8b6 !important;
+  cursor: not-allowed !important;
+  background: #fff !important;
+}
+#agentsSystemModalOverlay .agents-system-modal-body .agents-native-select-hidden {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  inset: auto !important;
+}
+#agentsSystemModalOverlay .agents-system-modal-body select,
+#agentsSystemModalOverlay .agents-system-modal-body select option {
+  color-scheme: light !important;
+  background: #fff !important;
+  color: #243b53 !important;
+  -webkit-text-fill-color: #243b53 !important;
+}
+#agentsSystemModalOverlay .agents-system-modal-body {
+  scrollbar-color: #c4d1de #f6f8fa !important;
+}
+#agentsSystemModalOverlay .agents-system-modal-body * {
+  color-scheme: light !important;
+}
+
+/* v11 modal shell fallback: the personnel page uses its own overlay id. */
+#agentsSystemModalOverlay,
+#agentsSystemModalOverlay .agents-system-modal,
+#agentsSystemModalOverlay .agents-system-modal-body {
+  color-scheme: light !important;
+}
+#agentsSystemModalOverlay .agents-system-modal-body .agents-form-select {
+  background: #fff !important;
+  color: #243b53 !important;
+  -webkit-text-fill-color: #243b53 !important;
+  border-color: #cbd7e4 !important;
+}
