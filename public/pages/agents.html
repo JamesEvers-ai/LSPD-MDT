@@ -1586,519 +1586,58 @@
 
    
 /* =========================================================
-   PERSONALAKTE – KONTRAST- UND DESIGNÜBERARBEITUNG
-   ========================================================= */
-
-/* Einheitliche Darstellung der Formularfelder */
-.agents-system-modal,
-.agents-system-modal-body {
-    color: #e5eaf1;
-}
-
-.agents-system-modal-body input,
-.agents-system-modal-body select,
-.agents-system-modal-body textarea,
-.agents-form-input,
-.agents-form-select,
-.agents-form-textarea {
-    color: #e5eaf1 !important;
-    background: #1b222c !important;
-    border-color: #354253 !important;
-    color-scheme: dark;
-}
-
-.agents-system-modal-body input::placeholder,
-.agents-system-modal-body textarea::placeholder {
-    color: #8793a3 !important;
-    opacity: 1;
-}
-
-.agents-system-modal-body input:focus,
-.agents-system-modal-body select:focus,
-.agents-system-modal-body textarea:focus {
-    background: #202a37 !important;
-    border-color: #3978c6 !important;
-    box-shadow: 0 0 0 2px rgba(57, 120, 198, 0.12);
-    outline: none;
-}
-
-/* Native Dropdown-Optionen */
-.agents-system-modal-body select option,
-.agents-form-select option {
-    color: #e5eaf1 !important;
-    background: #171e28 !important;
-}
-
-/* Deaktivierte Felder */
-.agents-system-modal-body input:disabled,
-.agents-system-modal-body select:disabled,
-.agents-system-modal-body textarea:disabled {
-    color: #9aa5b3 !important;
-    background: #151b23 !important;
-    opacity: 0.75;
-}
+   PERSONALAKTE – EINHEITLICHES HELL-DESIGN
+========================================================= */
 
 /* =========================================================
-   TEXTE UND BESCHRIFTUNGEN
-   ========================================================= */
-
-.agents-form-label {
-    color: #b7c2d0 !important;
-}
-
-.agents-section-title {
-    color: #c4cfdd !important;
-}
-
-.agents-system-modal-description {
-    color: #9ba8b8 !important;
-}
-
-.agents-entry-title {
-    color: #f0f3f8 !important;
-}
-
-.agents-entry-meta span {
-    color: #a5b1c0 !important;
-}
-
-.agents-entry-content {
-    color: #c0cad7 !important;
-}
-
-.agents-empty-list,
-.agents-rank-empty {
-    color: #a0adbd !important;
-}
-
-/* Allgemeine Inhalte innerhalb der Personalakte */
-.agents-system-modal-body p,
-.agents-system-modal-body li,
-.agents-system-modal-body td,
-.agents-system-modal-body th {
-    color: #d5deea;
-}
-
-/* =========================================================
-   TAB-NAVIGATION – BLAU
-   ========================================================= */
-
-.agents-personnel-tabs {
-    border-bottom: 1px solid rgba(74, 137, 211, 0.22);
-    gap: 5px;
-}
-
-.agents-personnel-tab {
-    color: #91a2b8 !important;
-    border-radius: 6px 6px 0 0;
-    transition:
-        color 0.15s ease,
-        background 0.15s ease;
-}
-
-.agents-personnel-tab:hover {
-    color: #c8ddf7 !important;
-    background: rgba(55, 119, 190, 0.10);
-}
-
-.agents-personnel-tab.active {
-    color: #72aff5 !important;
-    background: rgba(55, 119, 190, 0.10);
-}
-
-.agents-personnel-tab.active::after {
-    background: #438bd8 !important;
-    height: 2px;
-}
-
-/* =========================================================
-   MODAL-BUTTONS – BLAUE AKZENTE
-   ========================================================= */
-
-/* Standard-Buttons, beispielsweise Abbrechen */
-.agents-system-button {
-    color: #c6d8ed !important;
-    background: rgba(49, 112, 181, 0.16) !important;
-    border: 1px solid rgba(74, 139, 211, 0.30) !important;
-}
-
-.agents-system-button:hover {
-    color: #ffffff !important;
-    background: rgba(49, 112, 181, 0.30) !important;
-    border-color: rgba(91, 157, 231, 0.55) !important;
-}
-
-/* Kleinere Aktionsbuttons */
-.agents-small-button {
-    color: #c6d8ed !important;
-    background: rgba(49, 112, 181, 0.13) !important;
-    border-color: rgba(74, 139, 211, 0.25) !important;
-}
-
-.agents-small-button:hover {
-    color: #ffffff !important;
-    background: rgba(49, 112, 181, 0.26) !important;
-    border-color: rgba(91, 157, 231, 0.48) !important;
-}
-
-/* Primäre Aktion */
-.agents-small-button.primary {
-    color: #ffffff !important;
-    background: #2868a9 !important;
-    border-color: #347fc9 !important;
-}
-
-.agents-small-button.primary:hover {
-    background: #347fc9 !important;
-    border-color: #4a94df !important;
-}
-
-/* =========================================================
-   RANG-DROPDOWN
-   ========================================================= */
-
-.agents-rank-select-button {
-    color: #e5edf7 !important;
-    background: #1b2635 !important;
-    border-color: #354b66 !important;
-}
-
-.agents-rank-select-button:hover {
-    background: #23344a !important;
-    border-color: #477db8 !important;
-}
-
-.agents-rank-select-menu {
-    background: #151e2b !important;
-    border-color: #354b66 !important;
-}
-
-.agents-rank-option {
-    color: #c5d1df !important;
-}
-
-.agents-rank-option:hover,
-.agents-rank-option.selected {
-    color: #ffffff !important;
-    background: rgba(55, 119, 190, 0.22) !important;
-}
-
-/* =========================================================
-   SCHLIESSEN-BUTTON
-   ========================================================= */
-
-.agents-system-modal-close {
-    color: #9eb5d0 !important;
-    background: rgba(49, 112, 181, 0.12) !important;
-}
-
-.agents-system-modal-close:hover {
-    color: #ffffff !important;
-    background: rgba(49, 112, 181, 0.30) !important;
-}
-
-/* =========================================================
-   ABSCHLIESSENDE KONTRASTABSICHERUNG
-   ========================================================= */
-
-/* Dynamisch erzeugte Formularfelder innerhalb der Akte */
-.agents-system-modal-body input:not([type="checkbox"]):not([type="radio"]),
-.agents-system-modal-body select,
-.agents-system-modal-body textarea {
-    -webkit-text-fill-color: #e5eaf1;
-}
-
-/* Auswahlfelder und Textbereiche dürfen nicht weiß bleiben */
-.agents-system-modal-body select:disabled,
-.agents-system-modal-body textarea:disabled,
-.agents-system-modal-body input:disabled {
-    -webkit-text-fill-color: #9aa5b3;
-}
-
-   
-/* =========================================================
-   PERSONALAKTE – HELLER MODAL-BEREICH
-   ========================================================= */
-
-/* Modal-Grundfläche */
-.agents-system-modal {
-    background: #f4f6f9 !important;
-    border: 1px solid #dce2e9 !important;
-    color: #263445 !important;
-}
-
-/* Header */
-.agents-system-modal-header {
-    background: #ffffff !important;
-    border-bottom: 1px solid #e1e6ed !important;
-}
-
-.agents-system-modal-title {
-    color: #172536 !important;
-}
-
-.agents-system-modal-description {
-    color: #667587 !important;
-}
-
-/* Hauptinhalt */
-.agents-system-modal-body {
-    background: #f4f6f9 !important;
-    color: #273649 !important;
-}
-
-/* Footer */
-.agents-system-modal-actions {
-    background: #ffffff !important;
-    border-top: 1px solid #e1e6ed !important;
-}
-
-/* =========================================================
-   ABSCHNITTE UND KARTEN
-   ========================================================= */
-
-.agents-section-card {
-    background: #ffffff !important;
-    border: 1px solid #dce3eb !important;
-    border-radius: 9px;
-}
-
-.agents-section-title {
-    color: #34465a !important;
-}
-
-.agents-entry-item {
-    background: #ffffff !important;
-    border: 1px solid #dce3eb !important;
-}
-
-.agents-entry-title {
-    color: #1e2d3d !important;
-}
-
-.agents-entry-meta span {
-    color: #64748b !important;
-}
-
-.agents-entry-content {
-    color: #425267 !important;
-}
-
-.agents-empty-list {
-    color: #718096 !important;
-}
-
-/* =========================================================
-   FORMULARE UND BESCHRIFTUNGEN
-   ========================================================= */
-
-.agents-form-label {
-    color: #34465a !important;
-    font-weight: 650;
-}
-
-.agents-form-input,
-.agents-form-select,
-.agents-form-textarea,
-.agents-system-modal-body input,
-.agents-system-modal-body select,
-.agents-system-modal-body textarea {
-    color: #243447 !important;
-    background: #ffffff !important;
-    border: 1px solid #cbd5e1 !important;
-    -webkit-text-fill-color: #243447 !important;
-    color-scheme: light;
-}
-
-.agents-form-input::placeholder,
-.agents-form-textarea::placeholder,
-.agents-system-modal-body input::placeholder,
-.agents-system-modal-body textarea::placeholder {
-    color: #8995a5 !important;
-    -webkit-text-fill-color: #8995a5 !important;
-}
-
-.agents-form-input:focus,
-.agents-form-select:focus,
-.agents-form-textarea:focus,
-.agents-system-modal-body input:focus,
-.agents-system-modal-body select:focus,
-.agents-system-modal-body textarea:focus {
-    background: #ffffff !important;
-    border-color: #4388cf !important;
-    box-shadow: 0 0 0 3px rgba(67, 136, 207, 0.12);
-}
-
-.agents-system-modal-body select option {
-    background: #ffffff !important;
-    color: #243447 !important;
-}
-
-.agents-system-modal-body input:disabled,
-.agents-system-modal-body select:disabled,
-.agents-system-modal-body textarea:disabled {
-    background: #edf1f5 !important;
-    color: #68778a !important;
-    -webkit-text-fill-color: #68778a !important;
-    opacity: 1;
-}
-
-/* =========================================================
-   TABS
-   ========================================================= */
-
-.agents-personnel-tabs {
-    border-bottom: 1px solid #dce3eb !important;
-}
-
-.agents-personnel-tab {
-    color: #64748b !important;
-}
-
-.agents-personnel-tab:hover {
-    color: #245f9d !important;
-    background: rgba(49, 112, 181, 0.07) !important;
-}
-
-.agents-personnel-tab.active {
-    color: #245f9d !important;
-    background: rgba(49, 112, 181, 0.07) !important;
-}
-
-.agents-personnel-tab.active::after {
-    background: #347fc9 !important;
-}
-
-/* =========================================================
-   RANG-DROPDOWN
-   ========================================================= */
-
-.agents-rank-select-button {
-    color: #26384c !important;
-    background: #ffffff !important;
-    border: 1px solid #cbd5e1 !important;
-}
-
-.agents-rank-select-button:hover {
-    background: #f7faff !important;
-    border-color: #4388cf !important;
-}
-
-.agents-rank-select-chevron {
-    color: #64748b !important;
-}
-
-.agents-rank-select-menu {
-    background: #ffffff !important;
-    border: 1px solid #d5dee8 !important;
-    box-shadow: 0 12px 30px rgba(25, 45, 70, 0.16) !important;
-}
-
-.agents-rank-option {
-    color: #34465a !important;
-}
-
-.agents-rank-option:hover,
-.agents-rank-option.selected {
-    color: #174f87 !important;
-    background: #eaf3fc !important;
-}
-
-.agents-rank-empty {
-    color: #718096 !important;
-}
-
-/* =========================================================
-   BUTTONS – BLAUE VARIANTE
-   ========================================================= */
-
-.agents-system-button,
-.agents-small-button {
-    color: #245b91 !important;
-    background: #eaf2fb !important;
-    border: 1px solid #c9dced !important;
-}
-
-.agents-system-button:hover,
-.agents-small-button:hover {
-    color: #174875 !important;
-    background: #dceafa !important;
-    border-color: #9bbfe3 !important;
-}
-
-.agents-small-button.primary {
-    color: #ffffff !important;
-    background: #286eae !important;
-    border-color: #286eae !important;
-}
-
-.agents-small-button.primary:hover {
-    color: #ffffff !important;
-    background: #205d97 !important;
-    border-color: #205d97 !important;
-}
-
-/* Schließen-Button */
-.agents-system-modal-close {
-    color: #496783 !important;
-    background: #edf3f9 !important;
-}
-
-.agents-system-modal-close:hover {
-    color: #ffffff !important;
-    background: #347fc9 !important;
-}
-
-/* =========================================================
-   WEITERE TEXTE UND STATUSANZEIGEN
-   ========================================================= */
-
-.agents-system-modal-body p,
-.agents-system-modal-body li,
-.agents-system-modal-body td,
-.agents-system-modal-body th,
-.agents-system-modal-body label {
-    color: #34465a;
-}
-
-.agents-status {
-    background: #e9eef4 !important;
-    color: #40536a !important;
-}
-
-.agents-status.success {
-    background: #e5f4e9 !important;
-    color: #247342 !important;
-}
-
-.agents-status.warning {
-    background: #fff3d9 !important;
-    color: #946313 !important;
-}
-
-.agents-status.danger {
-    background: #fde9e9 !important;
-    color: #a83232 !important;
-}
-
-/* =========================================================
-   SCROLLBAR
-   ========================================================= */
-
-.agents-system-modal-body {
-    scrollbar-color: #c3ceda transparent !important;
-}
-
-.agents-system-modal-body::-webkit-scrollbar-thumb {
-    background: #c3ceda !important;
-}
-
-.agents-system-modal-body::-webkit-scrollbar-thumb:hover {
-    background: #9eacbc !important;
-}
-
-
-
+   PERSONALAKTE – EINHEITLICHES HELL-DESIGN
+========================================================= */
+.agents-system-modal-overlay{
+    background:rgba(15,31,48,.48)!important;
+    backdrop-filter:blur(6px);
+    -webkit-backdrop-filter:blur(6px);
+}
+.agents-system-modal{
+    width:min(920px,100%);
+    max-height:min(820px,calc(100vh - 32px));
+    background:#f4f6f9!important;
+    border:1px solid #d7e0e9!important;
+    border-radius:12px!important;
+    box-shadow:0 24px 70px rgba(31,50,70,.24)!important;
+    color:#26384c!important;
+}
+.agents-system-modal-header{background:#fff!important;border-bottom:1px solid #dfe6ed!important;padding:16px 18px!important}
+.agents-system-modal-title{color:#172536!important;font-size:16px!important}
+.agents-system-modal-description{color:#667587!important}
+.agents-system-modal-body{background:#f4f6f9!important;color:#273649!important;padding:0!important;scrollbar-color:#c7d2de transparent}
+.agents-system-modal-actions{background:#fff!important;border-top:1px solid #dfe6ed!important;padding:11px 18px!important}
+.agents-system-modal-close{color:#5d7084!important;background:#edf3f8!important;border:1px solid #d8e2eb!important}
+.agents-system-modal-close:hover{color:#17324b!important;background:#e2edf6!important}
+.agents-personnel-tabs{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:0;margin:0;padding:0 18px;background:#fff!important;border-bottom:1px solid #dce4ec!important;overflow-x:auto;box-shadow:0 1px 2px rgba(30,55,80,.04)}
+.agents-personnel-tab{height:42px;padding:0 12px;color:#667789!important;background:transparent!important;border:0!important;border-radius:0!important;font-size:10px;font-weight:700;white-space:nowrap}
+.agents-personnel-tab:hover{color:#245b91!important;background:#f2f6fa!important}
+.agents-personnel-tab.active{color:#1f5f97!important;background:#f5f8fb!important}
+.agents-personnel-tab.active::after{left:10px;right:10px;bottom:0;height:3px;background:#347fc9!important}
+.agents-form{padding:18px;gap:14px}
+.agents-form-label,.agents-section-title{color:#34465a!important}
+.agents-form-input,.agents-form-select,.agents-form-textarea,.agents-system-modal-body input,.agents-system-modal-body select,.agents-system-modal-body textarea{color:#243447!important;background:#fff!important;border:1px solid #cbd5e1!important;-webkit-text-fill-color:#243447!important;color-scheme:light}
+.agents-form-input::placeholder,.agents-form-textarea::placeholder,.agents-system-modal-body input::placeholder,.agents-system-modal-body textarea::placeholder{color:#8995a5!important;-webkit-text-fill-color:#8995a5!important}
+.agents-form-input:focus,.agents-form-select:focus,.agents-form-textarea:focus,.agents-system-modal-body input:focus,.agents-system-modal-body select:focus,.agents-system-modal-body textarea:focus{background:#fff!important;border-color:#4388cf!important;box-shadow:0 0 0 3px rgba(67,136,207,.12)!important;outline:none}
+.agents-system-modal-body select option,.agents-form-select option{color:#243447!important;background:#fff!important}
+.agents-section-card,.agents-entry-item{background:#fff!important;border:1px solid #dce3eb!important;color:#34465a!important;box-shadow:0 2px 8px rgba(30,55,80,.035)!important}
+.agents-entry-title{color:#1e2d3d!important}.agents-entry-meta span{color:#64748b!important}.agents-entry-content{color:#425267!important}.agents-empty-list,.agents-rank-empty{color:#718096!important}
+.agents-small-button,.agents-system-button{color:#245b91!important;background:#edf3f9!important;border:1px solid #cbdced!important}
+.agents-small-button:hover,.agents-system-button:hover{background:#dceafa!important;border-color:#a9c7e5!important;color:#174875!important}
+.agents-small-button.primary{color:#fff!important;background:#2868a9!important;border-color:#347fc9!important}
+.agents-rank-select-button{color:#243447!important;background:#fff!important;border:1px solid #cbd5e1!important}
+.agents-rank-select-menu{background:#fff!important;border:1px solid #cbd5e1!important;box-shadow:0 10px 24px rgba(30,55,80,.14)!important}
+.agents-rank-option{color:#34465a!important}.agents-rank-option:hover,.agents-rank-option.selected{color:#1f5f97!important;background:#eaf2fb!important}
+.agents-system-modal-body p,.agents-system-modal-body li,.agents-system-modal-body td,.agents-system-modal-body th{color:#425267!important}
+@media (max-width:760px){.agents-system-modal-overlay{padding:8px}.agents-system-modal{max-height:calc(100vh - 16px);border-radius:10px}.agents-personnel-tabs{padding:0 10px}.agents-form{padding:12px}.agents-form-grid{grid-template-columns:1fr}}
+.agents-department-tabs{background:#fff!important;border:1px solid #dce3eb!important;border-radius:9px!important;padding:7px!important;box-shadow:0 2px 8px rgba(30,55,80,.035)!important}
+.agents-department-tab{background:#f4f6f9!important;border:1px solid #dce3eb!important;color:#53657a!important;border-radius:999px!important}
+.agents-department-tab:hover{background:#eaf2fb!important;color:#245b91!important;border-color:#b8cde3!important}
+.agents-department-tab.active{background:#e3effb!important;color:#205d97!important;border-color:#9bbfe3!important}
 </style>
 
 
@@ -2309,10 +1848,16 @@
 
 
 <script>
-
 (function() {
 
     "use strict";
+
+    const DEPARTMENTS = [
+        "Internal Affairs Division", "Central Division", "Northern Division", "Patrol Division",
+        "Investigative Division", "Metropolitan Division", "Support Division", "Internal Affairs",
+        "Patrol Unit", "Detective Bureau", "Special Weapons and Tactics", "Gang Enforcement Detail",
+        "Canine (K9)", "Police Academy", "Public Relations Office", "Air Support Division", "High Command"
+    ];
 
 
     /* =====================================================
@@ -2337,6 +1882,10 @@
 
             sanctions: [],
 
+            history: [],
+
+            historyLoaded: false,
+
             sanctionsVisible: false,
 
             sanctionsLoaded: false,
@@ -2351,7 +1900,11 @@
 
             modalTab: "personal",
 
-            globalEventsBound: false
+            departmentFilter: "all",
+
+            globalEventsBound: false,
+
+            lastTerminationUrl: ""
 
         };
 
@@ -2936,6 +2489,7 @@
 
 
         bindAgentsSearch();
+        bindDepartmentTabs();
 
         bindGlobalEvents();
 
@@ -2954,7 +2508,7 @@
      * vorhanden sein.
      */
 
-    setTimeout(
+    window.__fibPageLifecycle.timeout(
         function() {
 
             initializeAgentsPage();
@@ -2962,6 +2516,17 @@
         },
         50
     );
+
+
+    function bindDepartmentTabs() {
+        document.querySelectorAll("[data-agent-department]").forEach(button => {
+            button.onclick = function() {
+                state.departmentFilter = button.dataset.agentDepartment || "all";
+                document.querySelectorAll("[data-agent-department]").forEach(item => item.classList.toggle("active", item === button));
+                filterAgents($("agentsSearchInput")?.value || "");
+            };
+        });
+    }
 
 
     /* =====================================================
@@ -3004,17 +2569,17 @@
             .toLowerCase();
 
 
+        const department = String(state.departmentFilter || "all");
+        const source = department === "all" ? state.agents : state.agents.filter(agent => String(agent.department || "") === department);
+
         if (!value) {
 
-            state.filteredAgents =
-                [
-                    ...state.agents
-                ];
+            state.filteredAgents = [...source];
 
         } else {
 
             state.filteredAgents =
-                state.agents.filter(
+                source.filter(
                     agent => {
 
                         const haystack = [
@@ -3711,6 +3276,16 @@
        OPEN PERSONNEL FILE
     ====================================================== */
 
+    function loadPersonnelHistory() {
+        const token = getAgentsSessionToken();
+        const agent = state.selectedAgent;
+        if (!token || !agent) return Promise.resolve([]);
+        return new Promise((resolve, reject) => {
+            CloudApi.run.withSuccessHandler(rows => { state.history = Array.isArray(rows) ? rows : []; state.historyLoaded = true; if (state.modalTab === "history") renderPersonnelModal(true); resolve(state.history); }).withFailureHandler(reject).getPersonnelHistory(token, String(agent.id));
+        });
+    }
+
+
     function openPersonnelFile(
         userId
     ) {
@@ -3781,6 +3356,8 @@
             [];
 
         state.sanctions = [];
+        state.history = [];
+        state.historyLoaded = false;
         state.sanctionsVisible = false;
         state.sanctionsLoaded = false;
 
@@ -3906,6 +3483,8 @@
                             : [];
 
                     state.sanctions = Array.isArray(bundle.sanctions) ? bundle.sanctions : [];
+                    state.history = Array.isArray(bundle.history) ? bundle.history : [];
+                    state.historyLoaded = true;
                     state.sanctionsVisible = bundle.sanctionsVisible === true;
                     state.sanctionsLoaded = true;
 
@@ -3976,40 +3555,32 @@
     ====================================================== */
 
     function openAgentsModal() {
+        const overlay = $("agentsSystemModalOverlay");
         const modalElement = $("agentsSystemModal");
-        const manager = window.FIB_MDT_MODAL;
-        if (!modalElement || !manager || typeof manager.open !== "function") return;
-        manager.open({
-            title: "Personalakte",
-            subtitle: "Personalverwaltung",
-            body: modalElement,
-            modalClass: "agents",
-            cancelVisible: false,
-            saveVisible: false,
-            focus: false,
-            onClose: function () {
-                const host = $("agentsSystemModalOverlay");
-                if (host && modalElement && modalElement.parentElement !== host) host.appendChild(modalElement);
-                document.body.style.overflow = "";
-                closeRankDropdown();
-                state.selectedAgent = null;
-                state.bundleLoading = false;
-            }
-        });
+        if (!overlay || !modalElement) return;
+
+        // The personnel file owns its complete modal shell. Do not pass this
+        // node through the global modal manager: doing so nests one modal
+        // inside another and breaks the tab buttons, scrolling and styling.
+        if (modalElement.parentElement !== overlay) {
+            overlay.appendChild(modalElement);
+        }
+
+        overlay.classList.add("active");
+        overlay.setAttribute("aria-hidden", "false");
         document.body.style.overflow = "hidden";
     }
 
     function closePersonnelFile() {
         const overlay = $("agentsSystemModalOverlay");
         const modalElement = $("agentsSystemModal");
-        const manager = window.FIB_MDT_MODAL;
-        // Return the live node to its page-owned host so all existing IDs,
-        // event listeners and personnel-file state survive opening/closing.
         if (overlay && modalElement && modalElement.parentElement !== overlay) {
             overlay.appendChild(modalElement);
         }
-        if (manager && typeof manager.close === "function") manager.close();
-        if (overlay) overlay.classList.remove("active");
+        if (overlay) {
+            overlay.classList.remove("active");
+            overlay.setAttribute("aria-hidden", "true");
+        }
         document.body.style.overflow = "";
         closeRankDropdown();
         state.selectedAgent = null;
@@ -4093,6 +3664,15 @@
 
         if (
             state.modalTab ===
+            "department"
+        ) {
+
+            body.innerHTML =
+                renderDepartmentTab();
+
+        }
+        else if (
+            state.modalTab ===
             "trainings"
         ) {
 
@@ -4112,6 +3692,12 @@
         else if (state.modalTab === "sanctions" && state.sanctionsVisible) {
             body.innerHTML = renderSanctionsTab();
         }
+        else if (state.modalTab === "history") {
+            body.innerHTML = renderHistoryTab();
+        }
+        else if (state.modalTab === "termination" && canEditOfficers()) {
+            body.innerHTML = renderTerminationTab();
+        }
         else {
 
             body.innerHTML =
@@ -4129,8 +3715,10 @@
         bindPersonalForm();
 
         bindTrainingForm();
+        bindDepartmentWorkspace();
 
         bindNoteForm();
+        bindTerminationForm();
 
     }
 
@@ -4157,6 +3745,23 @@
                     data-personnel-tab="personal"
                 >
                     Personalien
+                </button>
+
+
+                <button
+                    type="button"
+                    class="
+                        agents-personnel-tab
+                        ${
+                            activeTab ===
+                            "department"
+                                ? "active"
+                                : ""
+                        }
+                    "
+                    data-personnel-tab="department"
+                >
+                    Abteilung
                 </button>
 
 
@@ -4195,6 +3800,10 @@
 
                 ${state.sanctionsVisible ? `<button type="button" class="agents-personnel-tab ${activeTab === "sanctions" ? "active" : ""}" data-personnel-tab="sanctions">Verhängte Sanktionen</button>` : ""}
 
+                <button type="button" class="agents-personnel-tab ${activeTab === "history" ? "active" : ""}" data-personnel-tab="history">Historie</button>
+
+                ${canEditOfficers() ? `<button type="button" class="agents-personnel-tab ${activeTab === "termination" ? "active" : ""}" data-personnel-tab="termination">Beendigung</button>` : ""}
+
             </div>
 
         `;
@@ -4203,32 +3812,21 @@
 
 
     function bindPersonnelTabEvents() {
+        const body = $("agentsSystemModalBody");
+        if (!body || body.dataset.personnelTabsBound === "true") return;
 
-        document
-            .querySelectorAll(
-                "[data-personnel-tab]"
-            )
-            .forEach(
-                button => {
+        // Delegate once from the stable modal body. The tab row itself is
+        // re-rendered on every tab switch, so binding directly to the
+        // individual buttons was unnecessarily fragile.
+        body.dataset.personnelTabsBound = "true";
+        body.addEventListener("click", function (event) {
+            const button = event.target.closest("[data-personnel-tab]");
+            if (!button || !body.contains(button)) return;
 
-                    button.onclick =
-                        function() {
-
-                            state.modalTab =
-                                button.dataset
-                                    .personnelTab ||
-                                "personal";
-
-
-                            renderPersonnelModal(
-                                true
-                            );
-
-                        };
-
-                }
-            );
-
+            event.preventDefault();
+            state.modalTab = button.dataset.personnelTab || "personal";
+            renderPersonnelModal(true);
+        });
     }
 
 
@@ -4615,12 +4213,13 @@
                                 Abteilung
                             </label>
 
-                            <input
+                            <select
                                 id="agentDepartment"
-                                class="agents-form-input"${editDisabled}
-                                type="text"
-                                value="${escapeHtml(department)}"
+                                class="agents-form-select"${editDisabled}
                             >
+                                <option value="">Keine Abteilung</option>
+                                ${DEPARTMENTS.map(item => `<option value="${escapeHtml(item)}" ${String(department)===String(item)?"selected":""}>${escapeHtml(item)}</option>`).join("")}
+                            </select>
 
                         </div>
 
@@ -5493,6 +5092,7 @@
                     }
 
 
+                    loadPersonnelHistory().catch(function () {});
                     showAgentSuccess(
                         "Die Personalakte wurde erfolgreich gespeichert."
                     );
@@ -5535,6 +5135,89 @@
 
     }
 
+
+    /* =====================================================
+       DEPARTMENT WORKSPACE
+    ====================================================== */
+
+    function renderDepartmentTab() {
+        const agent = state.selectedAgent || {};
+        const currentDepartment = String(getValue(agent, ["department", "Department"], "") || "");
+        const members = (Array.isArray(state.agents) ? state.agents : [])
+            .filter(item => String(getValue(item, ["department", "Department"], "") || "") === currentDepartment)
+            .sort((a,b) => String(a.name||"").localeCompare(String(b.name||""), "de"));
+        const departments = DEPARTMENTS.map(item => `<option value="${escapeHtml(item)}" ${currentDepartment===item?"selected":""}>${escapeHtml(item)}</option>`).join("");
+        return `${renderTabs("department")}
+        <div class="agents-form">
+          <div class="agents-section">
+            <div class="agents-section-title">Abteilungszuordnung</div>
+            <div class="agents-section-card agents-department-workspace">
+              <div class="agents-form-group">
+                <label class="agents-form-label">Abteilung</label>
+                <select id="agentDepartmentWorkspace" class="agents-form-select" ${canEditOfficers()?"":"disabled"}>
+                  <option value="">Keine Abteilung</option>${departments}
+                </select>
+              </div>
+              ${canEditOfficers()?`<div class="agents-department-workspace-actions"><button type="button" class="agents-system-button agents-system-button-primary" id="agentDepartmentWorkspaceSave">Abteilung speichern</button></div>`:""}
+              <div class="agents-department-workspace-info">Die Abteilung steuert die organisatorische Zuordnung der Personalakte. Die Liste darunter zeigt die aktuell zugeordnete Belegschaft. Die Zuordnung wird ohne zusätzliche Datenbankabfrage aus dem bereits geladenen Personalbestand gefiltert.</div>
+            </div>
+          </div>
+          <div class="agents-section">
+            <div class="agents-section-title">${escapeHtml(currentDepartment || "Keine Abteilung")} · ${members.length} ${members.length===1?"Person":"Personen"}</div>
+            <div class="agents-department-member-list">
+              ${members.length ? members.map(item => `<button type="button" class="agents-department-member" data-department-member-id="${escapeHtml(item.id)}"><span class="agents-department-member-main"><strong>${escapeHtml(item.name || item.username || "Unbekannt")}</strong><span>${escapeHtml(item.rank || "Kein Rang")}${item.callSign ? ` · ${escapeHtml(item.callSign)}` : ""}</span></span><span>${escapeHtml(item.serviceNumber || "—")}</span></button>`).join("") : `<div class="agents-empty-list">Dieser Abteilung sind derzeit keine weiteren geladenen Personalakten zugeordnet.</div>`}
+            </div>
+          </div>
+        </div>`;
+    }
+
+    function bindDepartmentWorkspace() {
+        const save = $("agentDepartmentWorkspaceSave");
+        const select = $("agentDepartmentWorkspace");
+        if (save && select) save.onclick = () => saveDepartmentOnly(select.value);
+        document.querySelectorAll("[data-department-member-id]").forEach(button => {
+            button.onclick = () => {
+                const target = state.agents.find(item => String(item.id) === String(button.dataset.departmentMemberId));
+                if (!target) return;
+                state.modalTab = "personal";
+                openPersonnelFile(target);
+            };
+        });
+    }
+
+    function saveDepartmentOnly(department) {
+        if (!canEditOfficers() || !state.selectedAgent) return;
+        const token = getAgentsSessionToken();
+        const agent = state.selectedAgent;
+        const userId = String(agent.id || "");
+        if (!token || !userId) return showAgentError("Keine aktive Personalakte.");
+        const data = {
+            serviceNumber: String(getValue(agent,["serviceNumber"],"")||""),
+            phone: String(getValue(agent,["phone"],"")||""),
+            callSign: String(getValue(agent,["callSign"],"")||""),
+            department: String(department||""),
+            unit: String(getValue(agent,["unit"],"")||""),
+            email: String(getValue(agent,["email"],"")||""),
+            address: String(getValue(agent,["address"],"")||""),
+            entryDate: getValue(agent,["entryDate"],"")||"",
+            personnelStatus: String(getValue(agent,["personnelStatus"],"")||""),
+            note: String(getValue(agent,["personnelNote","note"],"")||""),
+            rankId: String(getValue(agent,["rankId"],"")||"")
+        };
+        const save = $("agentDepartmentWorkspaceSave");
+        if (save) { save.disabled=true; save.textContent="Wird gespeichert..."; }
+        CloudApi.run.withSuccessHandler(() => {
+            state.selectedAgent = {...state.selectedAgent, department:data.department};
+            state.agents = state.agents.map(item => String(item.id)===userId ? {...item,department:data.department} : item);
+            filterAgents($("agentsSearchInput")?.value || "");
+            if (save) { save.disabled=false; save.textContent="Abteilung gespeichert"; }
+            renderPersonnelModal(true);
+            showAgentSuccess("Abteilung wurde gespeichert.");
+        }).withFailureHandler(error => {
+            if (save) { save.disabled=false; save.textContent="Abteilung speichern"; }
+            showAgentError(error?.message || "Die Abteilung konnte nicht gespeichert werden.");
+        }).savePersonnelProfile(token,userId,data);
+    }
 
     /* =====================================================
        TRAININGS
@@ -6302,6 +5985,7 @@
                     );
 
 
+                    loadPersonnelHistory().catch(function () {});
                     showAgentSuccess(
                         "Die Schulung wurde gelöscht."
                     );
@@ -6333,6 +6017,93 @@
     }
 
 
+    function renderTerminationTab() {
+        const agent = state.selectedAgent || {};
+        const currentName = (typeof currentUser !== "undefined" && currentUser) ? (currentUser.name || currentUser.username || "") : "";
+        const currentRank = (typeof currentUser !== "undefined" && currentUser) ? (currentUser.rank || "") : "";
+        const rank = getValue(agent, ["rankName","rank"], "Kein Rang");
+        const department = getValue(agent, ["department"], "");
+        const serviceNumber = getValue(agent, ["serviceNumber"], "");
+        const now = new Date().toISOString().slice(0,10);
+        const docNumber = `LSPD-BE-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`;
+        return `${renderTabs("termination")}
+        <div class="agents-form">
+          <div class="agents-section">
+            <div class="agents-section-title">Beendigung des Dienstverhältnisses</div>
+            <div class="agents-section-card">
+              <div class="agents-form-grid">
+                ${terminationInput("terminationDocumentNumber","Dokumentennummer",docNumber,true)}
+                ${terminationInput("terminationIssueDate","Ausstellungsdatum",now,true,"date")}
+                ${terminationInput("terminationIssuingOffice","Ausstellende Stelle",department || "LSPD")}
+                ${terminationInput("terminationProcessedBy","Bearbeitet durch",currentName,true)}
+                ${terminationInput("terminationRecipient","Empfänger / Betroffener",agent.name || "",true)}
+                ${terminationInput("terminationConfidentiality","Vertraulichkeit","Vertraulich – Personal",true)}
+                ${terminationInput("terminationNameServerId","Name / Server-ID",`${agent.name || ""} / ${serviceNumber || agent.username || agent.id || ""}`,true)}
+                ${terminationInput("terminationPreviousRank","Bisheriger Dienstgrad",rank,true)}
+                <div class="agents-form-group"><label class="agents-form-label">Division / Einheit *</label><select id="terminationDepartmentUnit" class="agents-form-select"><option value="">Keine Abteilung</option>${DEPARTMENTS.map(item => `<option value="${escapeHtml(item)}" ${String(department)===String(item)?"selected":""}>${escapeHtml(item)}</option>`).join("")}</select></div>
+                <div class="agents-form-group"><label class="agents-form-label">Art der Beendigung *</label><select id="terminationType" class="agents-form-select"><option>Entlassung</option><option>Freiwilliger Austritt</option><option>Sonstiger Grund</option></select></div>
+                ${terminationInput("terminationEffectiveDate","Wirksam zum",now,false,"date")}
+                ${terminationInput("terminationDecidingOffice","Entscheidende Stelle",currentName ? `${currentName}${currentRank ? ` / ${currentRank}` : ""}` : "")}
+              </div>
+              ${terminationTextarea("terminationReason","Begründung / Anlass","")}
+              ${terminationTextarea("terminationApproval","Zustimmung / Genehmigung","Keine zusätzliche Genehmigung erforderlich") }
+              ${terminationTextarea("terminationEquipmentReturn","Rückgabe von Dienstmitteln","Keine offenen Dienstmittel") }
+              ${terminationInput("terminationUpdatedAt","Personalakte / MDT aktualisiert am",`${new Date().toLocaleDateString("de-DE")} / ${agent.name || ""}`,true)}
+              <div class="agents-termination-signature-grid">
+                <div><label class="agents-form-label">Ausgestellt durch – Name / Dienstgrad *</label><input id="terminationIssuerNameRank" class="agents-form-input" value="${escapeHtml(currentName ? `${currentName}${currentRank ? ` / ${currentRank}` : ""}` : "")}" placeholder="Name / Dienstgrad"></div>
+                <div><label class="agents-form-label">Signatur der kündigenden Person *</label><div class="agents-signature-wrap"><canvas id="terminationSignatureCanvas" class="agents-signature-canvas" width="900" height="220"></canvas><button type="button" class="agents-signature-clear" id="terminationSignatureClear">Signatur löschen</button></div></div>
+              </div>
+              <div class="agents-termination-signature-grid">
+                <div><label class="agents-form-label">Kenntnisnahme Mitarbeiter – Name / Dienstgrad</label><input id="terminationEmployeeNameRank" class="agents-form-input" value="${escapeHtml(`${agent.name || ""} / ${rank}`)}"></div>
+                <div><label class="agents-form-label">Kenntnisnahme Mitarbeiter – Signatur (optional)</label><div class="agents-signature-wrap"><canvas id="terminationEmployeeSignatureCanvas" class="agents-signature-canvas" width="900" height="220"></canvas><button type="button" class="agents-signature-clear" id="terminationEmployeeSignatureClear">Signatur löschen</button></div></div>
+              </div>
+              <div class="agents-termination-actions"><button type="button" class="agents-system-button agents-system-button-primary" id="terminationSubmitButton">Beendigung dokumentieren &amp; Person deaktivieren</button></div>
+              <div class="agents-termination-hint">Nach der Erstellung ist das Dokument über den erzeugten externen Link dauerhaft einsehbar.</div>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    function terminationInput(id,label,value,disabled=false,type="text") { return `<div class="agents-form-group"><label class="agents-form-label">${escapeHtml(label)}${disabled ? "" : " *"}</label><input id="${id}" class="agents-form-input" type="${type}" value="${escapeHtml(value || "")}"${disabled ? " disabled" : ""}></div>`; }
+    function terminationTextarea(id,label,value) { return `<div class="agents-form-group agents-form-group-full"><label class="agents-form-label">${escapeHtml(label)} *</label><textarea id="${id}" class="agents-form-textarea" rows="3">${escapeHtml(value || "")}</textarea></div>`; }
+
+    function setupSignatureCanvas(canvas) {
+        if (!canvas) return {clear(){},data(){return "";}};
+        const ctx = canvas.getContext("2d"); ctx.lineWidth=3; ctx.lineCap="round"; ctx.strokeStyle="#102a43"; ctx.fillStyle="#fff"; ctx.fillRect(0,0,canvas.width,canvas.height);
+        let drawing=false,dirty=false;
+        const point=e=>{const r=canvas.getBoundingClientRect();return {x:(e.clientX-r.left)*canvas.width/r.width,y:(e.clientY-r.top)*canvas.height/r.height};};
+        const start=e=>{drawing=true;dirty=true;const p=point(e);ctx.beginPath();ctx.moveTo(p.x,p.y);e.preventDefault();};
+        const move=e=>{if(!drawing)return;const p=point(e);ctx.lineTo(p.x,p.y);ctx.stroke();e.preventDefault();};
+        const end=()=>{drawing=false;};
+        canvas.addEventListener("pointerdown",start);canvas.addEventListener("pointermove",move);canvas.addEventListener("pointerup",end);canvas.addEventListener("pointerleave",end);
+        return {clear(){ctx.clearRect(0,0,canvas.width,canvas.height);ctx.fillStyle="#fff";ctx.fillRect(0,0,canvas.width,canvas.height);dirty=false;},data(){return dirty?canvas.toDataURL("image/png",0.8):"";}};
+    }
+
+    function bindTerminationForm() {
+        if (state.modalTab !== "termination") return;
+        const issuer=setupSignatureCanvas($("terminationSignatureCanvas"));
+        const employee=setupSignatureCanvas($("terminationEmployeeSignatureCanvas"));
+        $("terminationSignatureClear")?.addEventListener("click",()=>issuer.clear());
+        $("terminationEmployeeSignatureClear")?.addEventListener("click",()=>employee.clear());
+        $("terminationSubmitButton")?.addEventListener("click",()=>{
+            const requiredIds=["terminationIssuingOffice","terminationProcessedBy","terminationDecidingOffice","terminationReason","terminationApproval","terminationEquipmentReturn","terminationUpdatedAt","terminationIssuerNameRank","terminationDepartmentUnit"];
+            const data={documentNumber:$("terminationDocumentNumber")?.value,issueDate:$("terminationIssueDate")?.value,issuingOffice:$("terminationIssuingOffice")?.value,processedBy:$("terminationProcessedBy")?.value,recipient:$("terminationRecipient")?.value,previousRank:$("terminationPreviousRank")?.value,departmentUnit:$("terminationDepartmentUnit")?.value,terminationType:$("terminationType")?.value,effectiveDate:$("terminationEffectiveDate")?.value,decidingOffice:$("terminationDecidingOffice")?.value,reason:$("terminationReason")?.value,approval:$("terminationApproval")?.value,equipmentReturn:$("terminationEquipmentReturn")?.value,updatedAt:$("terminationUpdatedAt")?.value,issuerNameRank:$("terminationIssuerNameRank")?.value,issuerSignature:issuer.data(),employeeNameRank:$("terminationEmployeeNameRank")?.value,employeeSignature:employee.data()};
+            if(requiredIds.some(id=>!String($(id)?.value||"").trim())){showAgentError("Bitte fülle alle Pflichtfelder des Beendigungsdokuments aus.");return;}
+            if(!data.issuerSignature){showAgentError("Bitte setze die Signatur der kündigenden Person.");return;}
+            const button=$("terminationSubmitButton"); if(button)button.disabled=true;
+            CloudApi.run.withSuccessHandler(result=>{
+                const targetId=String(state.selectedAgent.id);
+                state.agents=state.agents.map(item=>String(item.id)===targetId?{...item,active:false,approved:false,personnelStatus:"Ausgeschieden"}:item);
+                state.selectedAgent={...state.selectedAgent,active:false,approved:false,personnelStatus:"Ausgeschieden"};
+                filterAgents($("agentsSearchInput")?.value || "");
+                showAgentSuccess("Beendigung dokumentiert. Das dauerhafte externe Dokument wurde geöffnet.");
+                if(result.url) { try { window.open(new URL(result.url,window.location.origin).href,"_blank","noopener"); } catch(e) {} if(navigator.clipboard) navigator.clipboard.writeText(new URL(result.url,window.location.origin).href).catch(()=>{}); }
+                state.lastTerminationUrl = result.url ? new URL(result.url,window.location.origin).href : ""; state.modalTab="history"; renderPersonnelModal(true); loadPersonnelHistory().catch(()=>{});
+            }).withFailureHandler(error=>{if(button)button.disabled=false;showAgentError(error?.message||"Die Beendigung konnte nicht dokumentiert werden.");}).createPersonnelTermination(getAgentsSessionToken(),String(state.selectedAgent.id),data);
+        });
+    }
+
+
     /* =====================================================
        NOTES
     ====================================================== */
@@ -6342,7 +6113,14 @@
         const labels = { fine: "Geldstrafe", hq_rounds: "HQ-Runden", fort_rounds: "Fort-Runden", human_labs: "Human Labs", suspension: "Suspendierung", termination: "Kündigung" };
         const componentsOf = m => Array.isArray(m.sanction_components) && m.sanction_components.length ? m.sanction_components : [{ type: m.sanction_type || (m.amount != null ? "fine" : ""), amount: m.amount, value: m.sanction_value, unit: m.sanction_unit }];
         const componentValue = c => c.type === "fine" ? `${Number(c.amount || 0).toLocaleString("de-DE")} $` : c.type === "termination" ? "Beendigung des Dienstverhältnisses" : `${Number(c.value ?? c.sanction_value ?? 0).toLocaleString("de-DE")} ${c.unit || c.sanction_unit || ""}`.trim();
-        return `${renderTabs("sanctions")}<div class="agents-form"><div class="agents-section"><div class="agents-section-title">Verhängte interne Sanktionen</div><div class="agents-note-list">${!state.sanctionsLoaded ? `<div class="agents-personnel-loading-strip">Sanktionshistorie wird geladen …</div>` : !entries.length ? `<div class="agents-empty-list">Für diesen Agenten sind keine internen Sanktionen dokumentiert.</div>` : entries.map(row => { const m = row.metadata || {}; const date = row.eventDate || row.created_at; const components = componentsOf(m); return `<div class="agents-section-card" style="margin-bottom:10px"><div><div class="agents-section-title" style="margin:0">${escapeHtml(m.fine_title || row.title || "Interne Sanktion")}</div><div style="margin-top:5px;color:rgba(255,255,255,.42);font-size:10px">${date ? escapeHtml(new Date(date).toLocaleString("de-DE")) : "Datum unbekannt"}</div></div><div style="display:grid;gap:5px;margin-top:10px">${components.map(c => `<div style="display:flex;justify-content:space-between;gap:12px"><span style="color:rgba(255,255,255,.55);font-size:11px">${escapeHtml(labels[c.type] || "Sanktion")}</span><strong>${escapeHtml(componentValue(c))}</strong></div>`).join("")}</div>${m.reason || row.description ? `<div style="margin-top:9px;white-space:pre-wrap">${escapeHtml(m.reason || row.description)}</div>` : ""}<div style="margin-top:8px;color:rgba(255,255,255,.42);font-size:10px">Festgesetzt durch: ${escapeHtml(m.issued_by_name || row.created_by_name || "Unbekannt")}</div></div>`; }).join("")}</div></div></div>`;
+        return `${renderTabs("sanctions")}<div class="agents-form"><div class="agents-section"><div class="agents-section-title">Verhängte interne Sanktionen</div><div class="agents-note-list">${!state.sanctionsLoaded ? `<div class="agents-personnel-loading-strip">Sanktionshistorie wird geladen …</div>` : !entries.length ? `<div class="agents-empty-list">Für diesen Agenten sind keine internen Sanktionen dokumentiert.</div>` : entries.map(row => { const m = row.metadata || {}; const date = row.eventDate || row.created_at; const components = componentsOf(m); return `<div class="agents-section-card agents-sanction-card"><div><div class="agents-section-title" style="margin:0">${escapeHtml(m.fine_title || row.title || "Interne Sanktion")}</div><div class="agents-sanction-meta">${date ? escapeHtml(new Date(date).toLocaleString("de-DE")) : "Datum unbekannt"}</div></div><div class="agents-sanction-components">${components.map(c => `<div class="agents-sanction-component"><span>${escapeHtml(labels[c.type] || "Sanktion")}</span><strong>${escapeHtml(componentValue(c))}</strong></div>`).join("")}</div>${m.reason || row.description ? `<div class="agents-sanction-reason">${escapeHtml(m.reason || row.description)}</div>` : ""}<div class="agents-sanction-meta agents-sanction-issued">Festgesetzt durch: ${escapeHtml(m.issued_by_name || row.created_by_name || "Unbekannt")}</div></div>`; }).join("")}</div></div></div>`;
+    }
+
+
+    function renderHistoryTab() {
+        const entries = Array.isArray(state.history) ? state.history : [];
+        const actionLabels = { profile_updated: "Stammdaten geändert", rank_changed: "Dienstgrad geändert", training_created: "Schulung hinzugefügt", training_deleted: "Schulung gelöscht", note_created: "Vermerk hinzugefügt", note_deleted: "Vermerk gelöscht", sanction_issued: "Interne Sanktion festgesetzt", termination_created: "Dienstverhältnis beendet" };
+        return `${renderTabs("history")}<div class="agents-form">${state.lastTerminationUrl ? `<div class="agents-section"><div class="agents-section-title">Beendigungsdokument</div><div class="agents-section-card agents-termination-link-card"><div class="agents-history-detail">Das Dokument wurde dauerhaft veröffentlicht.</div><a class="agents-system-button agents-system-button-primary agents-termination-link" href="${escapeHtml(state.lastTerminationUrl)}" target="_blank" rel="noopener">Dauerhaftes Dokument öffnen</a></div></div>` : ""}<div class="agents-section"><div class="agents-section-title">Änderungshistorie</div><div class="agents-history-list">${!state.historyLoaded ? `<div class="agents-personnel-loading-strip">Historie wird geladen …</div>` : !entries.length ? `<div class="agents-empty-list">Für diese Personalakte sind noch keine Änderungen protokolliert.</div>` : entries.map(row => { const date = row.created_at || row.createdAt; return `<article class="agents-history-item"><div class="agents-history-dot"></div><div class="agents-history-main"><div class="agents-history-title">${escapeHtml(actionLabels[row.action] || row.action || "Änderung")}</div><div class="agents-history-meta">${date ? escapeHtml(new Date(date).toLocaleString("de-DE")) : "Datum unbekannt"} · ${escapeHtml(row.actor_name || row.actorName || "System")}</div>${row.detail ? `<div class="agents-history-detail">${escapeHtml(row.detail)}</div>` : ""}</div></article>`; }).join("")}</div></div></div>`;
     }
 
 
@@ -6864,6 +6642,7 @@
                     );
 
 
+                    loadPersonnelHistory().catch(function () {});
                     showAgentSuccess(
                         "Der Vermerk wurde hinzugefügt."
                     );
@@ -6963,6 +6742,7 @@
                     );
 
 
+                    loadPersonnelHistory().catch(function () {});
                     showAgentSuccess(
                         "Der Vermerk wurde gelöscht."
                     );
@@ -7011,7 +6791,7 @@
             true;
 
 
-        document.addEventListener(
+        window.__fibPageLifecycle.on(document, 
             "click",
             function(event) {
 
@@ -7034,7 +6814,7 @@
         );
 
 
-        document.addEventListener(
+        window.__fibPageLifecycle.on(document, 
             "keydown",
             function(event) {
 
@@ -7067,7 +6847,7 @@
         );
 
 
-        document.addEventListener(
+        window.__fibPageLifecycle.on(document, 
             "click",
             function(event) {
 
@@ -7151,9 +6931,9 @@
        GLOBAL FUNCTIONS
     ====================================================== */
 
-    window.addEventListener("fib-mdt:refresh-request", function (event) { if (document.getElementById("agentsPage") && !(event.detail && event.detail.source === "mutation")) loadAgents(); });
+    window.__fibPageLifecycle.on(window, "fib-mdt:refresh-request", function (event) { if (document.getElementById("agentsPage") && !(event.detail && event.detail.source === "mutation")) loadAgents(); });
 
-    window.addEventListener("fib-mdt:data-changed", function (event) { const modal=document.getElementById("fibGlobalModalOverlay"); if (document.getElementById("agentsPage") && !(modal && modal.classList.contains("open")) && /Personnel|Agent|Training|Note|Rank|User/i.test(String(event.detail && event.detail.method || ""))) loadAgents(); });
+    window.__fibPageLifecycle.on(window, "fib-mdt:data-changed", function (event) { const modal=document.getElementById("fibGlobalModalOverlay"); if (document.getElementById("agentsPage") && !(modal && modal.classList.contains("open")) && /Personnel|Agent|Training|Note|Rank|User/i.test(String(event.detail && event.detail.method || ""))) loadAgents(); });
 
     window.openPersonnelFile =
         openPersonnelFile;

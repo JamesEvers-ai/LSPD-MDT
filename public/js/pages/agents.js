@@ -1707,40 +1707,32 @@
     ====================================================== */
 
     function openAgentsModal() {
+        const overlay = $("agentsSystemModalOverlay");
         const modalElement = $("agentsSystemModal");
-        const manager = window.FIB_MDT_MODAL;
-        if (!modalElement || !manager || typeof manager.open !== "function") return;
-        manager.open({
-            title: "Personalakte",
-            subtitle: "Personalverwaltung",
-            body: modalElement,
-            modalClass: "agents",
-            cancelVisible: false,
-            saveVisible: false,
-            focus: false,
-            onClose: function () {
-                const host = $("agentsSystemModalOverlay");
-                if (host && modalElement && modalElement.parentElement !== host) host.appendChild(modalElement);
-                document.body.style.overflow = "";
-                closeRankDropdown();
-                state.selectedAgent = null;
-                state.bundleLoading = false;
-            }
-        });
+        if (!overlay || !modalElement) return;
+
+        // The personnel file owns its complete modal shell. Do not pass this
+        // node through the global modal manager: doing so nests one modal
+        // inside another and breaks the tab buttons, scrolling and styling.
+        if (modalElement.parentElement !== overlay) {
+            overlay.appendChild(modalElement);
+        }
+
+        overlay.classList.add("active");
+        overlay.setAttribute("aria-hidden", "false");
         document.body.style.overflow = "hidden";
     }
 
     function closePersonnelFile() {
         const overlay = $("agentsSystemModalOverlay");
         const modalElement = $("agentsSystemModal");
-        const manager = window.FIB_MDT_MODAL;
-        // Return the live node to its page-owned host so all existing IDs,
-        // event listeners and personnel-file state survive opening/closing.
         if (overlay && modalElement && modalElement.parentElement !== overlay) {
             overlay.appendChild(modalElement);
         }
-        if (manager && typeof manager.close === "function") manager.close();
-        if (overlay) overlay.classList.remove("active");
+        if (overlay) {
+            overlay.classList.remove("active");
+            overlay.setAttribute("aria-hidden", "true");
+        }
         document.body.style.overflow = "";
         closeRankDropdown();
         state.selectedAgent = null;
@@ -1972,32 +1964,21 @@
 
 
     function bindPersonnelTabEvents() {
+        const body = $("agentsSystemModalBody");
+        if (!body || body.dataset.personnelTabsBound === "true") return;
 
-        document
-            .querySelectorAll(
-                "[data-personnel-tab]"
-            )
-            .forEach(
-                button => {
+        // Delegate once from the stable modal body. The tab row itself is
+        // re-rendered on every tab switch, so binding directly to the
+        // individual buttons was unnecessarily fragile.
+        body.dataset.personnelTabsBound = "true";
+        body.addEventListener("click", function (event) {
+            const button = event.target.closest("[data-personnel-tab]");
+            if (!button || !body.contains(button)) return;
 
-                    button.onclick =
-                        function() {
-
-                            state.modalTab =
-                                button.dataset
-                                    .personnelTab ||
-                                "personal";
-
-
-                            renderPersonnelModal(
-                                true
-                            );
-
-                        };
-
-                }
-            );
-
+            event.preventDefault();
+            state.modalTab = button.dataset.personnelTab || "personal";
+            renderPersonnelModal(true);
+        });
     }
 
 
