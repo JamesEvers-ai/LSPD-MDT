@@ -85,6 +85,67 @@ async function writePersonnelHistory(env,auth,userId,action,detail="") {
 }
 
 
+async function uniformDispatch(method,args,env,token){
+  const supported=["getUniformCatalog","saveUniformCatalogItem","deleteUniformCatalogItem"];
+  if(!supported.includes(method)) return undefined;
+  if(method==="getUniformCatalog"){
+    const au=await authz(env,token,"officers.view");
+    const [personnelRows,ranks,rules,items]=await Promise.all([
+      db(env,"personnel",{query:{select:"user_id,department,unit,call_sign,service_number",user_id:`eq.${au.user.id}`,limit:"1"}}),
+      rankRows(env),
+      db(env,"fib_uniform_organization_rules",{query:{select:"id,organization_unit,regular_class,supplementary_classes,source_note",order:"organization_unit.asc",limit:"100"}}),
+      db(env,"fib_uniform_catalog",{query:{select:"id,name,uniform_class,description,image_url,organization_units,active,created_at,updated_at",active:"eq.true",order:"uniform_class.asc,name.asc",limit:"500"}})
+    ]);
+    const person=personnelRows?.[0]||{};
+    const rank=ranks?.find(r=>String(r.id)===String(au.user.rank))||ranks?.find(r=>String(r.name)===String(au.user.rank));
+    const department=text(person.department),unit=text(person.unit);
+    const normalize=v=>String(v||"").trim().toLowerCase().replace(/\s+/g," ");
+    const candidates=[`${department} – ${unit}`,`${department} - ${unit}`,`${unit} – ${department}`,department,unit].filter(Boolean).map(normalize);
+    const aliases={
+      "detective bureau":"investigative division – detective bureau",
+      "special weapons and tactics":"metropolitan division – s.w.a.t.",
+      "gang enforcement detail":"metropolitan division – gang enforcement detail",
+      "canine (k9)":"metropolitan division – k9 unit",
+      "police academy":"support division – police academy",
+      "air support division":"support division – air support unit",
+      "public relations office":"support division – public relations office",
+      "internal affairs":"internal affairs division",
+      "high command":"high command"
+    };
+    const candidateAliases=candidates.map(c=>aliases[c]).filter(Boolean);
+    const rule=(rules||[]).find(r=>candidates.includes(normalize(r.organization_unit))||candidateAliases.includes(normalize(r.organization_unit)))||null;
+    return {
+      profile:{id:au.user.id,name:au.user.name,rank:rank?.name||au.user.rank||"Kein Rang",rankId:rank?.id||au.user.rank||"",department,unit,callSign:text(person.call_sign),serviceNumber:text(person.service_number)},
+      organization:rule?{...rule,label:rule.organization_unit}:null,
+      items:items||[],
+      rules:rules||[],
+      canManage:await has(env,au,"uniforms.manage")
+    };
+  }
+  if(method==="saveUniformCatalogItem"){
+    const au=await authz(env,token,"uniforms.manage");
+    const d=args[0]||{},name=text(d.name),uniformClass=text(d.uniformClass||d.uniform_class),imageUrl=text(d.imageUrl||d.image_url),description=text(d.description);
+    if(!name)throw new Error("Bitte eine Bezeichnung angeben.");
+    if(!["A","B","C","D","E","F"].includes(uniformClass))throw new Error("Bitte eine gültige Uniformklasse auswählen.");
+    if(imageUrl&&!/^https:\/\//i.test(imageUrl))throw new Error("Der Bildlink muss eine HTTPS-Adresse sein.");
+    const row={name,uniform_class:uniformClass,description:description||null,image_url:imageUrl||null,active:d.active!==false,updated_at:new Date().toISOString(),created_by:au.user.id,created_by_name:au.user.name};
+    const itemId=text(d.id);
+    const organizationUnits=Array.isArray(d.organizationUnits)?[...new Set(d.organizationUnits.map(text).filter(Boolean))]:[];
+    row.organization_units=organizationUnits;
+    const saved=itemId
+      ? (await db(env,"fib_uniform_catalog",{method:"PATCH",query:{id:`eq.${itemId}`,select:"id,name,uniform_class,description,image_url,organization_units,active,created_at,updated_at"},body:row,prefer:"return=representation"}))?.[0]
+      : (await db(env,"fib_uniform_catalog",{method:"POST",query:{select:"id,name,uniform_class,description,image_url,organization_units,active,created_at,updated_at"},body:{...row,id:id("UNI"),created_at:new Date().toISOString()},prefer:"return=representation"}))?.[0];
+    return {success:true,item:saved||row};
+  }
+  if(method==="deleteUniformCatalogItem"){
+    await authz(env,token,"uniforms.manage");
+    const itemId=text(args[0]);if(!itemId)throw new Error("Katalogeintrag fehlt.");
+    await db(env,"fib_uniform_catalog",{method:"DELETE",query:{id:`eq.${itemId}`},prefer:"return=minimal"});
+    return {success:true};
+  }
+  return undefined;
+}
+
 async function vacationDispatch(method,args,env,token){
   const supported=["getVacationRequests","createVacationRequest","approveVacationRequest","rejectVacationRequest","cancelVacationRequest"];
   if(!supported.includes(method)) return undefined;
@@ -362,6 +423,7 @@ async function dispatchCore(method,args,env,token){
  }
  // Auth / profile
  const noarg=args; const a=()=>authz(env,token);
+ const uniformResult=await uniformDispatch(method,args,env,token); if(uniformResult!==undefined)return uniformResult;
  const academyResult=await academyDispatch(method,args,env,token); if(academyResult!==undefined)return academyResult;
  const internalFineResult=await internalFineDispatch(method,args,env,token); if(internalFineResult!==undefined)return internalFineResult;
  const vacationResult=await vacationDispatch(method,args,env,token); if(vacationResult!==undefined)return vacationResult;
@@ -811,7 +873,7 @@ export async function onRequest({request,env}){
    config(env);
    const deep=url.searchParams.get("deep")==="1";
    const required=deep
-    ? ["users","ranks","permissions","rank_permissions","fib_mdt_sessions","fib_records","patrols","fib_wanted","patrol_members","personnel","personnel_notes","personnel_trainings","fib_record_shares","fib_announcements","fib_vacations","fib_internal_fines","fib_internal_fine_catalog","fib_vehicle_catalog","fib_calendar_events","fib_gang_profiles","fib_bonus_entries","fib_mdt_logs","department_permissions","academy_documents","academy_tests","academy_attempts"]
+    ? ["users","ranks","permissions","rank_permissions","fib_mdt_sessions","fib_records","patrols","fib_wanted","patrol_members","personnel","personnel_notes","personnel_trainings","fib_record_shares","fib_announcements","fib_vacations","fib_internal_fines","fib_internal_fine_catalog","fib_vehicle_catalog","fib_calendar_events","fib_gang_profiles","fib_bonus_entries","fib_mdt_logs","department_permissions","academy_documents","academy_tests","academy_attempts","fib_uniform_catalog","fib_uniform_organization_rules"]
     : ["users","fib_mdt_sessions"];
    const checks=await Promise.all(required.map(async table=>{
     try { await db(env,table,{query:{select:"*",limit:"0"}}); return {table,ok:true}; }
