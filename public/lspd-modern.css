@@ -1,0 +1,20 @@
+/* LSPD MDT v24 — unified modern visual layer */
+:root{
+  --lspd-modern-bg:#f3f6fa;--lspd-modern-surface:#fff;--lspd-modern-border:#dbe3ec;
+  --lspd-modern-navy:#102b50;--lspd-modern-blue:#24609a;--lspd-modern-gold:#b28a3b;
+  --lspd-modern-muted:#718197;--lspd-modern-shadow:0 10px 30px rgba(16,43,80,.07);
+  --lspd-modern-radius:14px;
+}
+body{background:var(--lspd-modern-bg)}
+.lspd-module-head,.academy-head,.records-header{border-radius:var(--lspd-modern-radius)!important;box-shadow:var(--lspd-modern-shadow)!important}
+.lspd-module-head,.academy-head{background:linear-gradient(135deg,#fff 0%,#f7fafd 100%)!important;border:1px solid var(--lspd-modern-border)!important}
+.lspd-module-kicker,.academy-kicker{font-size:10px!important;letter-spacing:.16em!important;font-weight:850!important;color:var(--lspd-modern-gold)!important}
+.lspd-module-head h2,.academy-head h2{font-size:26px!important;letter-spacing:-.035em!important;color:var(--lspd-modern-navy)!important}
+.lspd-module-subtitle,.academy-subtitle{color:var(--lspd-modern-muted)!important}
+.lspd-btn,.academy-btn,.records-button,.wanted-btn,.classifications-button{border-radius:9px!important;min-height:36px!important;font-weight:750!important;transition:transform .15s ease,box-shadow .15s ease,border-color .15s ease,background .15s ease!important}
+.lspd-btn:hover,.academy-btn:hover,.records-button:hover,.wanted-btn:hover,.classifications-button:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(16,43,80,.08)}
+.lspd-btn.primary,.academy-btn.primary,.records-button.primary{background:var(--lspd-modern-navy)!important;border-color:var(--lspd-modern-navy)!important}
+.lspd-module-entry,.academy-card,.records-table-card,.records-toolbar{border-radius:12px!important;border-color:var(--lspd-modern-border)!important;box-shadow:0 4px 18px rgba(16,43,80,.045)!important}
+.lspd-module-entry:hover,.academy-card:hover{border-color:#c3d1df!important;box-shadow:0 10px 28px rgba(16,43,80,.08)!important}
+input,select,textarea{transition:border-color .15s ease,box-shadow .15s ease}
+input:focus,select:focus,textarea:focus{outline:none!important;border-color:#6c94ba!important;box-shadow:0 0 0 3px rgba(36,96,154,.10)!important}

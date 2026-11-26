@@ -49,7 +49,7 @@
 .lspd-calendar-day-number{font-size:10px;font-weight:800;color:#718096;margin-bottom:5px}
 .lspd-calendar-day.is-today .lspd-calendar-day-number{color:#8b6827}
 .lspd-calendar-event{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin:3px 0;padding:3px 5px;border-radius:4px;background:#eaf0f7;color:#2f4b6d;font-size:9px;font-weight:700}
-.lspd-calendar-more{font-size:9px;color:#7d8999;margin-top:4px}
+.lspd-calendar-more{font-size:9px;color:#7d8999;margin-top:4px}.lspd-calendar-vacation{background:#eef7ef!important;color:#2d6a3f!important;border-left:3px solid #6fa47a}
 @media(max-width:720px){.lspd-module-page{padding:18px 14px 30px}.lspd-module-head{display:block}.lspd-module-actions{margin-top:14px}.lspd-editor-grid{grid-template-columns:1fr}.lspd-editor textarea,.lspd-editor-actions,.lspd-editor-hint{grid-column:1}.lspd-module-entry-top{display:block}.lspd-module-entry-actions{margin-top:10px}}
 </style>
 <section class="lspd-module-page" id="lspdCalendarPage">
@@ -137,11 +137,11 @@
     var weekdays = ["Mo","Di","Mi","Do","Fr","Sa","So"];
     var html = weekdays.map(function(day){return '<div class="lspd-calendar-weekday">'+day+'</div>';}).join("");
     var today = dateKey(new Date()), dated = {};
-    events.forEach(function(r){if(!r.event_date)return;var d=new Date(r.event_date);if(Number.isNaN(d.getTime()))return;var key=dateKey(d);(dated[key]||(dated[key]=[])).push(r);});
+    events.forEach(function(r){if(!r.event_date)return;var m=r.metadata||{};if(m.entry_type==="vacation"&&m.start_date&&m.end_date){var start=new Date(m.start_date+"T00:00:00"),end=new Date(m.end_date+"T00:00:00");if(!Number.isNaN(start.getTime())&&!Number.isNaN(end.getTime())){for(var d=new Date(start);d<=end;d.setDate(d.getDate()+1)){var key=dateKey(d);(dated[key]||(dated[key]=[])).push(r);}return;}}var d=new Date(r.event_date);if(Number.isNaN(d.getTime()))return;var key=dateKey(d);(dated[key]||(dated[key]=[])).push(r);});
     for(var n=0;n<42;n++){
       var day = new Date(start.getFullYear(),start.getMonth(),start.getDate()+n), key=dateKey(day), items=dated[key]||[];
       html += '<div class="lspd-calendar-day '+(day.getMonth()!==month?'is-outside ':'')+(key===today?'is-today':'')+'"><div class="lspd-calendar-day-number">'+day.getDate()+'</div>'+
-        items.slice(0,3).map(function(r){return '<span class="lspd-calendar-event" title="'+esc(r.title||"Termin")+'">'+esc(r.title||"Termin")+'</span>';}).join("")+
+        items.slice(0,3).map(function(r){return '<span class="lspd-calendar-event'+((r.metadata&&r.metadata.entry_type==="vacation")?" lspd-calendar-vacation":"")+'" title="'+esc(r.title||"Termin")+'">'+esc(r.title||"Termin")+'</span>';}).join("")+
         (items.length>3?'<div class="lspd-calendar-more">+'+(items.length-3)+' weitere</div>':'')+'</div>';
     }
     $("calMonthGrid").innerHTML=html;

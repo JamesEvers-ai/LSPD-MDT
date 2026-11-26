@@ -84,6 +84,56 @@ async function writePersonnelHistory(env,auth,userId,action,detail="") {
  } catch(e) { console.warn("Personnel history skipped:",e?.message); }
 }
 
+
+async function vacationDispatch(method,args,env,token){
+  const supported=["getVacationRequests","createVacationRequest","approveVacationRequest","rejectVacationRequest","cancelVacationRequest"];
+  if(!supported.includes(method)) return undefined;
+  const now=new Date().toISOString();
+  if(method==="getVacationRequests"){
+    const au=await authz(env,token,"vacations.view");
+    const academy=await academyDepartmentHas(env,au,"academy.manage") && await has(env,au,"academy.manage");
+    const q={select:"id,title,description,status,event_date,metadata,created_by,created_by_name,created_at,updated_at",order:"event_date.desc,created_at.desc",limit:"200"};
+    if(!academy&&!au.master&&!au.permissions.includes("vacations.manage")) q.created_by=`eq.${au.user.id}`;
+    const rows=await db(env,"fib_vacations",{query:q});
+    return {canManage:academy||au.master||au.permissions.includes("vacations.manage"),requests:(rows||[]).map(normalizeModuleRow)};
+  }
+  if(method==="createVacationRequest"){
+    const au=await authz(env,token,"vacations.view");
+    const d=args[1]||{},start=text(d.startDate),end=text(d.endDate),reason=text(d.reason);
+    if(!start||!end) throw new Error("Bitte einen Zeitraum von–bis angeben.");
+    const s=new Date(`${start}T00:00:00`),e=new Date(`${end}T23:59:59`);
+    if(Number.isNaN(s.getTime())||Number.isNaN(e.getTime())) throw new Error("Der Urlaubszeitraum ist ungültig.");
+    if(e<s) throw new Error("Das Enddatum darf nicht vor dem Startdatum liegen.");
+    const existing=await db(env,"fib_vacations",{query:{select:"id,status,metadata",created_by:`eq.${au.user.id}`,limit:"200"}});
+    const overlap=(existing||[]).some(r=>!['rejected','cancelled'].includes(String(r.status||'').toLowerCase())&&(()=>{const m=r.metadata||{},a=new Date(`${m.start_date||''}T00:00:00`),b=new Date(`${m.end_date||''}T23:59:59`);return !Number.isNaN(a.getTime())&&!Number.isNaN(b.getTime())&&s<=b&&e>=a;})());
+    if(overlap) throw new Error("Für diesen Zeitraum existiert bereits ein nicht abgelehnter Urlaubsantrag.");
+    const meta={entry_type:"vacation_request",start_date:start,end_date:end,reason,employee_id:au.user.id,employee_name:au.user.name};
+    const row={id:id("VAC"),title:`Urlaubsantrag – ${au.user.name}`,description:reason,status:"pending",event_date:s.toISOString(),metadata:meta,created_by:au.user.id,created_by_name:au.user.name,created_at:now,updated_at:now};
+    const saved=await db(env,"fib_vacations",{method:"POST",query:{select:"id,title,description,status,event_date,metadata,created_by,created_by_name,created_at,updated_at"},body:row,prefer:"return=representation"});
+    return normalizeModuleRow(saved?.[0]||row);
+  }
+  if(method==="approveVacationRequest"||method==="rejectVacationRequest"){
+    const au=await academyAccess(env,token,"academy.manage");
+    const requestId=text(args[1]); if(!requestId) throw new Error("Urlaubsantrag fehlt.");
+    const rows=await db(env,"fib_vacations",{query:{select:"id,title,description,status,event_date,metadata,created_by,created_by_name,created_at,updated_at",id:`eq.${requestId}`,limit:"1"}});
+    const row=rows?.[0]; if(!row) throw Object.assign(new Error("Urlaubsantrag nicht gefunden."),{status:404});
+    if(String(row.status).toLowerCase()!=="pending") throw new Error("Dieser Urlaubsantrag wurde bereits bearbeitet.");
+    const status=method==="approveVacationRequest"?"approved":"rejected";
+    const metadata={...(row.metadata||{}),decision_by:au.user.id,decision_by_name:au.user.name,decision_at:now,rejection_reason:method==="rejectVacationRequest"?text(args[2]):""};
+    const saved=await db(env,"fib_vacations",{method:"PATCH",query:{id:`eq.${requestId}`,select:"id,title,description,status,event_date,metadata,created_by,created_by_name,created_at,updated_at"},body:{status,metadata,updated_at:now},prefer:"return=representation"});
+    return normalizeModuleRow(saved?.[0]||{...row,status,metadata});
+  }
+  if(method==="cancelVacationRequest"){
+    const au=await authz(env,token,"vacations.view");
+    const requestId=text(args[1]);
+    const rows=await db(env,"fib_vacations",{query:{select:"id,status,created_by,metadata",id:`eq.${requestId}`,limit:"1"}});const row=rows?.[0];if(!row)throw new Error("Urlaubsantrag nicht gefunden.");
+    if(!au.master&&String(row.created_by)!==String(au.user.id))throw Object.assign(new Error("Du kannst nur eigene Urlaubsanträge zurückziehen."),{status:403});
+    if(!["pending","approved"].includes(String(row.status).toLowerCase()))throw new Error("Dieser Antrag kann nicht mehr zurückgezogen werden.");
+    const metadata={...(row.metadata||{}),cancelled_by:au.user.id,cancelled_by_name:au.user.name,cancelled_at:now};
+    await db(env,"fib_vacations",{method:"PATCH",query:{id:`eq.${requestId}`},body:{status:"cancelled",metadata,updated_at:now},prefer:"return=minimal"});return {success:true};
+  }
+}
+
 async function moduleDispatch(method,args,env,token){
  const actions={getModuleItems:"list",createModuleItem:"create",updateModuleItem:"update",deleteModuleItem:"delete"};
  const action=actions[method]; if(!action)return undefined;
@@ -94,7 +144,7 @@ async function moduleDispatch(method,args,env,token){
   const query={select:moduleKey==="logs"?"id,action,module_name,item_id,detail,actor_id,actor_name,created_at":"id,title,description,status,event_date,metadata,created_by,created_by_name,created_at,updated_at",order:"created_at.desc",limit:moduleKey==="logs"?"300":"200"};
   if(moduleKey==="announcements"&&!await has(env,auth,cfg.manage)) query.status="eq.active";
   if(moduleKey==="logs"&&!auth.master&&!auth.permissions.includes("*"))await authz(env,token,"logs.view");
-  const rows=await db(env,cfg.table,{query});return (rows||[]).map(normalizeModuleRow);
+  let rows=await db(env,cfg.table,{query});if(moduleKey==="calendar"){const vacations=await db(env,"fib_vacations",{query:{select:"id,title,description,status,event_date,metadata,created_by,created_by_name,created_at,updated_at",status:"eq.approved",order:"event_date.asc",limit:"200"}}).catch(()=>[]);rows=[...(rows||[]),...(vacations||[]).map(v=>({...v,title:`Urlaub – ${v.metadata?.employee_name||v.created_by_name||"Mitarbeiter"}`,description:v.description||"Genehmigter Urlaub",metadata:{...(v.metadata||{}),entry_type:"vacation"}}))];}return (rows||[]).map(normalizeModuleRow);
  }
  if(!cfg.manage)throw Object.assign(new Error("Dieses Modul ist schreibgeschützt."),{status:403});
  if(!await has(env,auth,cfg.manage))throw Object.assign(new Error("Du besitzt keine Änderungsberechtigung für dieses Modul."),{status:403});
@@ -314,6 +364,7 @@ async function dispatchCore(method,args,env,token){
  const noarg=args; const a=()=>authz(env,token);
  const academyResult=await academyDispatch(method,args,env,token); if(academyResult!==undefined)return academyResult;
  const internalFineResult=await internalFineDispatch(method,args,env,token); if(internalFineResult!==undefined)return internalFineResult;
+ const vacationResult=await vacationDispatch(method,args,env,token); if(vacationResult!==undefined)return vacationResult;
  const moduleResult=await moduleDispatch(method,args,env,token); if(moduleResult!==undefined)return moduleResult;
  if(method==="getMyPermissions")return permissionsFor(env,await a());
  if(method==="getMyPersonnelProfile"){
@@ -515,7 +566,7 @@ async function dispatchCore(method,args,env,token){
  if(method==="deletePatrol"){await authz(env,token,"patrols.delete");const pid=text(args[1]);await db(env,"patrol_members",{method:"DELETE",query:{patrol_id:`eq.${pid}`},prefer:"return=minimal"});await db(env,"patrols",{method:"DELETE",query:{id:`eq.${pid}`},prefer:"return=minimal"});return {success:true};}
  // records: security is enforced on every operation
  if(method==="getRecordsConfig"){await authz(env,token,"records.view");return {listLimit:50,maxListLimit:100,deleteMasterOnly:true,statuses:[{id:"open",label:"Offen"},{id:"in_progress",label:"In Bearbeitung"},{id:"closed",label:"Abgeschlossen"},{id:"archived",label:"Archiviert"}],types:[{id:"investigation",label:"Ermittlungsakten",permissions:{view:"records.investigations.view",create:"records.investigations.create",edit:"records.investigations.edit"}},{id:"report",label:"Berichte",permissions:{view:"records.reports.view",create:"records.reports.create",edit:"records.reports.edit"}},{id:"ia",label:"IA-Akten",permissions:{view:"records.ia.view",create:"records.ia.create",edit:"records.ia.edit"}},{id:"highcommand",label:"High Command Akten",permissions:{view:"records.highcommand.view",create:"records.highcommand.create",edit:"records.highcommand.edit"}}]};}
- if(method==="getRecords"){const au=await authz(env,token);const view=canonicalRecordType(args[1]),status=text(args[2]),search=text(args[3]),limit=Math.min(100,Math.max(1,Number(args[4])||50));const perm={investigation:"records.investigations.view",report:"records.reports.view",ia:"records.ia.view",highcommand:"records.highcommand.view"};let types=Object.keys(perm).filter(t=>au.master||au.permissions.includes(perm[t]));if(view&&view!=="all")types=types.filter(t=>t===view);if(!types.length)return [];const q={select:"id,case_number,type,title,subject,status,classification,summary,created_at,created_by,created_by_name,updated_at,updated_by,updated_by_name,archived_at",type:`in.(${types.join(",")})`,order:"updated_at.desc",limit:String(limit)};if(status&&status!=="all")q.status=`eq.${status}`;if(search)q.or=`(title.ilike.*${search}*,subject.ilike.*${search}*,summary.ilike.*${search}*)`;return await db(env,"fib_records",{query:q});}
+ if(method==="getRecords"){const au=await authz(env,token);const view=canonicalRecordType(args[1]),status=text(args[2]),search=text(args[3]),limit=Math.min(100,Math.max(1,Number(args[4])||50));const perm={investigation:"records.investigations.view",report:"records.reports.view",ia:"records.ia.view",highcommand:"records.highcommand.view"};let types=Object.keys(perm).filter(t=>au.master||au.permissions.includes(perm[t]));if(view&&view!=="all")types=types.filter(t=>t===view);if(!types.length)return [];const q={select:"id,case_number,type,title,subject,status,classification,summary,created_at,created_by,created_by_name,updated_at,updated_by,updated_by_name,archived_at",type:`in.(${types.join(",")})`,order:"updated_at.desc",limit:String(limit)};if(status&&status!=="all")q.status=`eq.${status}`;if(search)q.or=`(title.ilike.*${search}*,subject.ilike.*${search}*,summary.ilike.*${search}*)`;const rows=await db(env,"fib_records",{query:q});return (rows||[]).map(r=>({...r,type:canonicalRecordType(r.type)}));}
  if(method==="getRecord"){const au=await authz(env,token);const rows=await db(env,"fib_records",{query:{select:"id,case_number,type,title,subject,status,classification,summary,content,created_at,created_by,created_by_name,updated_at,updated_by,updated_by_name,archived_at,archived_by,archived_by_name",id:`eq.${text(args[1])}`,limit:"1"}});const r=rows?.[0];if(!r)throw new Error("Akte nicht gefunden.");const perm={investigation:"records.investigations.view",report:"records.reports.view",ia:"records.ia.view",highcommand:"records.highcommand.view"};const canonicalType=canonicalRecordType(r.type);if(canonicalType!==r.type)r.type=canonicalType;if(!au.master&&!au.permissions.includes(perm[canonicalType]))throw Object.assign(new Error("Keine Berechtigung für diese Akte."),{status:403});return r;}
  if(["createRecord","updateRecord","archiveRecord","deleteRecord"].includes(method)){const au=await authz(env,token);const rid=text(args[1]),d=(method==="createRecord"?args[1]:args[2])||{};if(method==="deleteRecord"){if(!au.master)throw Object.assign(new Error("Nur Master dürfen Akten endgültig löschen."),{status:403});await db(env,"fib_records",{method:"DELETE",query:{id:`eq.${text(args[1])}`},prefer:"return=minimal"});return {success:true};}const type=canonicalRecordType(method==="createRecord"?d.type:(method==="archiveRecord"?args[2]:(d.type||d.recordType)));const perms={investigation:"records.investigations",report:"records.reports",ia:"records.ia",highcommand:"records.highcommand"};const base=perms[type];if(!base)throw new Error("Ungültige Aktenart.");const action=method==="createRecord"?"create":"edit";if(!au.master&&!au.permissions.includes(`${base}.${action}`))throw Object.assign(new Error("Keine Berechtigung für diese Aktion."),{status:403});const now=new Date().toISOString();if(method==="createRecord"){if(!text(d.title))throw new Error("Titel ist erforderlich.");const row={id:id("R"),case_number:`LSPD-${new Date().getFullYear()}-${Math.floor(10000+Math.random()*90000)}`,type,title:text(d.title),subject:text(d.subject),status:text(d.status)||"open",classification:type==="highcommand"?"Streng vertraulich – High Command":type==="ia"?"Geschützt – Internal Affairs":"Intern",summary:text(d.summary),content:String(d.content||""),created_by:au.user.id,created_by_name:au.user.name,updated_by:au.user.id,updated_by_name:au.user.name,created_at:now,updated_at:now};const rows=await db(env,"fib_records",{method:"POST",query:{select:"id,case_number,type,title,subject,status,classification,summary,content,created_at,created_by,created_by_name,updated_at,updated_by,updated_by_name,archived_at,archived_by,archived_by_name"},body:row,prefer:"return=representation"});return rows?.[0]||row;}if(method==="archiveRecord"){const rows=await db(env,"fib_records",{method:"PATCH",query:{id:`eq.${rid}`,type:`eq.${type}`,select:"id,case_number,type,title,subject,status,classification,summary,content,created_at,created_by,created_by_name,updated_at,updated_by,updated_by_name,archived_at,archived_by,archived_by_name"},body:{status:"archived",archived_at:now,archived_by:au.user.id,archived_by_name:au.user.name,updated_at:now},prefer:"return=representation"});if(!rows?.length)throw new Error("Akte nicht gefunden.");return rows[0];}const patch={updated_at:now,updated_by:au.user.id,updated_by_name:au.user.name};for(const k of ["title","subject","summary","content","status"])if(d[k]!==undefined)patch[k]=d[k];const rows=await db(env,"fib_records",{method:"PATCH",query:{id:`eq.${rid}`,type:`eq.${type}`,select:"id,case_number,type,title,subject,status,classification,summary,content,created_at,created_by,created_by_name,updated_at,updated_by,updated_by_name,archived_at,archived_by,archived_by_name"},body:patch,prefer:"return=representation"});if(!rows?.length)throw new Error("Akte nicht gefunden.");return rows[0];}
  // Wanted records (Supabase table: wanted)
