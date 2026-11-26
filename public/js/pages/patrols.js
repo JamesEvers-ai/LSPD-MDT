@@ -533,103 +533,104 @@
         const card = document.createElement("div");
         card.className = "patrol-card";
 
-        const statusClass =
-            String(patrol.tenCode || patrol.ten_code || patrol.status || "")
-                .toLowerCase()
-                .replace(/[^a-z0-9]+/g, "-");
+        const statusValue = String(
+            patrol.tenCode || patrol.ten_code || patrol.status || "Unbekannt"
+        ).trim() || "Unbekannt";
+        const statusClass = statusValue
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "-");
 
-        const members = Array.isArray(patrol.members)
-            ? patrol.members
-            : [];
-
-        const membersHtml = members.length
-            ? members
-                .map(function (member) {
-                    return `
-                        <div class="patrol-member">
-                            <div class="patrol-member-rank">
-                                ${escapeHtml(member.rankShortName || member.rank || "Kein Rang")}
-                            </div>
-                            <div class="patrol-member-name">
-                                ${escapeHtml(member.name || "Unbekannt")}${member.callSign ? ` <span class="patrol-member-callsign">· ${escapeHtml(member.callSign)}</span>` : ""}
-                            </div>
-                        </div>
-                    `;
-                })
-                .join("")
-            : `
-                <div class="patrol-member">
-                    <div class="patrol-member-name">Keine Besatzung</div>
-                </div>
-            `;
-
-        const actionAllowed = canEdit() || canDelete();
-
-        // Older duty rows may contain the callsign in both callsign/number and
-        // accidentally in location. Avoid displaying duplicate values in the UI.
+        const members = Array.isArray(patrol.members) ? patrol.members : [];
         const leadMember = members.find(function (member) {
             return String(member.position || "").toLowerCase() === "lead";
         }) || members[0];
-        const patrolCallsign = String(leadMember?.callSign || patrol.callsign || "Unbekannt").trim();
+
+        // The authoritative callsign is the one stored in the personnel file.
+        // getPatrols() already resolves it for the lead member; patrol.callsign is
+        // kept only as a backwards-compatible fallback for older patrol rows.
+        const patrolCallsign = String(
+            leadMember?.callSign || patrol.callsign || "Unbekannt"
+        ).trim() || "Unbekannt";
         const patrolNumber = String(patrol.number || "").trim();
         const patrolLocation = String(patrol.location || "").trim();
-        const patrolDisplayStatus = String(patrol.tenCode || patrol.ten_code || patrol.status || "Unbekannt").trim();
-        const patrolActivityStatus = String(patrol.activity || "").trim();
-        const tenCodeStyleAttr = "";
+        const patrolActivity = String(patrol.activity || "").trim();
+        const vehicle = String(patrol.vehicleType || patrol.vehicle_type || "—").trim() || "—";
+
         const splitCallsign = patrolCallsign.match(/^(.+?)[- ]?(\d{1,3})$/);
         const displayCallsign = splitCallsign ? splitCallsign[1].trim() : patrolCallsign;
-        // Older rows sometimes stored the complete callsign in both columns.
-        // Prefer the explicit number only when it is actually a number/suffix.
         const explicitNumber = /^\d{1,3}[A-Z]?$/i.test(patrolNumber) ? patrolNumber : "";
         const displayNumber = explicitNumber || (splitCallsign ? splitCallsign[2] : "");
-        const showPatrolNumber = Boolean(displayNumber);
-        const showPatrolLocation = patrolLocation && patrolLocation !== patrolCallsign && patrolLocation !== patrolNumber;
+
+        const membersHtml = members.length
+            ? members.map(function (member) {
+                const memberName = String(member.name || "Unbekannt").trim();
+                const rank = String(member.rankShortName || member.rank || "—").trim();
+                const memberCallsign = String(member.callSign || "").trim();
+                return `
+                    <div class="patrol-member" title="${escapeHtml(memberName)}${memberCallsign ? " · " + escapeHtml(memberCallsign) : ""}">
+                        <span class="patrol-member-rank">${escapeHtml(rank)}</span>
+                        <span class="patrol-member-name">${escapeHtml(memberName)}</span>
+                        ${memberCallsign ? `<span class="patrol-member-callsign">${escapeHtml(memberCallsign)}</span>` : ""}
+                    </div>
+                `;
+            }).join("")
+            : `<div class="patrol-member patrol-member-empty">Keine Besatzung</div>`;
+
+        const actionAllowed = canEdit() || canDelete();
+        const currentUserId = String(state.currentUserId || window.currentUser?.id || "");
+        const alreadyMember = members.some(function (member) {
+            return String(member.id || member.user_id || "") === currentUserId;
+        });
 
         card.innerHTML = `
-            <div class="patrol-callsign">
-                <div class="patrol-callsign-type">
-                    ${escapeHtml(displayCallsign)}
-                </div>
-                ${showPatrolNumber ? `<div class="patrol-callsign-number">${escapeHtml(displayNumber)}</div>` : ""}
+            <div class="patrol-callsign" title="Funkrufname aus der Personalakte">
+                <span class="patrol-callsign-type">${escapeHtml(displayCallsign)}</span>
+                ${displayNumber ? `<span class="patrol-callsign-number">${escapeHtml(displayNumber)}</span>` : ""}
             </div>
 
-            ${patrolActivityStatus ? `<div class="patrol-activity-status" title="Aktueller Streifenstatus">${escapeHtml(patrolActivityStatus)}</div>` : ""}
-            <div class="patrol-status status-${escapeHtml(statusClass)}" ${tenCodeStyleAttr} title="Ten Code dieser Streife">
-                <span class="patrol-status-label">${escapeHtml(patrolDisplayStatus)}</span>
-            </div>
-            ${showPatrolLocation ? `<div class="patrol-location">${escapeHtml(patrolLocation)}</div>` : ""}
-
-            <div class="patrol-vehicle">
-                ${escapeHtml(patrol.vehicleType)}
+            <div class="patrol-status status-${escapeHtml(statusClass)}" title="Ten Code">
+                <span class="patrol-status-label">${escapeHtml(statusValue)}</span>
             </div>
 
-            <div class="patrol-members">
+            <div class="patrol-location" title="Einsatzort">
+                ${escapeHtml(patrolLocation || "—")}
+            </div>
+
+            <div class="patrol-vehicle" title="Fahrzeug">
+                ${escapeHtml(vehicle)}
+            </div>
+
+            <div class="patrol-activity-status${patrolActivity ? "" : " is-empty"}" title="Tätigkeit / Status">
+                ${escapeHtml(patrolActivity || "—")}
+            </div>
+
+            <div class="patrol-members" title="Besatzung">
                 ${membersHtml}
             </div>
-            <button class="patrol-action-button patrol-join-button" type="button" title="Dieser Streife beitreten" aria-label="Dieser Streife beitreten" data-patrol-join="${escapeHtml(patrol.id)}">+</button>
 
-            ${
-                actionAllowed
-                    ? `
-                        <button
-                            class="patrol-action-button"
-                            type="button"
-                            title="Streife bearbeiten"
-                            data-patrol-action="${escapeHtml(patrol.id)}"
-                        >
-                            ⋮
-                        </button>
-                    `
-                    : `
-                        <div class="patrol-no-action" aria-hidden="true"></div>
-                    `
-            }
+            <button
+                class="patrol-action-button patrol-join-button"
+                type="button"
+                title="${alreadyMember ? "Bereits Mitglied dieser Streife" : "Dieser Streife beitreten"}"
+                aria-label="${alreadyMember ? "Bereits Mitglied dieser Streife" : "Dieser Streife beitreten"}"
+                data-patrol-join="${escapeHtml(patrol.id)}"
+                ${alreadyMember ? "disabled" : ""}
+            >${alreadyMember ? "✓" : "+"}</button>
+
+            ${actionAllowed ? `
+                <button
+                    class="patrol-action-button patrol-edit-button"
+                    type="button"
+                    title="Streife bearbeiten"
+                    data-patrol-action="${escapeHtml(patrol.id)}"
+                >
+                    <i class="fa-solid fa-pen"></i>
+                </button>
+            ` : `<div class="patrol-no-action" aria-hidden="true"></div>`}
         `;
 
         const joinButton = card.querySelector("[data-patrol-join]");
-        if (joinButton) {
-            const alreadyMember = members.some(function (member) { return String(member.id) === String(state.currentUserId || window.currentUser?.id || ""); });
-            if (alreadyMember) { joinButton.disabled = true; joinButton.title = "Du bist bereits Mitglied dieser Streife"; joinButton.textContent = "✓"; }
+        if (joinButton && !alreadyMember) {
             joinButton.addEventListener("click", function (event) {
                 event.stopPropagation();
                 joinButton.disabled = true;

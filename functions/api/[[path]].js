@@ -372,7 +372,7 @@ async function dispatchCore(method,args,env,token){
   return (ps||[]).map(p=>{
    const members=(membersByPatrol.get(String(p.id))||[]).map(m=>{const u=usersById.get(String(m.user_id))||{};const person=peopleByUserId.get(String(m.user_id))||{};const r=ranksById.get(String(u.rank))||ranksByName.get(String(u.rank));return {id:u.id,name:u.name,username:u.username,rank:r?.name||u.rank||"Kein Rang",rankShortName:r?.short_name||r?.shortName||r?.name||u.rank||"Kein Rang",rankId:r?.id||u.rank,profileImage:u.profile_image||"",callSign:text(person.call_sign),position:m.position||"Member"};});
    const lead=members.find(m=>String(m.position||"").toLowerCase()==="lead")||members[0];
-   return {...p,callsign:text(lead?.callSign)||text(p.callsign),tenCode:p.ten_code||p.status,vehicleType:p.vehicle_type,members};
+   return {...p,callsign:text(lead?.callSign),tenCode:p.ten_code||p.status,vehicleType:p.vehicle_type,members};
   });
  }
  if(method==="getPatrolEligibleUsers"){
@@ -392,7 +392,7 @@ async function dispatchCore(method,args,env,token){
  }
  if(["createPatrol","updatePatrol"].includes(method)){
   const au=await authz(env,token,method==="createPatrol"?"patrols.create":"patrols.edit");const d=args[1]||{},pid=text(d.id)||id("P"),now=new Date().toISOString();
-  const requestedTenCode=text(d.tenCode||d.ten_code||d.status)||"10-1";const row={id:pid,callsign:text(d.callsign),number:text(d.number),vehicle_type:text(d.vehicleType),status:"10-1",ten_code:requestedTenCode,location:text(d.location),activity:text(d.activity),updated_at:now,updated_by:au.user.id};
+  const requestedTenCode=text(d.tenCode||d.ten_code||d.status)||"10-1";const row={id:pid,callsign:"",number:text(d.number),vehicle_type:text(d.vehicleType),status:"10-1",ten_code:requestedTenCode,location:text(d.location),activity:text(d.activity),updated_at:now,updated_by:au.user.id};
   if(!row.callsign||!row.number||!row.vehicle_type||!row.status)throw new Error("Streifenkennung, Nummer, Fahrzeug und Status sind erforderlich.");
   const members=Array.isArray(d.members)?d.members.slice():[];
   // A duty status is personal: creating one automatically places the signed-in agent in the patrol.

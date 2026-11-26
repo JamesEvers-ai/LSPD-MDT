@@ -1430,11 +1430,12 @@
 
             <button
                 type="button"
-                class="patrol-header-button"
-                id="patrolCreateButton"
+                class="patrol-header-button patrol-header-duty-end"
+                id="patrolEndDutyButton"
+                hidden
             >
-                <i class="fa-solid fa-plus"></i>
-                In Dienst gehen
+                <i class="fa-solid fa-right-from-bracket"></i>
+                Außer Dienst
             </button>
 
         </div>
@@ -2028,103 +2029,104 @@
         const card = document.createElement("div");
         card.className = "patrol-card";
 
-        const statusClass =
-            String(patrol.tenCode || patrol.ten_code || patrol.status || "")
-                .toLowerCase()
-                .replace(/[^a-z0-9]+/g, "-");
+        const statusValue = String(
+            patrol.tenCode || patrol.ten_code || patrol.status || "Unbekannt"
+        ).trim() || "Unbekannt";
+        const statusClass = statusValue
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "-");
 
-        const members = Array.isArray(patrol.members)
-            ? patrol.members
-            : [];
-
-        const membersHtml = members.length
-            ? members
-                .map(function (member) {
-                    return `
-                        <div class="patrol-member">
-                            <div class="patrol-member-rank">
-                                ${escapeHtml(member.rankShortName || member.rank || "Kein Rang")}
-                            </div>
-                            <div class="patrol-member-name">
-                                ${escapeHtml(member.name || "Unbekannt")}${member.callSign ? ` <span class="patrol-member-callsign">· ${escapeHtml(member.callSign)}</span>` : ""}
-                            </div>
-                        </div>
-                    `;
-                })
-                .join("")
-            : `
-                <div class="patrol-member">
-                    <div class="patrol-member-name">Keine Besatzung</div>
-                </div>
-            `;
-
-        const actionAllowed = canEdit() || canDelete();
-
-        // Older duty rows may contain the callsign in both callsign/number and
-        // accidentally in location. Avoid displaying duplicate values in the UI.
+        const members = Array.isArray(patrol.members) ? patrol.members : [];
         const leadMember = members.find(function (member) {
             return String(member.position || "").toLowerCase() === "lead";
         }) || members[0];
-        const patrolCallsign = String(leadMember?.callSign || patrol.callsign || "Unbekannt").trim();
+
+        // The authoritative callsign is the one stored in the personnel file.
+        // getPatrols() already resolves it for the lead member; patrol.callsign is
+        // kept only as a backwards-compatible fallback for older patrol rows.
+        const patrolCallsign = String(
+            leadMember?.callSign || patrol.callsign || "Unbekannt"
+        ).trim() || "Unbekannt";
         const patrolNumber = String(patrol.number || "").trim();
         const patrolLocation = String(patrol.location || "").trim();
-        const patrolDisplayStatus = String(patrol.tenCode || patrol.ten_code || patrol.status || "Unbekannt").trim();
-        const patrolActivityStatus = String(patrol.activity || "").trim();
-        const tenCodeStyleAttr = "";
+        const patrolActivity = String(patrol.activity || "").trim();
+        const vehicle = String(patrol.vehicleType || patrol.vehicle_type || "—").trim() || "—";
+
         const splitCallsign = patrolCallsign.match(/^(.+?)[- ]?(\d{1,3})$/);
         const displayCallsign = splitCallsign ? splitCallsign[1].trim() : patrolCallsign;
-        // Older rows sometimes stored the complete callsign in both columns.
-        // Prefer the explicit number only when it is actually a number/suffix.
         const explicitNumber = /^\d{1,3}[A-Z]?$/i.test(patrolNumber) ? patrolNumber : "";
         const displayNumber = explicitNumber || (splitCallsign ? splitCallsign[2] : "");
-        const showPatrolNumber = Boolean(displayNumber);
-        const showPatrolLocation = patrolLocation && patrolLocation !== patrolCallsign && patrolLocation !== patrolNumber;
+
+        const membersHtml = members.length
+            ? members.map(function (member) {
+                const memberName = String(member.name || "Unbekannt").trim();
+                const rank = String(member.rankShortName || member.rank || "—").trim();
+                const memberCallsign = String(member.callSign || "").trim();
+                return `
+                    <div class="patrol-member" title="${escapeHtml(memberName)}${memberCallsign ? " · " + escapeHtml(memberCallsign) : ""}">
+                        <span class="patrol-member-rank">${escapeHtml(rank)}</span>
+                        <span class="patrol-member-name">${escapeHtml(memberName)}</span>
+                        ${memberCallsign ? `<span class="patrol-member-callsign">${escapeHtml(memberCallsign)}</span>` : ""}
+                    </div>
+                `;
+            }).join("")
+            : `<div class="patrol-member patrol-member-empty">Keine Besatzung</div>`;
+
+        const actionAllowed = canEdit() || canDelete();
+        const currentUserId = String(state.currentUserId || window.currentUser?.id || "");
+        const alreadyMember = members.some(function (member) {
+            return String(member.id || member.user_id || "") === currentUserId;
+        });
 
         card.innerHTML = `
-            <div class="patrol-callsign">
-                <div class="patrol-callsign-type">
-                    ${escapeHtml(displayCallsign)}
-                </div>
-                ${showPatrolNumber ? `<div class="patrol-callsign-number">${escapeHtml(displayNumber)}</div>` : ""}
+            <div class="patrol-callsign" title="Funkrufname aus der Personalakte">
+                <span class="patrol-callsign-type">${escapeHtml(displayCallsign)}</span>
+                ${displayNumber ? `<span class="patrol-callsign-number">${escapeHtml(displayNumber)}</span>` : ""}
             </div>
 
-            ${patrolActivityStatus ? `<div class="patrol-activity-status" title="Aktueller Streifenstatus">${escapeHtml(patrolActivityStatus)}</div>` : ""}
-            <div class="patrol-status status-${escapeHtml(statusClass)}" ${tenCodeStyleAttr} title="Ten Code dieser Streife">
-                <span class="patrol-status-label">${escapeHtml(patrolDisplayStatus)}</span>
-            </div>
-            ${showPatrolLocation ? `<div class="patrol-location">${escapeHtml(patrolLocation)}</div>` : ""}
-
-            <div class="patrol-vehicle">
-                ${escapeHtml(patrol.vehicleType)}
+            <div class="patrol-status status-${escapeHtml(statusClass)}" title="Ten Code">
+                <span class="patrol-status-label">${escapeHtml(statusValue)}</span>
             </div>
 
-            <div class="patrol-members">
+            <div class="patrol-location" title="Einsatzort">
+                ${escapeHtml(patrolLocation || "—")}
+            </div>
+
+            <div class="patrol-vehicle" title="Fahrzeug">
+                ${escapeHtml(vehicle)}
+            </div>
+
+            <div class="patrol-activity-status${patrolActivity ? "" : " is-empty"}" title="Tätigkeit / Status">
+                ${escapeHtml(patrolActivity || "—")}
+            </div>
+
+            <div class="patrol-members" title="Besatzung">
                 ${membersHtml}
             </div>
-            <button class="patrol-action-button patrol-join-button" type="button" title="Dieser Streife beitreten" aria-label="Dieser Streife beitreten" data-patrol-join="${escapeHtml(patrol.id)}">+</button>
 
-            ${
-                actionAllowed
-                    ? `
-                        <button
-                            class="patrol-action-button"
-                            type="button"
-                            title="Streife bearbeiten"
-                            data-patrol-action="${escapeHtml(patrol.id)}"
-                        >
-                            ⋮
-                        </button>
-                    `
-                    : `
-                        <div class="patrol-no-action" aria-hidden="true"></div>
-                    `
-            }
+            <button
+                class="patrol-action-button patrol-join-button"
+                type="button"
+                title="${alreadyMember ? "Bereits Mitglied dieser Streife" : "Dieser Streife beitreten"}"
+                aria-label="${alreadyMember ? "Bereits Mitglied dieser Streife" : "Dieser Streife beitreten"}"
+                data-patrol-join="${escapeHtml(patrol.id)}"
+                ${alreadyMember ? "disabled" : ""}
+            >${alreadyMember ? "✓" : "+"}</button>
+
+            ${actionAllowed ? `
+                <button
+                    class="patrol-action-button patrol-edit-button"
+                    type="button"
+                    title="Streife bearbeiten"
+                    data-patrol-action="${escapeHtml(patrol.id)}"
+                >
+                    <i class="fa-solid fa-pen"></i>
+                </button>
+            ` : `<div class="patrol-no-action" aria-hidden="true"></div>`}
         `;
 
         const joinButton = card.querySelector("[data-patrol-join]");
-        if (joinButton) {
-            const alreadyMember = members.some(function (member) { return String(member.id) === String(state.currentUserId || window.currentUser?.id || ""); });
-            if (alreadyMember) { joinButton.disabled = true; joinButton.title = "Du bist bereits Mitglied dieser Streife"; joinButton.textContent = "✓"; }
+        if (joinButton && !alreadyMember) {
             joinButton.addEventListener("click", function (event) {
                 event.stopPropagation();
                 joinButton.disabled = true;
@@ -2162,7 +2164,8 @@
                         type="text"
                         maxlength="80"
                         autocomplete="off"
-                        placeholder="Wird aus dem Funkrufnamen übernommen"
+                        placeholder="Wird aus der Personalakte übernommen"
+                        readonly
                     >
                 </div>
 
@@ -2651,7 +2654,7 @@
         }
 
         if (!form.callsign || !String(form.callsign).trim()) {
-            showError("Bitte einen Funkrufnamen aus der Personalakte hinterlegen oder eingeben.");
+            showError("Bitte einen Funkrufnamen in der Personalakte hinterlegen.");
             return;
         }
 
@@ -2780,8 +2783,7 @@
     }
 
     function bindStaticEvents() {
-        const createButton = document.getElementById("patrolCreateButton");
-        // Duty creation now happens exclusively in the topbar picker, never in the legacy modal.
+        const createButton = document.getElementById("patrolEndDutyButton");
         if (createButton) createButton.style.display = "none";
         if (!window.fibDutyStartListenerBound) {
             window.fibDutyStartListenerBound = true;
@@ -2862,6 +2864,49 @@
             });
         }
 
+        const pageDutyEndButton = document.getElementById("patrolEndDutyButton");
+        if (pageDutyEndButton && !pageDutyEndButton.dataset.bound) {
+            pageDutyEndButton.dataset.bound = "true";
+            pageDutyEndButton.addEventListener("click", function () {
+                const topbarEndButton = document.getElementById("fibDutyEndButton");
+                if (topbarEndButton && !topbarEndButton.hidden) {
+                    topbarEndButton.click();
+                    return;
+                }
+                pageDutyEndButton.disabled = true;
+                CloudApi.run.withSuccessHandler(function () {
+                    clearPatrolsCache();
+                    refreshPatrolData();
+                    pageDutyEndButton.hidden = true;
+                    pageDutyEndButton.style.display = "none";
+                    if (typeof window.showSuccess === "function") window.showSuccess("Du hast deinen Dienst beendet.");
+                    window.dispatchEvent(new CustomEvent("fib-mdt:duty-ended"));
+                }).withFailureHandler(function (error) {
+                    pageDutyEndButton.disabled = false;
+                    if (typeof window.showError === "function") window.showError(error?.message || String(error));
+                }).leavePatrol(getToken());
+            });
+        }
+        if (!window.fibPatrolDutyButtonSyncBound) {
+            window.fibPatrolDutyButtonSyncBound = true;
+            window.addEventListener("fib-mdt:duty-started", function () {
+                const button = document.getElementById("patrolEndDutyButton");
+                if (button) { button.hidden = false; button.style.display = "inline-flex"; button.disabled = false; }
+            });
+            window.addEventListener("fib-mdt:duty-state-restored", function (event) {
+                const button = document.getElementById("patrolEndDutyButton");
+                if (!button) return;
+                const active = !!event.detail?.inDuty;
+                button.hidden = !active;
+                button.style.display = active ? "inline-flex" : "none";
+                button.disabled = false;
+            });
+            window.addEventListener("fib-mdt:duty-ended", function () {
+                const button = document.getElementById("patrolEndDutyButton");
+                if (button) { button.hidden = true; button.style.display = "none"; button.disabled = false; }
+            });
+        }
+
         const refreshButton =
             document.getElementById("patrolRefreshButton");
 
@@ -2911,7 +2956,7 @@
 
     function applyPermissionUI() {
         const createButton =
-            document.getElementById("patrolCreateButton");
+            document.getElementById("patrolEndDutyButton");
 
         if (createButton) createButton.style.display = "none";
 
@@ -3219,3 +3264,384 @@
   .patrol-group-toolbar .patrol-group-button { flex:1 1 0; }
 }
 </style>
+<style id="lspd-patrol-reference-layout">
+/* Reference-aligned Leitstellenansicht: compact, horizontal roster rows. */
+.patrols-page {
+  max-width: 100% !important;
+  padding-top: 8px !important;
+}
+.patrols-header {
+  margin-bottom: 12px !important;
+}
+.patrols-header-actions {
+  align-items: center !important;
+}
+.patrol-header-duty-end {
+  display: none !important;
+  background: #fff !important;
+  border-color: #e2b9b9 !important;
+  color: #a33d3d !important;
+}
+.patrol-header-duty-end:not([hidden]) { display: inline-flex !important; }
+.patrol-header-duty-end:hover {
+  background: #fff3f3 !important;
+  border-color: #d99898 !important;
+  color: #913737 !important;
+}
+.patrol-group-toolbar {
+  display: flex !important;
+  align-items: center !important;
+  min-height: 44px !important;
+  margin: 0 0 12px !important;
+  padding: 6px 9px !important;
+  border-radius: 9px !important;
+  box-shadow: 0 2px 8px rgba(24,52,79,.04) !important;
+}
+.patrol-group-toolbar-inner {
+  width: 100% !important;
+  min-height: 30px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+}
+.patrol-group-toolbar-title {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  min-width: 0 !important;
+}
+.patrol-group-toolbar .patrol-toolbar-label {
+  font-size: 9px !important;
+  letter-spacing: .08em !important;
+  text-transform: uppercase !important;
+  color: #6a7f94 !important;
+}
+.patrol-group-toolbar .patrol-toolbar-meta {
+  font-size: 9px !important;
+  color: #8a9aaa !important;
+}
+.patrol-group-controls {
+  display: inline-flex !important;
+  gap: 3px !important;
+  padding: 3px !important;
+  background: #f1f5f8 !important;
+  border: 1px solid #dce5ee !important;
+  border-radius: 7px !important;
+}
+.patrol-group-button {
+  min-width: 74px !important;
+  height: 27px !important;
+  padding: 0 10px !important;
+  border: 0 !important;
+  border-radius: 5px !important;
+  background: transparent !important;
+  color: #718399 !important;
+  font-size: 9px !important;
+  font-weight: 800 !important;
+  letter-spacing: .03em !important;
+}
+.patrol-group-button:hover {
+  background: #e8f0f7 !important;
+  color: #245b91 !important;
+}
+.patrol-group-button.active {
+  background: #dcecf9 !important;
+  color: #1f5f97 !important;
+  box-shadow: 0 1px 2px rgba(24,52,79,.05) !important;
+}
+.patrols-content, #patrolsList {
+  width: 100% !important;
+}
+.patrol-group {
+  margin: 0 0 14px !important;
+}
+.patrol-group:last-child { margin-bottom: 0 !important; }
+.patrol-group-title {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 7px !important;
+  min-height: 28px !important;
+  margin: 0 0 5px !important;
+  padding: 0 11px !important;
+  border: 1px solid #9fc5e4 !important;
+  border-radius: 5px 5px 0 0 !important;
+  background: #e2f0fb !important;
+  color: #245b91 !important;
+  font-size: 10px !important;
+  font-weight: 900 !important;
+  letter-spacing: .03em !important;
+  text-transform: none !important;
+  box-shadow: none !important;
+}
+.patrol-group-count {
+  min-width: 18px !important;
+  height: 18px !important;
+  padding: 0 5px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 4px !important;
+  background: #fff !important;
+  border: 1px solid #c9ddec !important;
+  color: #5b7893 !important;
+  font-size: 8px !important;
+  font-weight: 850 !important;
+}
+.patrol-card {
+  display: grid !important;
+  grid-template-columns: minmax(112px, 1.05fr) 58px minmax(130px, 1.2fr) 58px minmax(84px, .75fr) minmax(180px, 2fr) 30px 30px !important;
+  align-items: stretch !important;
+  gap: 4px !important;
+  min-height: 31px !important;
+  margin: 0 0 4px !important;
+  padding: 3px 4px !important;
+  border: 1px solid #d5e0e9 !important;
+  border-radius: 4px !important;
+  background: #eef3f7 !important;
+  box-shadow: 0 1px 3px rgba(24,52,79,.035) !important;
+  transform: none !important;
+}
+.patrol-card:hover {
+  background: #f4f8fb !important;
+  border-color: #b7cfe3 !important;
+  transform: none !important;
+}
+.patrol-callsign,
+.patrol-status,
+.patrol-location,
+.patrol-vehicle,
+.patrol-activity-status,
+.patrol-members,
+.patrol-action-button,
+.patrol-no-action {
+  min-height: 25px !important;
+  height: 25px !important;
+}
+.patrol-callsign {
+  display: flex !important;
+  min-width: 0 !important;
+  border-radius: 4px !important;
+  background: #e7eef4 !important;
+  border: 1px solid #cbd9e5 !important;
+}
+.patrol-callsign-type {
+  min-width: 0 !important;
+  flex: 1 1 auto !important;
+  padding: 0 7px !important;
+  display: flex !important;
+  align-items: center !important;
+  background: #dce9f4 !important;
+  color: #2b648f !important;
+  font-size: 8px !important;
+  font-weight: 900 !important;
+  letter-spacing: .02em !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+.patrol-callsign-number {
+  flex: 0 0 auto !important;
+  min-width: 23px !important;
+  padding: 0 5px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: #f8fafc !important;
+  color: #557089 !important;
+  border-left: 1px solid #cbd9e5 !important;
+  font-size: 8px !important;
+  font-weight: 900 !important;
+}
+.patrol-status {
+  min-width: 0 !important;
+  width: 100% !important;
+  padding: 0 5px !important;
+  border-radius: 4px !important;
+  border: 1px solid #d9e3eb !important;
+  background: #fff !important;
+  color: #50677d !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 8px !important;
+  font-weight: 900 !important;
+  white-space: nowrap !important;
+}
+.patrol-status.status-10-1 { background:#eaf7ef !important; color:#26764b !important; border-color:#bfe1ca !important; }
+.patrol-status.status-10-3 { background:#fff0f1 !important; color:#a53c46 !important; border-color:#e7c4c8 !important; }
+.patrol-status.status-10-6 { background:#fff8e6 !important; color:#89691f !important; border-color:#ead9a6 !important; }
+.patrol-status.status-10-19, .patrol-status.status-10-23 { background:#edf5fc !important; color:#356f9e !important; border-color:#c9ddec !important; }
+.patrol-status.status-10-76 { background:#e8f2fb !important; color:#27699e !important; border-color:#c2d8ec !important; }
+.patrol-location {
+  min-width: 0 !important;
+  width: 100% !important;
+  padding: 0 7px !important;
+  display: flex !important;
+  align-items: center !important;
+  border-radius: 4px !important;
+  border: 1px solid #d1dce6 !important;
+  background: #eef3f7 !important;
+  color: #536c82 !important;
+  font-size: 8px !important;
+  font-weight: 750 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+.patrol-vehicle {
+  min-width: 0 !important;
+  width: 100% !important;
+  padding: 0 6px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 4px !important;
+  border: 1px solid #bfe0e5 !important;
+  background: #e7f5f6 !important;
+  color: #287080 !important;
+  font-size: 8px !important;
+  font-weight: 900 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+.patrol-activity-status {
+  min-width: 0 !important;
+  width: 100% !important;
+  padding: 0 6px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 4px !important;
+  border: 1px solid #d3dee7 !important;
+  background: #f4f7f9 !important;
+  color: #536c82 !important;
+  font-size: 7.5px !important;
+  font-weight: 850 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+.patrol-activity-status.is-empty { color:#91a0ad !important; }
+.patrol-members {
+  min-width: 0 !important;
+  width: 100% !important;
+  display: flex !important;
+  align-items: stretch !important;
+  gap: 3px !important;
+  overflow: hidden !important;
+}
+.patrol-member {
+  min-width: 0 !important;
+  max-width: none !important;
+  flex: 1 1 0 !important;
+  height: 25px !important;
+  display: flex !important;
+  align-items: center !important;
+  overflow: hidden !important;
+  border-radius: 4px !important;
+  border: 1px solid #d2dde6 !important;
+  background: #f5f8fa !important;
+}
+.patrol-member-rank {
+  max-width: 48px !important;
+  min-width: 28px !important;
+  height: 100% !important;
+  padding: 0 5px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: #e3edf6 !important;
+  color: #2d638d !important;
+  border: 0 !important;
+  font-size: 7px !important;
+  font-weight: 900 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+.patrol-member-name {
+  min-width: 0 !important;
+  flex: 1 1 auto !important;
+  height: 100% !important;
+  padding: 0 6px !important;
+  display: flex !important;
+  align-items: center !important;
+  background: #f8fafb !important;
+  color: #496177 !important;
+  border: 0 !important;
+  border-left: 1px solid #d8e2ea !important;
+  font-size: 7.5px !important;
+  font-weight: 750 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+.patrol-member-callsign {
+  flex: 0 0 auto !important;
+  max-width: 60px !important;
+  padding: 0 5px !important;
+  color: #6c8ba5 !important;
+  font-size: 7px !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+.patrol-member-empty {
+  justify-content: center !important;
+  color: #8b9aaa !important;
+}
+.patrol-action-button {
+  width: 25px !important;
+  height: 25px !important;
+  min-height: 25px !important;
+  padding: 0 !important;
+  flex: 0 0 25px !important;
+  border-radius: 4px !important;
+  border: 1px solid #d2dee8 !important;
+  background: #f7f9fb !important;
+  color: #5c748b !important;
+  font-size: 10px !important;
+}
+.patrol-action-button:hover {
+  background: #e8f2f9 !important;
+  border-color: #a8c6dc !important;
+  color: #245b91 !important;
+}
+.patrol-join-button {
+  background:#e8f3fb !important;
+  border-color:#b8d2e7 !important;
+  color:#2f78b7 !important;
+  font-size:14px !important;
+  font-weight:900 !important;
+}
+.patrol-join-button:disabled {
+  opacity: 1 !important;
+  background:#eef4f7 !important;
+  border-color:#d6e0e8 !important;
+  color:#6b8a9f !important;
+  cursor:default !important;
+}
+.patrol-edit-button i { font-size: 9px !important; }
+.patrol-no-action { width:25px !important; flex:0 0 25px !important; }
+
+@media (max-width: 1050px) {
+  .patrol-card { grid-template-columns: minmax(100px,1fr) 55px minmax(110px,1fr) 54px minmax(78px,.7fr) minmax(150px,1.5fr) 28px 28px !important; }
+}
+@media (max-width: 820px) {
+  .patrol-card { grid-template-columns: minmax(94px,1fr) 54px minmax(100px,1fr) 52px minmax(72px,.7fr) minmax(130px,1.2fr) 27px 27px !important; }
+  .patrol-members { display:flex !important; }
+  .patrol-member-callsign { display:none !important; }
+}
+@media (max-width: 650px) {
+  .patrol-group-toolbar-inner { align-items:flex-start !important; flex-direction:column !important; }
+  .patrol-group-controls { width:100% !important; }
+  .patrol-group-button { flex:1 1 0 !important; }
+  .patrol-card {
+    grid-template-columns: minmax(88px,1fr) 54px minmax(92px,1fr) 50px 27px 27px !important;
+  }
+  .patrol-activity-status, .patrol-members { display:none !important; }
+}
+</style>
+
