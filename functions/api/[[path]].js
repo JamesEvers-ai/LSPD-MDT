@@ -143,11 +143,12 @@ async function uniformDispatch(method,args,env,token){
       organization:rule?{...rule,label:rule.organization_unit}:null,
       items:items||[],
       rules:rules||[],
-      canManage:await has(env,au,"uniforms.manage")
+      canManage:au.master===true
     };
   }
   if(method==="saveUniformCatalogItem"){
-    const au=await authz(env,token,"uniforms.manage");
+    const au=await authz(env,token);
+    if(au.master!==true)throw Object.assign(new Error("Nur ein Master darf Dienstkleidung anlegen oder bearbeiten."),{status:403});
     const d=args[0]||{},name=text(d.name),uniformClass=text(d.uniformClass||d.uniform_class),imageUrl=text(d.imageUrl||d.image_url),description=text(d.description);
     if(!name)throw new Error("Bitte eine Bezeichnung angeben.");
     if(!["A","B","C","D","E","F"].includes(uniformClass))throw new Error("Bitte eine gültige Uniformklasse auswählen.");
@@ -162,7 +163,8 @@ async function uniformDispatch(method,args,env,token){
     return {success:true,item:saved||row};
   }
   if(method==="deleteUniformCatalogItem"){
-    await authz(env,token,"uniforms.manage");
+    const au=await authz(env,token);
+    if(au.master!==true)throw Object.assign(new Error("Nur ein Master darf Dienstkleidung entfernen."),{status:403});
     const itemId=text(args[0]);if(!itemId)throw new Error("Katalogeintrag fehlt.");
     await db(env,"fib_uniform_catalog",{method:"DELETE",query:{id:`eq.${itemId}`},prefer:"return=minimal"});
     return {success:true};
