@@ -32,24 +32,24 @@
       icon: "fa-file-lines"
     },
     doc: {
-      label: "Gesicherte DOC-Akten",
-      shortLabel: "DOC-Akte",
-      description: "Zugriff ausschließlich für entsprechend berechtigte DOC-Bedienstete.",
-      classification: "Geschützt – DOC",
-      view: "records.doc.view",
-      create: "records.doc.create",
-      edit: "records.doc.edit",
+      label: "IA-Akten",
+      shortLabel: "IA-Akte",
+      description: "Besonders geschützte Akten der Internal Affairs Division.",
+      classification: "Geschützt – Internal Affairs",
+      view: "records.ia.view",
+      create: "records.ia.create",
+      edit: "records.ia.edit",
       secure: true,
       icon: "fa-shield-halved"
     },
     director: {
-      label: "Office of the Chief of Police",
-      shortLabel: "Leitungsakte",
-      description: "Besonders geschützte Akten des Office of the Chief of Police.",
-      classification: "Streng vertraulich – Office of the Chief of Police",
-      view: "records.director.view",
-      create: "records.director.create",
-      edit: "records.director.edit",
+      label: "High Command Akten",
+      shortLabel: "High Command Akte",
+      description: "Besonders geschützte Akten des High Command.",
+      classification: "Streng vertraulich – High Command",
+      view: "records.highcommand.view",
+      create: "records.highcommand.create",
+      edit: "records.highcommand.edit",
       secure: true,
       icon: "fa-user-shield"
     }
@@ -62,7 +62,7 @@
     archived: { label: "Archiviert", className: "inactive" }
   };
 
-  const TAB_ORDER = ["investigation", "report", "doc", "director", "archive"];
+  const TAB_ORDER = ["investigation", "report", "ia", "highcommand", "archive"];
   const CACHE_TTL = 12000;
 
   const state = {
@@ -386,7 +386,7 @@
         actions.push(`<button type="button" class="records-button small danger" onclick="recordsDelete('${escapeAttr(record.id)}')">Löschen</button>`);
       }
 
-      const secureClass = record.type === "director" ? "director" : record.type === "doc" ? "doc" : "";
+      const secureClass = record.type === "highcommand" ? "director" : record.type === "ia" ? "doc" : "";
 
       return `
         <tr>

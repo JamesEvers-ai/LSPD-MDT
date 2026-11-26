@@ -874,8 +874,35 @@
     state.initialized = false;
   };
 
+  async function loadDashboardAnnouncementsInline() {
+    const container = document.getElementById("dashboardAnnouncements");
+    if (!container) return;
+    try {
+      const token = sessionStorage.getItem("fib_mdt_session") || sessionStorage.getItem("lspd_mdt_session") || "";
+      if (!token || !window.CloudApi?.run) return;
+      const rows = await new Promise((resolve, reject) => {
+        CloudApi.run.withSuccessHandler(resolve).withFailureHandler(reject).getModuleItems(token, "announcements");
+      });
+      const active = (Array.isArray(rows) ? rows : []).filter(r => String(r.status || "active").toLowerCase() === "active").sort((a,b) => new Date(b.eventDate || b.created_at || 0) - new Date(a.eventDate || a.created_at || 0)).slice(0,4);
+      if (!active.length) {
+        container.innerHTML = '<div class="dashboard-empty"><div class="dashboard-empty-icon"><i class="fa-solid fa-bell"></i></div><div class="dashboard-empty-title">Keine Bekanntmachungen</div><div class="dashboard-empty-text">Aktuell liegen keine neuen Bekanntmachungen vor.</div></div>';
+        return;
+      }
+      container.innerHTML = active.map(r => {
+        const important = r.metadata && r.metadata.priority === "important";
+        const title = String(r.title || "Bekanntmachung").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[c]));
+        const description = String(r.description || "").replace(/[*_#`]/g, "").slice(0,220).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[c]));
+        const date = r.eventDate || r.created_at;
+        return `<article class="dashboard-announcement-item${important ? " important" : ""}"><div class="dashboard-announcement-title">${title}</div><div class="dashboard-announcement-meta">${date ? new Date(date).toLocaleString("de-DE", {dateStyle:"medium", timeStyle:"short"}) : ""}</div><div class="dashboard-announcement-text">${description}</div></article>`;
+      }).join("");
+    } catch (error) {
+      console.warn("[LSPD MDT] Dashboard-Bekanntmachungen konnten nicht geladen werden:", error);
+    }
+  }
+
   window.initializeDashboard = initializeDashboard;
 
   initializeDashboard();
+  loadDashboardAnnouncementsInline();
 })();
 </script>
