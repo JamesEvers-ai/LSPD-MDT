@@ -101,6 +101,28 @@ async function uniformDispatch(method,args,env,token){
     const department=text(person.department),unit=text(person.unit);
     const normalize=v=>String(v||"").trim().toLowerCase().replace(/\s+/g," ");
     const candidates=[`${department} – ${unit}`,`${department} - ${unit}`,`${unit} – ${department}`,department,unit].filter(Boolean).map(normalize);
+    // Canonical organization values used by the MDT. These are the only organization/division
+    // labels exposed by the personnel system. Sub-unit names may still be stored in `unit`
+    // and are resolved to the exact canonical organization label when a matching rule exists.
+    const canonicalOrganizations=[
+      "Internal Affairs Division",
+      "Central Division",
+      "Northern Division",
+      "Patrol Division",
+      "Investigative Division",
+      "Metropolitan Division",
+      "Support Division",
+      "Internal Affairs",
+      "Patrol Unit",
+      "Detective Bureau",
+      "Special Weapons and Tactics",
+      "Gang Enforcement Detail",
+      "Canine (K9)",
+      "Police Academy",
+      "Public Relations Office",
+      "Air Support Division",
+      "High Command"
+    ];
     const aliases={
       "detective bureau":"investigative division – detective bureau",
       "special weapons and tactics":"metropolitan division – s.w.a.t.",
@@ -108,12 +130,14 @@ async function uniformDispatch(method,args,env,token){
       "canine (k9)":"metropolitan division – k9 unit",
       "police academy":"support division – police academy",
       "air support division":"support division – air support unit",
+      "air support unit":"support division – air support unit",
       "public relations office":"support division – public relations office",
       "internal affairs":"internal affairs division",
       "high command":"high command"
     };
+    const canonicalCandidates=candidates.concat(canonicalOrganizations.filter(v=>candidates.includes(normalize(v))));
     const candidateAliases=candidates.map(c=>aliases[c]).filter(Boolean);
-    const rule=(rules||[]).find(r=>candidates.includes(normalize(r.organization_unit))||candidateAliases.includes(normalize(r.organization_unit)))||null;
+    const rule=(rules||[]).find(r=>canonicalCandidates.includes(normalize(r.organization_unit))||candidateAliases.includes(normalize(r.organization_unit)))||null;
     return {
       profile:{id:au.user.id,name:au.user.name,rank:rank?.name||au.user.rank||"Kein Rang",rankId:rank?.id||au.user.rank||"",department,unit,callSign:text(person.call_sign),serviceNumber:text(person.service_number)},
       organization:rule?{...rule,label:rule.organization_unit}:null,

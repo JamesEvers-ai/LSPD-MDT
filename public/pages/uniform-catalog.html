@@ -29,7 +29,7 @@
         <div class="u-field"><label for="uniformClass">Klasse</label><select class="u-select" id="uniformClass"><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option><option>F</option></select></div>
         <div class="u-field"><label for="uniformImage">Bildlink</label><input class="u-input" id="uniformImage" placeholder="HTTPS-Bildlink"></div>
         <div class="u-field"><label for="uniformDescription">Beschreibung</label><input class="u-input" id="uniformDescription" placeholder="Kurzbeschreibung / Tragehinweis"></div>
-        <div class="u-field scope"><label for="uniformScope">Organisationseinheiten</label><select class="u-select" id="uniformScope" multiple></select><div class="u-hint">Keine Auswahl = allgemeines Uniformteil für alle Organisationseinheiten. Mehrere Einheiten können gemeinsam ausgewählt werden. So können z. B. GED und K9 trotz gleicher Klasse C unterschiedliche Oberteile erhalten.</div></div>
+        <div class="u-field scope"><label for="uniformScope">Organisationseinheiten</label><select class="u-select" id="uniformScope" multiple></select><div class="u-hint">Keine Auswahl = allgemeines Uniformteil für alle Organisationseinheiten. Mehrere Einheiten können gemeinsam ausgewählt werden. Die Liste entspricht exakt den im MDT verwendeten Organisationseinheiten. So können z. B. Gang Enforcement Detail und Canine (K9) trotz gleicher Klasse C unterschiedliche Oberteile erhalten.</div></div>
       </div>
       <div class="u-actions"><button class="u-btn primary" id="uniformSave">Katalogeintrag speichern</button><button class="u-btn" id="uniformCancel">Abbrechen</button></div><div class="u-status" id="uniformStatus"></div>
     </div>
@@ -43,6 +43,11 @@
  const $=id=>document.getElementById(id),esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const call=(method,...args)=>new Promise((resolve,reject)=>CloudApi.run.withSuccessHandler(resolve).withFailureHandler(reject)[method](...args));
  let state={data:null,editId:null};
+ const organizationOptions=[
+  'Internal Affairs Division','Central Division','Northern Division','Patrol Division','Investigative Division','Metropolitan Division','Support Division',
+  'Internal Affairs','Patrol Unit','Detective Bureau','Special Weapons and Tactics','Gang Enforcement Detail','Canine (K9)','Police Academy',
+  'Public Relations Office','Air Support Division','High Command'
+ ];
  const classInfo={
   A:{name:'Formelle Dienstkleidung',purpose:'Offizielle Anlässe, Zeremonien und repräsentative Termine'},
   B:{name:'Reguläre Dienstuniform',purpose:'Allgemeiner Streifen- und Verwaltungsdienst'},
@@ -53,7 +58,7 @@
  };
  const normalize=v=>String(v||'').trim().toLowerCase().replace(/\s+/g,' ');
  function profile(p){const initials=String(p.name||'?').split(/\s+/).slice(0,2).map(x=>x[0]).join('').toUpperCase();$('uniformProfile').innerHTML=`<div class="u-avatar">${esc(initials)}</div><div><div class="u-profile-name">${esc(p.name||'Unbekannt')}</div><div class="u-profile-meta">${esc(p.rank||'Kein Dienstgrad')} · ${esc(p.department||'Keine Abteilung')}</div></div>`}
- function populateScope(){const rules=state.data?.rules||[],sel=$('uniformScope'),current=new Set((state.data?.editItem?.organization_units||[]).map(String));sel.innerHTML=rules.map(r=>`<option value="${esc(r.organization_unit)}" ${current.has(String(r.organization_unit))?'selected':''}>${esc(r.organization_unit)}</option>`).join('')}
+ function populateScope(){const sel=$('uniformScope'),current=new Set((state.data?.editItem?.organization_units||[]).map(String));sel.innerHTML=organizationOptions.map(v=>`<option value="${esc(v)}" ${current.has(String(v))?'selected':''}>${esc(v)}</option>`).join('')}
  function render(){const d=state.data||{},p=d.profile||{},org=d.organization||null;profile(p);
   $('uniformOrg').innerHTML=org?`<div style="display:grid;gap:9px"><div><div style="font-size:9px;color:#7b899a;font-weight:850;text-transform:uppercase">Organisationseinheit</div><div style="font-size:13px;font-weight:850;margin-top:3px">${esc(org.label)}</div></div><div><div style="font-size:9px;color:#7b899a;font-weight:850;text-transform:uppercase">Abteilung</div><div style="font-size:11px;margin-top:3px">${esc(p.department||'—')}</div></div><div><div style="font-size:9px;color:#7b899a;font-weight:850;text-transform:uppercase">Einheit</div><div style="font-size:11px;margin-top:3px">${esc(p.unit||'—')}</div></div><div><div style="font-size:9px;color:#7b899a;font-weight:850;text-transform:uppercase">Dienstgrad</div><div style="font-size:11px;margin-top:3px">${esc(p.rank||'—')}</div></div></div>`:'<div class="u-empty">Für deine Personalakte konnte keine passende Organisationseinheit ermittelt werden.</div>';
   const regular=String(org?.regular_class||'').split('/').map(x=>x.trim()).filter(Boolean),extra=Array.isArray(org?.supplementary_classes)?org.supplementary_classes:[],allowed=[...new Set([...regular,...extra])];
