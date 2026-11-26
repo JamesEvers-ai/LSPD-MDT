@@ -111,6 +111,61 @@ async function moduleDispatch(method,args,env,token){
  if(d.metadata!==undefined)patch.metadata=d.metadata&&typeof d.metadata==="object"?d.metadata:{};
  const saved=await db(env,cfg.table,{method:"PATCH",query:{id:`eq.${itemId}`,select:"id,title,description,status,event_date,metadata,created_by,created_by_name,created_at,updated_at"},body:patch,prefer:"return=representation"});return normalizeModuleRow(saved?.[0]||{id:itemId,...patch});
 }
+async function academyDepartmentHas(env,au,permission){
+ if(au.master)return true;
+ const perms=await db(env,"permissions",{query:{select:"id",key:`eq.${permission}`,limit:"1"}});
+ const permId=perms?.[0]?.id;if(!permId)return false;
+ const links=await db(env,"department_permissions",{query:{select:"permission_id",department:`eq.${au.department}`,permission_id:`eq.${permId}`,limit:"1"}});
+ return !!links?.length;
+}
+async function academyAccess(env,token,permission="academy.view"){
+ const au=await authz(env,token,permission);
+ if(au.master)return au;
+ const people=await db(env,"personnel",{query:{select:"department",user_id:`eq.${au.user.id}`,limit:"1"}});
+ const department=text(people?.[0]?.department);
+ if(!department)throw Object.assign(new Error("Deiner Personalakte ist keine Abteilung zugeordnet. Der Academy-Zugriff kann daher nicht ermittelt werden."),{status:403});
+ const perms=await db(env,"permissions",{query:{select:"id,key",key:`eq.${permission}`,limit:"1"}});
+ const permId=perms?.[0]?.id;
+ if(!permId)throw Object.assign(new Error("Die Academy-Berechtigung ist noch nicht eingerichtet."),{status:403});
+ const links=await db(env,"department_permissions",{query:{select:"permission_id",department:`eq.${department}`,permission_id:`eq.${permId}`,limit:"1"}});
+ if(!links?.length)throw Object.assign(new Error(`Deine Abteilung „${department}“ ist für diesen Academy-Bereich nicht freigeschaltet.`),{status:403});
+ return {...au,department};
+}
+async function academyDispatch(method,args,env,token){
+ if(!["academyGetData","academySaveDocument","academyDeleteDocument","academySaveTest","academyDeleteTest","academySubmitTest"].includes(method))return undefined;
+ if(method==="academyGetData"){
+  const au=await academyAccess(env,token,"academy.view");
+  const [documents,tests,results]=await Promise.all([
+   db(env,"academy_documents",{query:{select:"id,title,category,content,active,created_by,created_by_name,created_at,updated_at",active:"eq.true",order:"updated_at.desc",limit:"200"}}),
+   db(env,"academy_tests",{query:{select:"id,title,description,active,passing_score,questions,created_by,created_by_name,created_at,updated_at",active:"eq.true",order:"updated_at.desc",limit:"100"}}),
+   db(env,"academy_attempts",{query:{select:"id,test_id,score,passed,submitted_at",user_id:`eq.${au.user.id}`,order:"submitted_at.desc",limit:"100"}})
+  ]);
+  const testMap=new Map((tests||[]).map(t=>[String(t.id),t.title]));
+  return {department:au.department,manage:await academyDepartmentHas(env,au,"academy.manage") && await has(env,au,"academy.manage"),documents:documents||[],tests:(tests||[]).map(t=>({...t,questions:Array.isArray(t.questions)?t.questions:[]})),results:(results||[]).map(r=>({...r,test_title:testMap.get(String(r.test_id))||"Abschlusstest"}))};
+ }
+ if(method==="academySaveDocument"){
+  const au=await academyAccess(env,token,"academy.manage"),d=args[1]||{},title=text(d.title),content=text(d.content);if(!title||!content)throw new Error("Titel und Inhalt sind erforderlich.");
+  const row={title,category:text(d.category)||"Ausbildung",content,active:d.active!==false,updated_at:new Date().toISOString()};let saved;
+  if(text(d.id))saved=await db(env,"academy_documents",{method:"PATCH",query:{id:`eq.${text(d.id)}`,select:"*"},body:row,prefer:"return=representation"});
+  else{const full={id:id("ACD"),...row,created_by:au.user.id,created_by_name:au.user.name,created_at:new Date().toISOString()};saved=await db(env,"academy_documents",{method:"POST",query:{select:"*"},body:full,prefer:"return=representation"});}
+  return saved?.[0]||row;
+ }
+ if(method==="academyDeleteDocument"){await academyAccess(env,token,"academy.manage");const itemId=text(args[1]);if(!itemId)throw new Error("Dokument fehlt.");await db(env,"academy_documents",{method:"DELETE",query:{id:`eq.${itemId}`},prefer:"return=minimal"});return {success:true};}
+ if(method==="academySaveTest"){
+  const au=await academyAccess(env,token,"academy.manage"),d=args[1]||{},title=text(d.title),questions=Array.isArray(d.questions)?d.questions:[];if(!title||!questions.length)throw new Error("Titel und mindestens eine Frage sind erforderlich.");
+  const cleanQuestions=questions.map((q,i)=>({id:text(q.id)||`Q${i+1}`,prompt:text(q.prompt),options:(Array.isArray(q.options)?q.options:[]).map(text).slice(0,4),correctIndex:Math.max(0,Math.min(3,Number(q.correctIndex)||0))})).filter(q=>q.prompt&&q.options.some(Boolean));if(!cleanQuestions.length)throw new Error("Der Test enthält keine gültigen Fragen.");
+  const row={title,description:text(d.description),passing_score:Math.max(1,Math.min(100,Number(d.passingScore)||70)),questions:cleanQuestions,active:d.active!==false,updated_at:new Date().toISOString()};let saved;
+  if(text(d.id))saved=await db(env,"academy_tests",{method:"PATCH",query:{id:`eq.${text(d.id)}`,select:"*"},body:row,prefer:"return=representation"});
+  else{const full={id:id("ACT"),...row,created_by:au.user.id,created_by_name:au.user.name,created_at:new Date().toISOString()};saved=await db(env,"academy_tests",{method:"POST",query:{select:"*"},body:full,prefer:"return=representation"});}
+  return saved?.[0]||row;
+ }
+ if(method==="academyDeleteTest"){await academyAccess(env,token,"academy.manage");const itemId=text(args[1]);if(!itemId)throw new Error("Test fehlt.");await db(env,"academy_tests",{method:"DELETE",query:{id:`eq.${itemId}`},prefer:"return=minimal"});return {success:true};}
+ if(method==="academySubmitTest"){
+  const au=await academyAccess(env,token,"academy.test"),testId=text(args[1]),answers=Array.isArray(args[2])?args[2]:[];const tests=await db(env,"academy_tests",{query:{select:"id,title,passing_score,questions,active",id:`eq.${testId}`,active:"eq.true",limit:"1"}});const test=tests?.[0];if(!test)throw Object.assign(new Error("Abschlusstest nicht gefunden."),{status:404});
+  const qs=Array.isArray(test.questions)?test.questions:[];if(answers.length!==qs.length)throw new Error("Der Test wurde nicht vollständig beantwortet.");let correct=0;qs.forEach((q,i)=>{if(Number(answers[i])===Number(q.correctIndex))correct++;});const score=qs.length?Math.round(correct/qs.length*100):0,passed=score>=Number(test.passing_score||70);const row={id:id("ACA"),test_id:test.id,user_id:au.user.id,user_name:au.user.name,score,passed,answers,submitted_at:new Date().toISOString()};await db(env,"academy_attempts",{method:"POST",query:{select:"*"},body:row,prefer:"return=representation"});return {success:true,score,passed,correct,total:qs.length};
+ }
+}
+
 async function internalFineDispatch(method,args,env,token){
  if(!["getInternalSanctionsOverview","getInternalFineCatalog","saveInternalFineCatalogItem","deleteInternalFineCatalogItem","getInternalFinePersonnel","createInternalFineCase","getInternalFineCases"].includes(method))return undefined;
  const view=()=>authz(env,token,"ifines.view");
@@ -237,6 +292,7 @@ async function dispatchCore(method,args,env,token){
  }
  // Auth / profile
  const noarg=args; const a=()=>authz(env,token);
+ const academyResult=await academyDispatch(method,args,env,token); if(academyResult!==undefined)return academyResult;
  const internalFineResult=await internalFineDispatch(method,args,env,token); if(internalFineResult!==undefined)return internalFineResult;
  const moduleResult=await moduleDispatch(method,args,env,token); if(moduleResult!==undefined)return moduleResult;
  if(method==="getMyPermissions")return permissionsFor(env,await a());
@@ -393,7 +449,6 @@ async function dispatchCore(method,args,env,token){
  if(["createPatrol","updatePatrol"].includes(method)){
   const au=await authz(env,token,method==="createPatrol"?"patrols.create":"patrols.edit");const d=args[1]||{},pid=text(d.id)||id("P"),now=new Date().toISOString();
   const requestedTenCode=text(d.tenCode||d.ten_code||d.status)||"10-1";const row={id:pid,callsign:"",number:text(d.number),vehicle_type:text(d.vehicleType),status:"10-1",ten_code:requestedTenCode,location:text(d.location),activity:text(d.activity),updated_at:now,updated_by:au.user.id};
-  if(!row.callsign||!row.number||!row.vehicle_type||!row.status)throw new Error("Streifenkennung, Nummer, Fahrzeug und Status sind erforderlich.");
   const members=Array.isArray(d.members)?d.members.slice():[];
   // A duty status is personal: creating one automatically places the signed-in agent in the patrol.
   if(method==="createPatrol"&&!members.some(m=>text(m.id||m.user_id)===String(au.user.id))) members.unshift({id:au.user.id,position:"Lead"});
@@ -405,7 +460,8 @@ async function dispatchCore(method,args,env,token){
   const personnelByUserId=new Map((personnelRows||[]).map(p=>[String(p.user_id),p]));
   const leadMember=members.find(m=>m.position==="Lead")||members[0];
   const leadCallSign=leadMember?text(personnelByUserId.get(String(leadMember.id||leadMember.user_id))?.call_sign):"";
-  if(leadCallSign)row.callsign=leadCallSign;
+  row.callsign=leadCallSign;
+  if(!row.callsign||!row.number||!row.vehicle_type||!row.status)throw new Error("Streifenkennung, Nummer, Fahrzeug und Status sind erforderlich. Bitte hinterlege zuerst das Callsign des Streifenführers in der Personalakte.");
   if(method==="createPatrol"){row.created_at=now;row.created_by=au.user.id;await db(env,"patrols",{method:"POST",body:row,prefer:"return=minimal"});}
   else {const existing=await db(env,"patrols",{query:{select:"id",id:`eq.${pid}`,limit:"1"}});if(!existing?.length)throw Object.assign(new Error("Die Streife wurde nicht gefunden. Bitte aktualisiere die Leitstelle."),{status:404});await db(env,"patrols",{method:"PATCH",query:{id:`eq.${pid}`},body:row,prefer:"return=minimal"});}
   await db(env,"patrol_members",{method:"DELETE",query:{patrol_id:`eq.${pid}`},prefer:"return=minimal"});
@@ -510,10 +566,29 @@ async function dispatchCore(method,args,env,token){
    ["fib_calendar_events","id,title,description,status,event_date,metadata,created_at"],
    ["fib_gang_profiles","id,title,description,status,event_date,metadata,created_at"],
    ["fib_bonus_entries","id,title,description,status,event_date,metadata,created_at"],
-   ["fib_mdt_logs","id,action,module_name,item_id,detail,actor_id,actor_name,created_at"]
+   ["fib_mdt_logs","id,action,module_name,item_id,detail,actor_id,actor_name,created_at"],
+   ["department_permissions","id,department,permission_id,created_at,created_by"],
+   ["academy_documents","id,title,category,content,active,created_by,created_by_name,created_at,updated_at"],
+   ["academy_tests","id,title,description,active,passing_score,questions,created_by,created_by_name,created_at,updated_at"],
+   ["academy_attempts","id,test_id,user_id,user_name,score,passed,answers,submitted_at"]
   ];
   const checks=await Promise.all(specs.map(async([table,columns])=>{try{await db(env,table,{query:{select:columns,limit:"0"}});return {table,ok:true};}catch(e){return {table,ok:false,error:String(e?.message||e).slice(0,240)};}}));
   return {success:true,checkedAt:new Date().toISOString(),checks,failed:checks.filter(x=>!x.ok),googleSheets:{configured:Boolean(String(env.GOOGLE_SHEETS_API_URL||"").trim())}};
+ }
+ if(method==="systemGetDepartmentPermissions"){
+  await authz(env,token,"system.permissions.view");
+  const departments=["Internal Affairs Division","Central Division","Northern Division","Patrol Division","Investigative Division","Metropolitan Division","Support Division","Internal Affairs","Patrol Unit","Detective Bureau","Special Weapons and Tactics","Gang Enforcement Detail","Canine (K9)","Police Academy","Public Relations Office","Air Support Division","High Command"];
+  const perms=await db(env,"permissions",{query:{select:"id,key,name,label,description",key:"in.(academy.view,academy.manage,academy.test)",order:"key.asc"}});
+  const links=await db(env,"department_permissions",{query:{select:"department,permission_id",order:"department.asc"}});
+  return {departments,permissions:perms||[],links:links||[]};
+ }
+ if(method==="systemSetDepartmentPermissions"){
+  const au=await authz(env,token,"system.permissions.manage");
+  const department=text(args[1]),selected=Array.isArray(args[2])?args[2].map(text).filter(Boolean):[];
+  if(!department)throw new Error("Abteilung fehlt.");
+  await db(env,"department_permissions",{method:"DELETE",query:{department:`eq.${department}`},prefer:"return=minimal"});
+  if(selected.length)await db(env,"department_permissions",{method:"POST",body:selected.map(permission_id=>({id:id("DP"),department,permission_id,created_at:new Date().toISOString(),created_by:au.user.id})),prefer:"return=minimal"});
+  clearAuthCaches();return {success:true};
  }
  if(method==="systemCreateUser"){await authz(env,token,"system.users.manage");const d=args[1]||{};const username=text(d.username||d.Username),name=text(d.name||d.Name),password=String(d.password||d.Password||"");if(!username||!name||!password)throw new Error("Benutzername, Name und Passwort sind erforderlich.");const salt=[...crypto.getRandomValues(new Uint8Array(16))].map(b=>b.toString(16).padStart(2,"0")).join("");const row={id:id("U"),username,name,rank:text(d.rankId||d.rank)||null,password_salt:salt,password_hash:await sha256(salt+password),active:d.active!==false,approved:d.approved!==false,master:d.master===true,created_at:new Date().toISOString()};const r=await db(env,"users",{method:"POST",query:{select:"id,username,name,rank,active,approved,master"},body:row,prefer:"return=representation"});return r?.[0]||{success:true};}
  if(method==="systemUpdateUser"){await authz(env,token,"system.users.manage");const uid=text(args[1]),d=args[2]||{},patch={};for(const k of ["name","username","rank","active","approved","master"])if(d[k]!==undefined)patch[k]=d[k];if(d.rankId!==undefined)patch.rank=d.rankId;const r=await db(env,"users",{method:"PATCH",query:{id:`eq.${uid}`,select:"id,username,name,rank,active,approved,master"},body:patch,prefer:"return=representation"});clearAuthCaches();return r?.[0]||{success:true};}
@@ -545,6 +620,7 @@ function auditModule(method,args){
  if(/Warrant/i.test(method)) return "warrants";
  if(/InternalFine|Sanction/i.test(method)) return "ifines";
  if(/Vehicle/i.test(method)) return "vehicle_catalog";
+ if(/Academy/i.test(method)) return "academy";
  if(/^system/i.test(method)) return "system";
  if(/Fine/i.test(method)) return "fines";
  if(/Lawyer/i.test(method)) return "lawyers";
@@ -648,7 +724,7 @@ export async function onRequest({request,env}){
    config(env);
    const deep=url.searchParams.get("deep")==="1";
    const required=deep
-    ? ["users","ranks","permissions","rank_permissions","fib_mdt_sessions","fib_records","patrols","fib_wanted","patrol_members","personnel","personnel_notes","personnel_trainings","fib_record_shares","fib_announcements","fib_vacations","fib_internal_fines","fib_internal_fine_catalog","fib_vehicle_catalog","fib_calendar_events","fib_gang_profiles","fib_bonus_entries","fib_mdt_logs"]
+    ? ["users","ranks","permissions","rank_permissions","fib_mdt_sessions","fib_records","patrols","fib_wanted","patrol_members","personnel","personnel_notes","personnel_trainings","fib_record_shares","fib_announcements","fib_vacations","fib_internal_fines","fib_internal_fine_catalog","fib_vehicle_catalog","fib_calendar_events","fib_gang_profiles","fib_bonus_entries","fib_mdt_logs","department_permissions","academy_documents","academy_tests","academy_attempts"]
     : ["users","fib_mdt_sessions"];
    const checks=await Promise.all(required.map(async table=>{
     try { await db(env,table,{query:{select:"*",limit:"0"}}); return {table,ok:true}; }

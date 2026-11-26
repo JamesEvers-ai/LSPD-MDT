@@ -571,6 +571,35 @@
     ];
   }
 
+  async function loadDashboardAnnouncements() {
+    const container = document.getElementById("dashboardAnnouncements");
+    if (!container) return;
+    try {
+      const token = getDashboardSessionToken();
+      if (!token) return;
+      const rows = await new Promise((resolve, reject) => {
+        const runner = CloudApi.run;
+        runner.withSuccessHandler(resolve).withFailureHandler(reject).getModuleItems(token, "announcements");
+      });
+      const active = (Array.isArray(rows) ? rows : []).filter(function(row) {
+        return String(row.status || "active").toLowerCase() === "active";
+      }).sort(function(a,b) {
+        return new Date(b.eventDate || b.created_at || 0).getTime() - new Date(a.eventDate || a.created_at || 0).getTime();
+      }).slice(0, 4);
+      if (!active.length) {
+        container.innerHTML = `<div class="dashboard-empty"><div class="dashboard-empty-icon"><i class="fa-solid fa-bell"></i></div><div class="dashboard-empty-title">Keine Bekanntmachungen</div><div class="dashboard-empty-text">Aktuell liegen keine neuen Bekanntmachungen vor.</div></div>`;
+        return;
+      }
+      container.innerHTML = active.map(function(row) {
+        const date = row.eventDate || row.created_at;
+        const important = row.metadata && row.metadata.priority === "important";
+        return `<article class="dashboard-announcement-item${important ? " important" : ""}"><div class="dashboard-announcement-title">${escapeDashboardHtml(row.title || "Bekanntmachung")}</div><div class="dashboard-announcement-meta">${date ? escapeDashboardHtml(new Date(date).toLocaleString("de-DE", {dateStyle:"medium", timeStyle:"short"})) : ""}</div><div class="dashboard-announcement-text">${escapeDashboardHtml(String(row.description || "").replace(/[*_#`]/g, "").slice(0, 220))}</div></article>`;
+      }).join("");
+    } catch (error) {
+      console.warn("[LSPD MDT] Bekanntmachungen konnten im Dashboard nicht geladen werden:", error);
+    }
+  }
+
   function buildDashboardQuickActions() {
     const container = document.getElementById("dashboardQuickActions");
     if (!container) return;
@@ -667,6 +696,7 @@
     startDashboardClock();
     loadDashboardRank();
     loadDashboardStatistics();
+    loadDashboardAnnouncements();
 
     state.initialized = true;
   }

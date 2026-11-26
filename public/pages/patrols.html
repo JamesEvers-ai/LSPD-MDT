@@ -2209,30 +2209,16 @@
                     <div class="patrol-members-box">
                         <div class="patrol-members-header">
                             <span>Besatzung</span>
-                            <button
-                                type="button"
-                                class="patrol-add-member"
-                                id="patrolAddMember"
-                            >
-                                + Beamten hinzufügen
-                            </button>
+                            <select class="patrol-partner-select" id="patrolPartnerSelect" aria-label="Streifenpartner auswählen">
+                                <option value="">Streifenpartner auswählen …</option>
+                            </select>
                         </div>
 
                         <div id="patrolSelectedMembers"></div>
                     </div>
 
-                    <div
-                        class="patrol-member-picker"
-                        id="patrolMemberPicker"
-                        style="display:none;"
-                    >
-                        <input
-                            class="patrol-member-search"
-                            id="patrolMemberSearch"
-                            placeholder="Beamten suchen..."
-                            type="text"
-                            autocomplete="off"
-                        >
+                    <div class="patrol-member-picker" id="patrolMemberPicker" style="display:none;">
+                        <input class="patrol-member-search" id="patrolMemberSearch" placeholder="Beamten suchen..." type="text" autocomplete="off">
                         <div id="patrolMemberOptions"></div>
                     </div>
                 </div>
@@ -2300,10 +2286,9 @@
             document.getElementById("patrolModalVehicle");
         const status =
             document.getElementById("patrolModalStatus");
-        const picker =
-            document.getElementById("patrolMemberPicker");
-        const search =
-            document.getElementById("patrolMemberSearch");
+        const picker = document.getElementById("patrolMemberPicker");
+        const search = document.getElementById("patrolMemberSearch");
+        const partnerSelect = document.getElementById("patrolPartnerSelect");
 
         if (editing && patrol) {
             callsign.value = patrol.callsign || "";
@@ -2424,150 +2409,44 @@
         }
 
         function renderMemberOptions() {
-            const container =
-                document.getElementById("patrolMemberOptions");
-
-            if (!container) return;
-
+            if (!partnerSelect) return;
             if (!state.patrolUsersLoaded) {
-                container.innerHTML = `
-                    <div class="patrol-modal-empty">
-                        Beamte werden geladen...
-                    </div>
-                `;
+                partnerSelect.innerHTML = `<option value="">Beamte werden geladen …</option>`;
+                partnerSelect.disabled = true;
                 return;
             }
-
-            const query =
-                String(search ? search.value : "")
-                    .trim()
-                    .toLowerCase();
-
-            const selectedIds = selectedMembers.map(function (member) {
-                return String(member.id);
-            });
-
-            const available = state.patrolUsers
-                .filter(function (user) {
-                    return !selectedIds.includes(String(user.id));
-                })
-                .filter(function (user) {
-                    if (!query) return true;
-
-                    const haystack = [
-                        user.name,
-                        user.username,
-                        user.rank
-                    ]
-                        .map(function (value) {
-                            return String(value || "").toLowerCase();
-                        })
-                        .join(" ");
-
-                    return haystack.includes(query);
-                });
-
-            if (!available.length) {
-                container.innerHTML = `
-                    <div class="patrol-modal-empty">
-                        Keine passenden Beamten gefunden.
-                    </div>
-                `;
-                return;
-            }
-
-            container.innerHTML = available
-                .map(function (user) {
-                    return `
-                        <button
-                            class="patrol-user-option"
-                            data-user-id="${escapeHtml(user.id)}"
-                            type="button"
-                        >
-                            <div class="patrol-user-option-info">
-                                <div class="patrol-user-option-rank">
-                                    ${escapeHtml(user.rank || "Kein Rang")}
-                                </div>
-                                <div class="patrol-user-option-name">
-                                    ${escapeHtml(user.name || "Unbekannt")}
-                                </div>
-                            </div>
-                            <div style="font-size:9px;color:#687588;">
-                                Hinzufügen
-                            </div>
-                        </button>
-                    `;
-                })
-                .join("");
-
-            container
-                .querySelectorAll("[data-user-id]")
-                .forEach(function (button) {
-                    button.addEventListener("click", function () {
-                        const user = state.patrolUsers.find(function (item) {
-                            return String(item.id) ===
-                                String(button.dataset.userId);
-                        });
-
-                        if (!user) return;
-
-                        if (
-                            selectedMembers.some(function (item) {
-                                return String(item.id) === String(user.id);
-                            })
-                        ) {
-                            return;
-                        }
-
-                        selectedMembers.push({
-                            id: user.id,
-                            name: user.name,
-                            username: user.username || "",
-                            rank: user.rank || "Kein Rang",
-                            callSign: user.callSign || "",
-                            position:
-                                selectedMembers.length === 0
-                                    ? "Lead"
-                                    : "Member"
-                        });
-                        if (selectedMembers[selectedMembers.length - 1].position === "Lead" && user.callSign) {
-                            const callsignInput = document.getElementById("patrolModalCallsign");
-                            if (callsignInput) callsignInput.value = user.callSign;
-                        }
-
-                        clearModalError();
-                        renderSelectedMembers();
-                        renderMemberOptions();
-                    });
-                });
+            partnerSelect.disabled = false;
+            const selectedIds = selectedMembers.map(function(member){ return String(member.id); });
+            const available = state.patrolUsers.filter(function(user){
+                return !selectedIds.includes(String(user.id));
+            }).sort(function(a,b){ return String(a.name||"").localeCompare(String(b.name||""), "de"); });
+            partnerSelect.innerHTML = `<option value="">Streifenpartner auswählen …</option>` + available.map(function(user){
+                const rank = user.rank ? ` · ${escapeHtml(user.rank)}` : "";
+                return `<option value="${escapeHtml(user.id)}">${escapeHtml(user.name || "Unbekannt")}${rank}</option>`;
+            }).join("");
         }
 
         renderSelectedMembers();
         renderMemberOptions();
 
-        const addButton =
-            document.getElementById("patrolAddMember");
-
-        if (addButton && !addButton.dataset.bound) {
-            addButton.dataset.bound = "true";
-            addButton.addEventListener("click", function () {
-                if (!picker) return;
-
-                picker.style.display =
-                    picker.style.display === "none"
-                        ? "block"
-                        : "none";
-
-                if (picker.style.display === "block") {
-                    search?.focus();
-                    renderMemberOptions();
+        if (partnerSelect && !partnerSelect.dataset.bound) {
+            partnerSelect.dataset.bound = "true";
+            partnerSelect.addEventListener("change", function () {
+                const user = state.patrolUsers.find(function(item){ return String(item.id) === String(partnerSelect.value); });
+                if (!user) return;
+                if (selectedMembers.some(function(item){ return String(item.id) === String(user.id); })) { partnerSelect.value = ""; return; }
+                selectedMembers.push({
+                    id:user.id, name:user.name, username:user.username||"", rank:user.rank||"Kein Rang", callSign:user.callSign||"", position:selectedMembers.length===0?"Lead":"Member"
+                });
+                if (selectedMembers.length === 1 && user.callSign) {
+                    const callsignInput=document.getElementById("patrolModalCallsign");
+                    if (callsignInput) callsignInput.value=user.callSign;
                 }
+                partnerSelect.value = "";
+                clearModalError();
+                renderSelectedMembers();
+                renderMemberOptions();
             });
-        }
-
-        if (search && !search.dataset.bound) {
-            search.dataset.bound = "true";
-            search.addEventListener("input", renderMemberOptions);
         }
 
         /*
@@ -3180,7 +3059,8 @@
   border-color:#cbd7e4 !important;
   color-scheme:light !important;
 }
-#fibGlobalModalBody .patrol-add-member,
+#fibGlobalModalBody .patrol-partner-select{min-width:220px;max-width:320px;border:1px solid #cbd6e3;border-radius:7px;background:#fff;color:#20344f;padding:8px 10px;font:inherit;font-size:11px;outline:none}.patrol-partner-select:focus{border-color:#8a713b;box-shadow:0 0 0 3px rgba(177,145,75,.12)}
+.patrol-add-member,
 #fibGlobalModalBody .patrol-remove-member {
   background:#f1f5f8 !important;
   border-color:#d5e0e9 !important;

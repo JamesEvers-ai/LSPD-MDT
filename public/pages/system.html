@@ -1876,6 +1876,15 @@
       Rangberechtigungen
     </button>
 
+    <button
+      type="button"
+      class="system-tab"
+      data-system-tab="departmentPermissions"
+      onclick="openSystemTab('departmentPermissions')"
+    >
+      Abteilungsberechtigungen
+    </button>
+
   </div>
 
 
@@ -2226,6 +2235,23 @@
 
   </section>
 
+  <section id="systemSectionDepartmentPermissions" class="system-section">
+    <div class="rank-permission-layout">
+      <div class="rank-permission-sidebar">
+        <div class="system-form-group">
+          <label class="system-form-label">Abteilung</label>
+          <select id="departmentPermissionSelect" class="system-select"></select>
+        </div>
+      </div>
+      <div class="rank-permission-content">
+        <div id="departmentPermissionEditor">
+          <div class="rank-permission-title">Abteilung auswählen</div>
+          <div class="rank-permission-description">Lege hier fest, welche Police-Academy-Berechtigungen für die ausgewählte Abteilung gelten.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
 </div>
 
 
@@ -2334,6 +2360,9 @@
 
       rankPermissions: Object.create(null),
       rankPermissionPromises: Object.create(null),
+
+      departmentPermissions: null,
+      departmentPermissionsLoaded: false,
 
       selectedRankId: "",
       activeTab: "users",
@@ -2901,7 +2930,10 @@
         "systemSectionPermissions",
 
       rankPermissions:
-        "systemSectionRankPermissions"
+        "systemSectionRankPermissions",
+
+      departmentPermissions:
+        "systemSectionDepartmentPermissions"
 
     };
 
@@ -2950,8 +2982,39 @@
 
     }
 
+    if (tab === "departmentPermissions") {
+      loadDepartmentPermissionData();
+    }
+
   }
 
+
+  function loadDepartmentPermissionData() {
+    const select=document.getElementById("departmentPermissionSelect");
+    const editor=document.getElementById("departmentPermissionEditor");
+    if(!select||!editor)return;
+    const token=getSystemSessionToken();
+    CloudApi.run.withSuccessHandler(function(data){
+      state.departmentPermissions=data||{departments:[],permissions:[],links:[]};
+      state.departmentPermissionsLoaded=true;
+      select.innerHTML=(state.departmentPermissions.departments||[]).map(d=>`<option value="${escapeHtml(d)}">${escapeHtml(d)}</option>`).join("");
+      renderDepartmentPermissionEditor();
+    }).withFailureHandler(function(error){showSystemError(error?.message||"Die Abteilungsberechtigungen konnten nicht geladen werden.");}).systemGetDepartmentPermissions(token);
+  }
+  function renderDepartmentPermissionEditor(){
+    const select=document.getElementById("departmentPermissionSelect"),editor=document.getElementById("departmentPermissionEditor");
+    if(!select||!editor)return;
+    const department=select.value;
+    const links=(state.departmentPermissions?.links||[]).filter(x=>String(x.department)===String(department));
+    const selected=new Set(links.map(x=>String(x.permission_id)));
+    const permissions=state.departmentPermissions?.permissions||[];
+    editor.innerHTML=`<div class="rank-permission-header"><div class="rank-permission-title">Academy-Zugriff · ${escapeHtml(department||"Abteilung")}</div><div class="rank-permission-description">Diese Berechtigungen gelten zusätzlich zu den normalen Rangberechtigungen. Eine Person benötigt sowohl die passende Rangberechtigung als auch die Freigabe ihrer Abteilung.</div></div><div class="permission-category"><div class="permission-category-title">Police Academy</div><div class="permission-list">${permissions.map(p=>`<label class="permission-item"><div class="permission-item-content"><div class="permission-item-name">${escapeHtml(p.label||p.name||p.key)}</div><div class="permission-item-key">${escapeHtml(p.key)}</div></div><input type="checkbox" class="department-permission-checkbox" value="${escapeHtml(p.id)}" ${selected.has(String(p.id))?"checked":""}></label>`).join("")}</div></div><div class="rank-permission-save"><button type="button" class="system-button primary" id="saveDepartmentPermissions">Änderungen speichern</button></div>`;
+    document.getElementById("saveDepartmentPermissions")?.addEventListener("click",function(){
+      const token=getSystemSessionToken();const values=[...editor.querySelectorAll(".department-permission-checkbox:checked")].map(x=>x.value);
+      CloudApi.run.withSuccessHandler(function(){showSystemSuccess("Die Abteilungsberechtigungen wurden gespeichert.");loadDepartmentPermissionData();}).withFailureHandler(function(error){showSystemError(error?.message||"Die Abteilungsberechtigungen konnten nicht gespeichert werden.");}).systemSetDepartmentPermissions(token,department,values);
+    });
+    select.onchange=renderDepartmentPermissionEditor;
+  }
 
   /* =========================================================
      SESSION
