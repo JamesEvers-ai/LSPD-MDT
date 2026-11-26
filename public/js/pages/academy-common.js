@@ -15,23 +15,14 @@
   }
   function empty(text) { return `<div class="academy-empty">${esc(text)}</div>`; }
   function nav(active) {
-    const items = [
-      ["academy","Übersicht"],["academy-documents","Schulungsunterlagen"],["academy-tests","Prüfungen & Eignungstests"],["academy-results","Ergebnisse"]
-    ];
-    const el = document.getElementById("academySubnav");
-    if (el) el.innerHTML = items.map(([id,label]) => `<button type="button" class="academy-subnav-item ${id===active?"active":""}" data-academy-nav="${id}">${esc(label)}</button>`).join("");
-    el?.querySelectorAll("[data-academy-nav]").forEach(b => b.addEventListener("click", () => {
-      if (typeof window.navigateToPage === "function") window.navigateToPage(b.dataset.academyNav);
-      else location.href = `/?page=${encodeURIComponent(b.dataset.academyNav)}`;
-    }));
+    // Academy pages are independent MDT pages. Navigation is handled by the
+    // main sidebar, so no in-page tab/sub-navigation is rendered here.
   }
   function shell(title, subtitle, active) {
     root.innerHTML = `<div class="academy-page">
       <header class="academy-head"><div><div class="academy-kicker">POLICE ACADEMY</div><h2>${esc(title)}</h2><div class="academy-subtitle">${esc(subtitle)}</div></div><div class="academy-actions"><button class="academy-btn" id="academyRefresh">Aktualisieren</button></div></header>
-      <nav class="academy-subnav" id="academySubnav"></nav>
       <div id="academyContent"></div>
     </div>`;
-    nav(active);
     document.getElementById("academyRefresh")?.addEventListener("click", load);
   }
 

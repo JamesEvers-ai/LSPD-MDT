@@ -79,11 +79,11 @@
       if(inflightReads.has(key)) return inflightReads.get(key);
     }
     const requestCacheEpoch = cacheEpoch;
-    const route=authRoutes[method]?`/api/auth/${authRoutes[method]}`:`/api/legacy/${encodeURIComponent(method)}`;
+    const route=authRoutes[method]?`/api/auth/${authRoutes[method]}`:(/^academy/.test(method)?`/api/academy`:`/api/legacy/${encodeURIComponent(method)}`);
     const requestTask=(async()=>{
       const response=await fetch(route,{
         method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json",Accept:"application/json"},
-        body:JSON.stringify({args,token})
+        body:JSON.stringify(/^academy/.test(method)?{method,args,token}:{args,token})
       });
       let payload={}; try{payload=await response.json()}catch{}
       if(!response.ok) throw err(payload,response.status);
