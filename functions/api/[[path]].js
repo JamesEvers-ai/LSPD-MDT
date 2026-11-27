@@ -174,6 +174,50 @@ async function syncPatrolState(env,patrolId,actorId){
 
 
 
+const EQUIPMENT_COLUMNS="id,name,category,description,image_url,rank_rules,active,updated_at";
+const EQUIPMENT_CATEGORIES=new Set(["items","weapons","vests"]);
+async function equipmentDispatch(method,args,env,token){
+ if(!["getEquipmentCatalog","saveEquipmentItem","deleteEquipmentItem"].includes(method))return undefined;
+ const au=await authz(env,token,"armory.view");
+ const canManage=effectivePermission(au,"armory.manage");
+ if(method==="getEquipmentCatalog"){
+  const [ranks,items]=await Promise.all([rankRows(env),db(env,"fib_equipment_catalog",{query:{select:EQUIPMENT_COLUMNS,order:"category.asc,name.asc,id.asc",...(canManage?{}:{active:"eq.true"}),limit:"1000"}})]);
+  const activeRanks=(ranks||[]).filter(r=>r.active!==false);
+  const ownRank=activeRanks.find(r=>String(r.id)===String(au.user.rank))||activeRanks.find(r=>r.name===au.user.rank);
+  const ownId=String(ownRank?.id||"");
+  const personal=(items||[]).filter(x=>x.active!==false).flatMap(x=>{
+   const rule=(Array.isArray(x.rank_rules)?x.rank_rules:[]).find(r=>String(r.rankId)===ownId&&Number(r.quantity)>0);
+   if(!ownId||!rule)return [];
+   const {rank_rules,...item}=x;
+   return [{...item,quantity:rule.quantity,ammunition:x.category==="weapons"?rule.ammunition:undefined}];
+  });
+  return {profile:{id:au.user.id,name:au.user.name,rank:ownRank?.name||"Kein aktiver Rang",rankId:ownId},canManage,personal,items:canManage?items:[],ranks:canManage?activeRanks.map(r=>({id:r.id,name:r.name,level:r.level})):[]};
+ }
+ if(!canManage)throw recordError("Keine Berechtigung zur Ausrüstungsverwaltung.",403);
+ if(method==="deleteEquipmentItem"){
+  const itemId=text(args[1]);if(!itemId)throw recordError("Eintrag fehlt.");
+  const result=await db(env,"fib_equipment_catalog",{method:"DELETE",query:{id:`eq.${itemId}`,select:"id"},prefer:"return=representation"});
+  if(!result?.length)throw recordError("Eintrag nicht gefunden.",404);return {success:true};
+ }
+ const d=args[1]||{},name=text(d.name),category=text(d.category),description=text(d.description),imageUrl=text(d.imageUrl);
+ if(!name||name.length>180||!EQUIPMENT_CATEGORIES.has(category)||description.length>2000)throw recordError("Bitte Bezeichnung, Kategorie und Beschreibung prüfen.");
+ if(imageUrl&&(!/^https:\/\//i.test(imageUrl)||imageUrl.length>2000))throw recordError("Bitte einen gültigen HTTPS-Bildlink verwenden.");
+ if(!Array.isArray(d.rankRules))throw recordError("Rangfreigaben fehlen.");
+ const ranks=await rankRows(env),validRanks=new Set((ranks||[]).filter(r=>r.active!==false).map(r=>String(r.id))),seen=new Set();
+ const number=(v,min)=>{if(typeof v!=="number"||!Number.isSafeInteger(v)||v<min||v>1000000)throw recordError("Mengen müssen gültige ganze Zahlen sein.");return v;};
+ const rules=d.rankRules.map(r=>{
+  const rankId=text(r?.rankId);if(!validRanks.has(rankId)||seen.has(rankId))throw recordError("Ungültiger oder doppelter Rang.");seen.add(rankId);
+  const rule={rankId,quantity:number(r.quantity,1)};
+  if(category==="weapons")rule.ammunition=number(r.ammunition,0);
+  return rule;
+ });
+ const row={name,category,description,image_url:imageUrl||null,rank_rules:rules,active:d.active!==false,updated_at:new Date().toISOString(),updated_by:au.user.id};
+ const itemId=text(d.id);
+ const saved=await db(env,"fib_equipment_catalog",itemId?{method:"PATCH",query:{id:`eq.${itemId}`,select:EQUIPMENT_COLUMNS},body:row,prefer:"return=representation"}:{method:"POST",query:{select:EQUIPMENT_COLUMNS},body:{...row,id:id("EQ"),created_by:au.user.id},prefer:"return=representation"});
+ if(!saved?.length)throw recordError("Eintrag konnte nicht gespeichert werden.",404);
+ return {success:true,item:saved[0]};
+}
+
 async function uniformDispatch(method,args,env,token){
   const supported=["getUniformCatalog","saveUniformCatalogItem","deleteUniformCatalogItem"];
   if(!supported.includes(method)) return undefined;
@@ -227,11 +271,14 @@ async function uniformDispatch(method,args,env,token){
     const canonicalCandidates=candidates.concat(canonicalOrganizations.filter(v=>candidates.includes(normalize(v))));
     const candidateAliases=candidates.map(c=>aliases[c]).filter(Boolean);
     const rule=(rules||[]).find(r=>canonicalCandidates.includes(normalize(r.organization_unit))||candidateAliases.includes(normalize(r.organization_unit)))||null;
+    const allowedClasses=new Set([...String(rule?.regular_class||"").split("/").map(text).filter(Boolean),...(Array.isArray(rule?.supplementary_classes)?rule.supplementary_classes:[])]);
+    const scope=new Set([...candidates,...candidateAliases,normalize(rule?.organization_unit)].filter(Boolean));
+    const visibleItems=au.master?(items||[]):(items||[]).filter(x=>allowedClasses.has(x.uniform_class)&&(!Array.isArray(x.organization_units)||!x.organization_units.length||x.organization_units.some(v=>scope.has(normalize(v)))));
     return {
       profile:{id:au.user.id,name:au.user.name,rank:rank?.name||au.user.rank||"Kein Rang",rankId:rank?.id||au.user.rank||"",department,unit,callSign:text(person.call_sign),serviceNumber:text(person.service_number)},
       organization:rule?{...rule,label:rule.organization_unit}:null,
-      items:items||[],
-      rules:rules||[],
+      items:visibleItems,
+      rules:au.master?(rules||[]):(rule?[rule]:[]),
       canManage:au.master===true
     };
   }
@@ -350,43 +397,46 @@ async function financeDispatch(method,args,env,token){
   }
 }
 
+function canManageVacations(au){return au.master||effectivePermission(au,"vacations.manage")||(effectivePermission(au,"academy.manage")&&!!au.department&&academyDepartmentHas(null,au,"academy.manage"));}
 async function vacationDispatch(method,args,env,token){
   const supported=["getVacationRequests","createVacationRequest","approveVacationRequest","rejectVacationRequest","cancelVacationRequest"];
   if(!supported.includes(method)) return undefined;
   const now=new Date().toISOString();
   if(method==="getVacationRequests"){
     const au=await authz(env,token,"vacations.view");
-    const academy=await academyDepartmentHas(env,au,"academy.manage") && await has(env,au,"academy.manage");
+    const manage=canManageVacations(au);
     const q={select:"id,title,description,status,event_date,metadata,created_by,created_by_name,created_at,updated_at",order:"event_date.desc,created_at.desc",limit:"200"};
-    if(!academy&&!au.master&&!au.permissions.includes("vacations.manage")) q.created_by=`eq.${au.user.id}`;
-    const rows=await db(env,"fib_vacations",{query:q});
-    return {canManage:academy||au.master||au.permissions.includes("vacations.manage"),requests:(rows||[]).map(normalizeModuleRow)};
+    if(!manage) q.created_by=`eq.${au.user.id}`;
+    const rows=[];q.order="event_date.desc,created_at.desc,id.asc";q.limit="500";
+    for(let offset=0;;offset+=500){const batch=await db(env,"fib_vacations",{query:{...q,offset:String(offset)}});rows.push(...(batch||[]));if(!batch||batch.length<500)break;}
+    return {userId:au.user.id,canManage:manage,requests:rows.map(normalizeModuleRow)};
   }
   if(method==="createVacationRequest"){
     const au=await authz(env,token,"vacations.view");
     const d=args[1]||{},start=text(d.startDate),end=text(d.endDate),reason=text(d.reason);
-    if(!start||!end) throw new Error("Bitte einen Zeitraum von–bis angeben.");
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(start)||!/^\d{4}-\d{2}-\d{2}$/.test(end)||reason.length>1000) throw recordError("Bitte einen gültigen Zeitraum von–bis angeben (Hinweis maximal 1000 Zeichen).");
     const s=new Date(`${start}T00:00:00`),e=new Date(`${end}T23:59:59`);
-    if(Number.isNaN(s.getTime())||Number.isNaN(e.getTime())) throw new Error("Der Urlaubszeitraum ist ungültig.");
-    if(e<s) throw new Error("Das Enddatum darf nicht vor dem Startdatum liegen.");
-    const existing=await db(env,"fib_vacations",{query:{select:"id,status,metadata",created_by:`eq.${au.user.id}`,limit:"200"}});
+    if(Number.isNaN(s.getTime())||Number.isNaN(e.getTime())||new Date(start+"T00:00:00Z").toISOString().slice(0,10)!==start||new Date(end+"T00:00:00Z").toISOString().slice(0,10)!==end) throw recordError("Der Urlaubszeitraum ist ungültig.");
+    if(e<s) throw recordError("Das Enddatum darf nicht vor dem Startdatum liegen.");
+    const existing=[];
+    for(let offset=0;;offset+=500){const batch=await db(env,"fib_vacations",{query:{select:"id,status,metadata",created_by:`eq.${au.user.id}`,status:"in.(pending,approved)",order:"id.asc",limit:"500",offset:String(offset)}});existing.push(...(batch||[]));if(!batch||batch.length<500)break;}
     const overlap=(existing||[]).some(r=>!['rejected','cancelled'].includes(String(r.status||'').toLowerCase())&&(()=>{const m=r.metadata||{},a=new Date(`${m.start_date||''}T00:00:00`),b=new Date(`${m.end_date||''}T23:59:59`);return !Number.isNaN(a.getTime())&&!Number.isNaN(b.getTime())&&s<=b&&e>=a;})());
-    if(overlap) throw new Error("Für diesen Zeitraum existiert bereits ein nicht abgelehnter Urlaubsantrag.");
+    if(overlap) throw recordError("Für diesen Zeitraum existiert bereits ein nicht abgelehnter Urlaubsantrag.",409);
     const meta={entry_type:"vacation_request",start_date:start,end_date:end,reason,employee_id:au.user.id,employee_name:au.user.name};
     const row={id:id("VAC"),title:`Urlaubsantrag – ${au.user.name}`,description:reason,status:"pending",event_date:s.toISOString(),metadata:meta,created_by:au.user.id,created_by_name:au.user.name,created_at:now,updated_at:now};
     const saved=await db(env,"fib_vacations",{method:"POST",query:{select:"id,title,description,status,event_date,metadata,created_by,created_by_name,created_at,updated_at"},body:row,prefer:"return=representation"});
     return normalizeModuleRow(saved?.[0]||row);
   }
   if(method==="approveVacationRequest"||method==="rejectVacationRequest"){
-    const au=await academyAccess(env,token,"academy.manage");
+    const au=await authz(env,token,"vacations.view");if(!canManageVacations(au))throw recordError("Keine Berechtigung zur Urlaubsentscheidung.",403);
     const requestId=text(args[1]); if(!requestId) throw new Error("Urlaubsantrag fehlt.");
     const rows=await db(env,"fib_vacations",{query:{select:"id,title,description,status,event_date,metadata,created_by,created_by_name,created_at,updated_at",id:`eq.${requestId}`,limit:"1"}});
     const row=rows?.[0]; if(!row) throw Object.assign(new Error("Urlaubsantrag nicht gefunden."),{status:404});
-    if(String(row.status).toLowerCase()!=="pending") throw new Error("Dieser Urlaubsantrag wurde bereits bearbeitet.");
+    if(String(row.status).toLowerCase()!=="pending") throw recordError("Dieser Urlaubsantrag wurde bereits bearbeitet.",409);
     const status=method==="approveVacationRequest"?"approved":"rejected";
     const metadata={...(row.metadata||{}),decision_by:au.user.id,decision_by_name:au.user.name,decision_at:now,rejection_reason:method==="rejectVacationRequest"?text(args[2]):""};
-    const saved=await db(env,"fib_vacations",{method:"PATCH",query:{id:`eq.${requestId}`,select:"id,title,description,status,event_date,metadata,created_by,created_by_name,created_at,updated_at"},body:{status,metadata,updated_at:now},prefer:"return=representation"});
-    return normalizeModuleRow(saved?.[0]||{...row,status,metadata});
+    const saved=await db(env,"fib_vacations",{method:"PATCH",query:{id:`eq.${requestId}`,status:"eq.pending",select:"id,title,description,status,event_date,metadata,created_by,created_by_name,created_at,updated_at"},body:{status,metadata,updated_at:now},prefer:"return=representation"});
+    if(!saved?.length)throw recordError("Der Antrag wurde zwischenzeitlich bearbeitet.",409);return normalizeModuleRow(saved[0]);
   }
   if(method==="cancelVacationRequest"){
     const au=await authz(env,token,"vacations.view");
@@ -395,7 +445,7 @@ async function vacationDispatch(method,args,env,token){
     if(!au.master&&String(row.created_by)!==String(au.user.id))throw Object.assign(new Error("Du kannst nur eigene Urlaubsanträge zurückziehen."),{status:403});
     if(!["pending","approved"].includes(String(row.status).toLowerCase()))throw new Error("Dieser Antrag kann nicht mehr zurückgezogen werden.");
     const metadata={...(row.metadata||{}),cancelled_by:au.user.id,cancelled_by_name:au.user.name,cancelled_at:now};
-    await db(env,"fib_vacations",{method:"PATCH",query:{id:`eq.${requestId}`},body:{status:"cancelled",metadata,updated_at:now},prefer:"return=minimal"});return {success:true};
+    const saved=await db(env,"fib_vacations",{method:"PATCH",query:{id:`eq.${requestId}`,status:`eq.${row.status}`,select:"id"},body:{status:"cancelled",metadata,updated_at:now},prefer:"return=representation"});if(!saved?.length)throw recordError("Der Antrag wurde zwischenzeitlich bearbeitet.",409);return {success:true};
   }
 }
 
@@ -404,21 +454,32 @@ async function moduleDispatch(method,args,env,token){
  const action=actions[method]; if(!action)return undefined;
  const moduleKey=text(action==="list"?args[1]:args[action==="create"?1:1]).toLowerCase();
  const cfg=MODULES[moduleKey]; if(!cfg)throw Object.assign(new Error("Unbekanntes MDT-Modul."),{status:400});
- const auth=await authz(env,token,cfg.view);
+ if(moduleKey==="vacations")throw recordError("Bitte die Urlaubsantragsfunktionen verwenden.",403);
+ const auth=await authz(env,token,moduleKey==="calendar"&&action==="list"?undefined:cfg.view);
+ if(moduleKey==="gangs"&&!auth.master&&!auth.departmentPermissions.includes(cfg.view))throw recordError("Keine Abteilungsfreigabe für Gang-Beweise.",403);
  if(action==="list"){
   const query={select:moduleKey==="logs"?"id,action,module_name,item_id,detail,actor_id,actor_name,created_at":"id,title,description,status,event_date,metadata,created_by,created_by_name,created_at,updated_at",order:"created_at.desc",limit:moduleKey==="logs"?"300":"200"};
-  if(moduleKey==="announcements"&&!await has(env,auth,cfg.manage)) query.status="eq.active";
+  if(moduleKey==="announcements"&&!effectivePermission(auth,cfg.manage)) query.status="eq.active";
   if(moduleKey==="logs"&&!auth.master&&!auth.permissions.includes("*"))await authz(env,token,"logs.view");
-  let rows=await db(env,cfg.table,{query});if(moduleKey==="calendar"){const vacations=await db(env,"fib_vacations",{query:{select:"id,title,description,status,event_date,metadata,created_by,created_by_name,created_at,updated_at",status:"eq.approved",order:"event_date.asc",limit:"200"}}).catch(()=>[]);rows=[...(rows||[]),...(vacations||[]).map(v=>({...v,title:`Urlaub – ${v.metadata?.employee_name||v.created_by_name||"Mitarbeiter"}`,description:v.description||"Genehmigter Urlaub",metadata:{...(v.metadata||{}),entry_type:"vacation"}}))];}return (rows||[]).map(normalizeModuleRow);
+  const rows=moduleKey==="calendar"&&!effectivePermission(auth,cfg.view)?[]:await db(env,cfg.table,{query});
+  if(moduleKey!=="calendar")return (rows||[]).map(normalizeModuleRow);
+  // Public to every authenticated MDT user: name and approved date range only.
+  const vacationRows=[];
+  for(let offset=0;;offset+=500){
+   const batch=await db(env,"fib_vacations",{query:{select:"id,status,event_date,metadata,created_by_name",status:"eq.approved",order:"event_date.asc,id.asc",limit:"500",offset:String(offset)}});
+   vacationRows.push(...(batch||[]));if(!batch||batch.length<500)break;
+  }
+  const projected=vacationRows.map(v=>{const m=v.metadata||{};return {id:`vacation:${v.id}`,title:`Urlaub – ${m.employee_name||v.created_by_name||"Mitarbeiter"}`,description:"Genehmigter Urlaub",status:"approved",event_date:v.event_date||m.start_date||null,metadata:{entry_type:"vacation",start_date:m.start_date,end_date:m.end_date}};});
+  return [...(rows||[]),...projected].map(normalizeModuleRow);
  }
  if(!cfg.manage)throw Object.assign(new Error("Dieses Modul ist schreibgeschützt."),{status:403});
- if(!await has(env,auth,cfg.manage))throw Object.assign(new Error("Du besitzt keine Änderungsberechtigung für dieses Modul."),{status:403});
+ if(!effectivePermission(auth,cfg.manage)||(moduleKey==="gangs"&&!auth.master&&!auth.departmentPermissions.includes(cfg.manage)))throw Object.assign(new Error("Du besitzt keine Änderungsberechtigung für dieses Modul."),{status:403});
  if(action==="create"){
   const d=args[2]||{}; const title=text(d.title); if(!title)throw new Error("Ein Titel ist erforderlich.");
   const row={id:id(moduleKey.slice(0,3).toUpperCase()),title,description:text(d.description),status:text(d.status)||"active",event_date:d.eventDate||d.event_date||null,metadata:d.metadata&&typeof d.metadata==="object"?d.metadata:{},created_by:auth.user.id,created_by_name:auth.user.name,created_at:new Date().toISOString(),updated_at:new Date().toISOString()};
   const saved=await db(env,cfg.table,{method:"POST",query:{select:moduleKey==="logs"?"id,action,module_name,item_id,detail,actor_id,actor_name,created_at":"id,title,description,status,event_date,metadata,created_by,created_by_name,created_at,updated_at"},body:row,prefer:"return=representation"}); return normalizeModuleRow(saved?.[0]||row);
  }
- const itemId=text(args[2]); if(!itemId)throw new Error("Ein Eintrag muss ausgewählt werden.");
+ const itemId=text(args[2]); if(!itemId)throw new Error("Ein Eintrag muss ausgewählt werden.");if(moduleKey==="calendar"&&itemId.startsWith("vacation:"))throw recordError("Urlaub nur über den Urlaubsantrag ändern.",403);
  if(action==="delete") {await db(env,cfg.table,{method:"DELETE",query:{id:`eq.${itemId}`},prefer:"return=minimal"});return {success:true};}
  const d=args[3]||{}; const patch={updated_at:new Date().toISOString()};
  for(const k of ["title","description","status"])if(d[k]!==undefined)patch[k]=text(d[k]);
@@ -692,6 +753,7 @@ async function dispatchCore(method,args,env,token){
  }
  // Auth / profile
  const noarg=args; const a=()=>authz(env,token);
+ const equipmentResult=await equipmentDispatch(method,args,env,token);if(equipmentResult!==undefined)return equipmentResult;
  const uniformResult=await uniformDispatch(method,args,env,token); if(uniformResult!==undefined)return uniformResult;
  const academyResult=await academyDispatch(method,args,env,token); if(academyResult!==undefined)return academyResult;
  const internalFineResult=await internalFineDispatch(method,args,env,token); if(internalFineResult!==undefined)return internalFineResult;
@@ -1145,6 +1207,7 @@ async function dispatchCore(method,args,env,token){
    ["fib_record_shares","id,record_id,token_hash,expires_at,revoked_at"],
    ["fib_announcements","id,title,description,status,event_date,metadata,created_at"],
    ["fib_vacations","id,title,description,status,event_date,metadata,created_at"],
+   ["fib_equipment_catalog",EQUIPMENT_COLUMNS],
    ["fib_internal_fines","id,title,description,status,event_date,metadata,created_at"],
    ["fib_internal_fine_catalog","id,item_type,category_id,title,description,amount,sanction_type,sanction_value,sanction_unit,sanction_components,active,sort_order,created_at,updated_at,created_by"],
    ["fib_calendar_events","id,title,description,status,event_date,metadata,created_at"],
@@ -1204,6 +1267,7 @@ function auditModule(method,args){
  const first=String(args?.[0]??"");
  if(["announcements","vacations","ifines","calendar","gangs","bonuses","logs"].includes(first) &&
     /ModuleItem/.test(method)) return first;
+ if(/Equipment/i.test(method)) return "armory";
  if(/Patrol/i.test(method)) return "patrols";
  if(/Personnel|Agent/i.test(method)) return "personnel";
  if(/Record|Share/i.test(method)) return "records";

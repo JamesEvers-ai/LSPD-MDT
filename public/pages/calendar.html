@@ -51,6 +51,8 @@
 .lspd-calendar-event{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin:3px 0;padding:3px 5px;border-radius:4px;background:#eaf0f7;color:#2f4b6d;font-size:9px;font-weight:700}
 .lspd-calendar-more{font-size:9px;color:#7d8999;margin-top:4px}.lspd-calendar-vacation{background:#eef7ef!important;color:#2d6a3f!important;border-left:3px solid #6fa47a}
 @media(max-width:720px){.lspd-module-page{padding:18px 14px 30px}.lspd-module-head{display:block}.lspd-module-actions{margin-top:14px}.lspd-editor-grid{grid-template-columns:1fr}.lspd-editor textarea,.lspd-editor-actions,.lspd-editor-hint{grid-column:1}.lspd-module-entry-top{display:block}.lspd-module-entry-actions{margin-top:10px}}
+#lspdCalendarPage .lspd-calendar-event{font-size:12px;white-space:normal;overflow-wrap:anywhere;line-height:1.35;padding:5px 6px}#lspdCalendarPage .lspd-calendar-day-number,#lspdCalendarPage .lspd-calendar-weekday{font-size:12px}#lspdCalendarPage .lspd-calendar-vacation{background:#e8f5ec!important;color:#265939!important}#lspdCalendarPage [hidden]{display:none!important}
+#lspdCalendarPage .lspd-calendar-event{font-size:12px!important}#lspdCalendarPage .lspd-calendar-vacation{background:#e8f5ec!important;color:#265939!important}
 </style>
 <section class="lspd-module-page" id="lspdCalendarPage">
   <header class="lspd-module-head">
@@ -97,8 +99,8 @@
   var root = document.getElementById("lspdCalendarPage");
   if (!root || root.dataset.ready === "1") return;
   root.dataset.ready = "1";
-  var rows = [], canManage = false, editing = { event: null, change: null }, pendingDelete = null, monthCursor = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-  var $ = function (id) { return document.getElementById(id); };
+  var rows = [], canManage = false, loading=false, editing = { event: null, change: null }, pendingDelete = null, monthCursor = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+  var $ = function (id) { return root.querySelector('#'+id); };
   var token = function () { return sessionStorage.getItem("fib_mdt_session") || sessionStorage.getItem("lspd_mdt_session") || ""; };
   var call = function (method) {
     var args = Array.prototype.slice.call(arguments, 1);
@@ -122,10 +124,10 @@
     });
   }
   function card(row, type) {
-    var id = esc(row.id), date = formatDate(row.event_date), label = statusLabel(row.status);
+    var id=esc(row.id),vac=row.metadata?.entry_type==="vacation",date=vac&&row.metadata.start_date&&row.metadata.end_date?row.metadata.start_date.split("-").reverse().join(".")+" – "+row.metadata.end_date.split("-").reverse().join("."):formatDate(row.event_date),label=vac?"Genehmigt":statusLabel(row.status);
     return '<article class="lspd-module-entry" data-entry="' + id + '">' +
-      '<div class="lspd-module-entry-top"><div><h4>' + esc(row.title || "Ohne Titel") + '</h4><div class="lspd-module-meta"><span>' + esc(date) + '</span><span class="lspd-module-tag ' + (type === "change" ? "gold" : "") + '">' + esc(label) + '</span><span>Erstellt von ' + esc(row.created_by_name || "Unbekannt") + '</span></div></div>' +
-      (canManage ? '<div class="lspd-module-entry-actions"><button class="lspd-btn subtle" data-edit="' + id + '" data-type="' + type + '">Bearbeiten</button><button class="lspd-btn danger" data-delete="' + id + '" data-type="' + type + '">Löschen</button></div>' : '') + '</div>' +
+      '<div class="lspd-module-entry-top"><div><h4>' + esc(row.title || "Ohne Titel") + '</h4><div class="lspd-module-meta"><span>' + esc(date) + '</span><span class="lspd-module-tag ' + (type === "change" ? "gold" : "") + '">' + esc(label) + '</span>' + (vac?'':'<span>Erstellt von ' + esc(row.created_by_name || "Unbekannt") + '</span>') + '</div></div>' +
+      (canManage&&!vac ? '<div class="lspd-module-entry-actions"><button class="lspd-btn subtle" data-edit="' + id + '" data-type="' + type + '">Bearbeiten</button><button class="lspd-btn danger" data-delete="' + id + '" data-type="' + type + '">Löschen</button></div>' : '') + '</div>' +
       '<div class="lspd-module-entry-body mdt-rich-content">' + rich(row.description || "") + '</div>' +
       '<div class="lspd-confirm" data-confirm="' + id + '"><span>Eintrag wirklich löschen?</span><button class="lspd-btn danger" data-confirm-yes="' + id + '" data-type="' + type + '">Ja, löschen</button><button class="lspd-btn" data-confirm-no="' + id + '">Abbrechen</button></div></article>';
   }
@@ -137,12 +139,13 @@
     var weekdays = ["Mo","Di","Mi","Do","Fr","Sa","So"];
     var html = weekdays.map(function(day){return '<div class="lspd-calendar-weekday">'+day+'</div>';}).join("");
     var today = dateKey(new Date()), dated = {};
-    events.forEach(function(r){if(!r.event_date)return;var m=r.metadata||{};if(m.entry_type==="vacation"&&m.start_date&&m.end_date){var start=new Date(m.start_date+"T00:00:00"),end=new Date(m.end_date+"T00:00:00");if(!Number.isNaN(start.getTime())&&!Number.isNaN(end.getTime())){for(var d=new Date(start);d<=end;d.setDate(d.getDate()+1)){var key=dateKey(d);(dated[key]||(dated[key]=[])).push(r);}return;}}var d=new Date(r.event_date);if(Number.isNaN(d.getTime()))return;var key=dateKey(d);(dated[key]||(dated[key]=[])).push(r);});
+    const gridEnd=new Date(start.getFullYear(),start.getMonth(),start.getDate()+41);
+    events.forEach(function(r){var m=r.metadata||{};if(m.entry_type==="vacation"&&m.start_date&&m.end_date){var a=new Date(m.start_date+"T00:00:00"),b=new Date(m.end_date+"T00:00:00");if(!Number.isNaN(a.getTime())&&!Number.isNaN(b.getTime())){for(var d=new Date(Math.max(+a,+start));d<=b&&d<=gridEnd;d.setDate(d.getDate()+1)){var key=dateKey(d);(dated[key]||(dated[key]=[])).push(r);}return;}}if(!r.event_date)return;var d=new Date(r.event_date);if(Number.isNaN(d.getTime()))return;var key=dateKey(d);(dated[key]||(dated[key]=[])).push(r);});
     for(var n=0;n<42;n++){
       var day = new Date(start.getFullYear(),start.getMonth(),start.getDate()+n), key=dateKey(day), items=dated[key]||[];
       html += '<div class="lspd-calendar-day '+(day.getMonth()!==month?'is-outside ':'')+(key===today?'is-today':'')+'"><div class="lspd-calendar-day-number">'+day.getDate()+'</div>'+
-        items.slice(0,3).map(function(r){return '<span class="lspd-calendar-event'+((r.metadata&&r.metadata.entry_type==="vacation")?" lspd-calendar-vacation":"")+'" title="'+esc(r.title||"Termin")+'">'+esc(r.title||"Termin")+'</span>';}).join("")+
-        (items.length>3?'<div class="lspd-calendar-more">+'+(items.length-3)+' weitere</div>':'')+'</div>';
+        items.map(function(r){return '<span class="lspd-calendar-event'+((r.metadata&&r.metadata.entry_type==="vacation")?" lspd-calendar-vacation":"")+'" title="'+esc(r.title||"Termin")+'">'+esc(r.title||"Termin")+'</span>';}).join("")+
+        '</div>';
     }
     $("calMonthGrid").innerHTML=html;
   }
@@ -156,14 +159,14 @@
     $("calChanges").innerHTML = changes.length ? changes.map(function (r) { return card(r,"change"); }).join("") : '<div class="lspd-module-empty">Derzeit sind keine Dienstplanänderungen eingetragen.</div>';
   }
   async function load() {
-    message("Kalenderdaten werden geladen …");
+    if(loading)return;loading=true;
     try {
-      var permissionState = await call("getMyPermissions");
+      var [permissionState,result]=await Promise.all([call("getMyPermissions"),call("getModuleItems","calendar")]);if(!root.isConnected)return;
       var permissionList = permissionState && Array.isArray(permissionState.permissions) ? permissionState.permissions : [];
-      canManage = !!(permissionState && permissionState.master) || permissionList.indexOf("*") >= 0 || permissionList.indexOf("calendar.manage") >= 0;
+      const allowed=key=>!!permissionState?.master||((permissionList.includes("*")||permissionList.includes(key))&&(!(permissionState.departmentScopedPermissions||[]).includes(key)||(permissionState.departmentPermissions||[]).includes(key)));canManage=allowed("calendar.view")&&allowed("calendar.manage");
       $("calNewEvent").hidden = !canManage;
       $("calNewChange").hidden = !canManage;
-      var result = await call("getModuleItems","calendar");
+      
       rows = Array.isArray(result) ? result : [];
       message(rows.length + " Kalendereinträge geladen.");
       render();
@@ -171,7 +174,7 @@
       message(error && error.message ? error.message : "Kalenderdaten konnten nicht geladen werden.");
       $("calEvents").innerHTML = '<div class="lspd-module-empty">Der Kalender ist derzeit nicht erreichbar. Bitte Berechtigungen und Verbindung prüfen.</div>';
       $("calChanges").innerHTML = "";
-    }
+    }finally{loading=false;}
   }
   function toLocal(value) {
     if (!value) return "";
@@ -179,7 +182,7 @@
     return Number.isNaN(d.getTime()) ? "" : new Date(d.getTime() - d.getTimezoneOffset()*60000).toISOString().slice(0,16);
   }
   function openEditor(type, row) {
-    if (!canManage) return;
+    if (!canManage||row?.metadata?.entry_type==="vacation") return;
     editing[type] = row ? row.id : null;
     var prefix = type === "event" ? "calEvent" : "calChange";
     var panel = type === "event" ? $("calEventEditor") : $("calChangeEditor");
@@ -235,8 +238,8 @@
     if(no){var n=no.closest(".lspd-confirm");if(n)n.classList.remove("is-open");return;}
     if(yes){yes.disabled=true;try{await call("deleteModuleItem","calendar",yes.dataset.confirmYes);message("Eintrag gelöscht.");await load();}catch(error){message(error&&error.message?error.message:"Löschen fehlgeschlagen.");}finally{yes.disabled=false;}}
   });
-  window.addEventListener("fib-mdt:refresh-request",function(){if(root.isConnected&&!$("calEventEditor").classList.contains("is-open")&&!$("calChangeEditor").classList.contains("is-open"))load();});
-  window.addEventListener("fib-mdt:data-changed",function(){if(root.isConnected)load();});
+  window.__fibPageLifecycle.on(window,"fib-mdt:refresh-request",function(){if(root.isConnected&&!$("calEventEditor").classList.contains("is-open")&&!$("calChangeEditor").classList.contains("is-open"))load();});
+  window.__fibPageLifecycle.on(window,"fib-mdt:data-changed",function(e){if(root.isConnected&&/VacationRequest|ModuleItem/.test(e.detail?.method||"")&&!$("calEventEditor").classList.contains("is-open")&&!$("calChangeEditor").classList.contains("is-open"))load();});
   load();
 })();
 </script>

@@ -2817,7 +2817,7 @@
     @media(max-width:650px) { .fib-duty-picker { right:8px; width:calc(100vw - 16px); max-height:68vh; } .fib-duty-options { grid-template-columns:repeat(2,minmax(0,1fr)); } }
   </style>
 
-  <script src="/js/cloud-api.js?v=49" defer></script>
+  <script src="/js/cloud-api.js?v=52" defer></script>
 <script src="/js/mdt-rich-text.js?v=3.73" defer></script>
 <link rel="stylesheet" href="/lspd-design.css?v=48">
 <link rel="stylesheet" href="/lspd-catalogs-v51.css?v=51">
@@ -3812,6 +3812,13 @@ const NAVIGATION = [
         icon: "□",
         permission: "officers.view",
         file: "Page_UniformCatalog"
+      },
+      {
+        id: "armory",
+        title: "Waffenkammer & Ausrüstung",
+        icon: "▣",
+        permission: "armory.view",
+        file: "Page_Armory"
       }
 
     ]
@@ -3909,7 +3916,7 @@ const NAVIGATION = [
         id: "calendar",
         title: "Kalender",
         icon: "▦",
-        permission: "calendar.view",
+        permission: "",
         file: "Page_Calendar"
       }
 
@@ -3928,6 +3935,7 @@ const NAVIGATION = [
         title: "Beweise gegen Gangs",
         icon: "◇",
         permission: "gangs.evidence.view",
+        requireDepartmentGrant: true,
         file: "Page_Gangs"
       },
 
@@ -4784,6 +4792,8 @@ const NAVIGATION = [
 
       }
 
+
+      if (item.requireDepartmentGrant && !myDepartmentPermissions.includes(item.permission)) return false;
 
       if (
         item.masterOnly
