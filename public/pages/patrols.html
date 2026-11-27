@@ -2026,103 +2026,98 @@
     }
 
     function createPatrolCard(patrol) {
-        const card = document.createElement("div");
-        card.className = "patrol-card";
+        const card = document.createElement("article");
+        card.className = "patrol-card patrol-card-modern";
 
         const statusValue = String(
             patrol.tenCode || patrol.ten_code || patrol.status || "Unbekannt"
         ).trim() || "Unbekannt";
-        const statusClass = statusValue
-            .toLowerCase()
-            .replace(/[^a-z0-9]+/g, "-");
-
+        const statusClass = statusValue.toLowerCase().replace(/[^a-z0-9]+/g, "-");
         const members = Array.isArray(patrol.members) ? patrol.members : [];
         const leadMember = members.find(function (member) {
             return String(member.position || "").toLowerCase() === "lead";
         }) || members[0];
 
-        // The authoritative callsign is the one stored in the personnel file.
-        // getPatrols() already resolves it for the lead member; patrol.callsign is
-        // kept only as a backwards-compatible fallback for older patrol rows.
         const patrolCallsign = String(
             leadMember?.callSign || patrol.callsign || "Unbekannt"
         ).trim() || "Unbekannt";
-        const patrolNumber = String(patrol.number || "").trim();
         const patrolLocation = String(patrol.location || "").trim();
         const patrolActivity = String(patrol.activity || "").trim();
         const vehicle = String(patrol.vehicleType || patrol.vehicle_type || "—").trim() || "—";
-
-        const splitCallsign = patrolCallsign.match(/^(.+?)[- ]?(\d{1,3})$/);
-        const displayCallsign = splitCallsign ? splitCallsign[1].trim() : patrolCallsign;
-        const explicitNumber = /^\d{1,3}[A-Z]?$/i.test(patrolNumber) ? patrolNumber : "";
-        const displayNumber = explicitNumber || (splitCallsign ? splitCallsign[2] : "");
+        const currentUserId = String(state.currentUserId || window.currentUser?.id || "");
+        const alreadyMember = members.some(function (member) {
+            return String(member.id || member.user_id || "") === currentUserId;
+        });
+        const actionAllowed = canEdit() || canDelete();
 
         const membersHtml = members.length
             ? members.map(function (member) {
                 const memberName = String(member.name || "Unbekannt").trim();
                 const rank = String(member.rankShortName || member.rank || "—").trim();
                 const memberCallsign = String(member.callSign || "").trim();
+                const lead = String(member.position || "").toLowerCase() === "lead";
                 return `
-                    <div class="patrol-member" title="${escapeHtml(memberName)}${memberCallsign ? " · " + escapeHtml(memberCallsign) : ""}">
-                        <span class="patrol-member-rank">${escapeHtml(rank)}</span>
-                        <span class="patrol-member-name">${escapeHtml(memberName)}</span>
-                        ${memberCallsign ? `<span class="patrol-member-callsign">${escapeHtml(memberCallsign)}</span>` : ""}
+                    <div class="patrol-crew-person${lead ? " is-lead" : ""}" title="${escapeHtml(memberName)}${memberCallsign ? " · " + escapeHtml(memberCallsign) : ""}">
+                        <span class="patrol-crew-rank">${escapeHtml(rank)}</span>
+                        <span class="patrol-crew-name">${escapeHtml(memberName)}</span>
+                        ${memberCallsign ? `<span class="patrol-crew-callsign">${escapeHtml(memberCallsign)}</span>` : ""}
+                        ${lead ? `<span class="patrol-crew-lead">LEAD</span>` : ""}
                     </div>
                 `;
             }).join("")
-            : `<div class="patrol-member patrol-member-empty">Keine Besatzung</div>`;
-
-        const actionAllowed = canEdit() || canDelete();
-        const currentUserId = String(state.currentUserId || window.currentUser?.id || "");
-        const alreadyMember = members.some(function (member) {
-            return String(member.id || member.user_id || "") === currentUserId;
-        });
+            : `<div class="patrol-crew-empty"><i class="fa-solid fa-user-slash"></i> Noch keine Besatzung</div>`;
 
         card.innerHTML = `
-            <div class="patrol-callsign" title="Funkrufname aus der Personalakte">
-                <span class="patrol-callsign-type">${escapeHtml(displayCallsign)}</span>
-                ${displayNumber ? `<span class="patrol-callsign-number">${escapeHtml(displayNumber)}</span>` : ""}
+            <div class="patrol-card-head">
+                <div class="patrol-card-identity">
+                    <div class="patrol-call-sign-badge">
+                        <span class="patrol-call-sign-icon"><i class="fa-solid fa-radio"></i></span>
+                        <span>${escapeHtml(patrolCallsign)}</span>
+                    </div>
+                    <span class="patrol-card-live"><span></span> AKTIV</span>
+                </div>
+                <div class="patrol-card-actions">
+                    <button class="patrol-action-button patrol-join-button" type="button"
+                        title="${alreadyMember ? "Bereits Mitglied dieser Streife" : "Dieser Streife beitreten"}"
+                        aria-label="${alreadyMember ? "Bereits Mitglied dieser Streife" : "Dieser Streife beitreten"}"
+                        data-patrol-join="${escapeHtml(patrol.id)}" ${alreadyMember ? "disabled" : ""}>
+                        <i class="fa-solid ${alreadyMember ? "fa-check" : "fa-user-plus"}"></i>
+                        <span>${alreadyMember ? "Dabei" : "Beitreten"}</span>
+                    </button>
+                    ${actionAllowed ? `
+                        <button class="patrol-action-button patrol-edit-button" type="button" title="Streife bearbeiten" data-patrol-action="${escapeHtml(patrol.id)}">
+                            <i class="fa-solid fa-pen"></i>
+                        </button>
+                    ` : ""}
+                </div>
             </div>
 
-            <div class="patrol-status status-${escapeHtml(statusClass)}" title="Ten Code">
-                <span class="patrol-status-label">${escapeHtml(statusValue)}</span>
+            <div class="patrol-card-main">
+                <div class="patrol-info-block patrol-status-block">
+                    <span class="patrol-info-label">Status</span>
+                    <span class="patrol-modern-status status-${escapeHtml(statusClass)}">${escapeHtml(statusValue)}</span>
+                </div>
+                <div class="patrol-info-block">
+                    <span class="patrol-info-label">Einsatzort</span>
+                    <span class="patrol-info-value"><i class="fa-solid fa-location-dot"></i>${escapeHtml(patrolLocation || "Kein Einsatzort")}</span>
+                </div>
+                <div class="patrol-info-block">
+                    <span class="patrol-info-label">Fahrzeug</span>
+                    <span class="patrol-info-value"><i class="fa-solid fa-car-side"></i>${escapeHtml(vehicle)}</span>
+                </div>
+                <div class="patrol-info-block patrol-activity-block">
+                    <span class="patrol-info-label">Tätigkeit</span>
+                    <span class="patrol-info-value"><i class="fa-solid fa-bullhorn"></i>${escapeHtml(patrolActivity || "Keine Angabe")}</span>
+                </div>
             </div>
 
-            <div class="patrol-location" title="Einsatzort">
-                ${escapeHtml(patrolLocation || "—")}
+            <div class="patrol-card-crew">
+                <div class="patrol-crew-heading">
+                    <span><i class="fa-solid fa-users"></i> Besatzung</span>
+                    <span class="patrol-crew-count">${members.length}</span>
+                </div>
+                <div class="patrol-crew-list">${membersHtml}</div>
             </div>
-
-            <div class="patrol-vehicle" title="Fahrzeug">
-                ${escapeHtml(vehicle)}
-            </div>
-
-            <div class="patrol-activity-status${patrolActivity ? "" : " is-empty"}" title="Tätigkeit / Status">
-                ${escapeHtml(patrolActivity || "—")}
-            </div>
-
-            <div class="patrol-members" title="Besatzung">
-                ${membersHtml}
-            </div>
-
-            <button
-                class="patrol-action-button patrol-join-button"
-                type="button"
-                title="${alreadyMember ? "Bereits Mitglied dieser Streife" : "Dieser Streife beitreten"}"
-                aria-label="${alreadyMember ? "Bereits Mitglied dieser Streife" : "Dieser Streife beitreten"}"
-                data-patrol-join="${escapeHtml(patrol.id)}"
-                ${alreadyMember ? "disabled" : ""}
-            >${alreadyMember ? "✓" : "+"}</button>
-
-            ${actionAllowed ? `
-                <button
-                    class="patrol-action-button patrol-edit-button"
-                    type="button"
-                    title="Streife bearbeiten"
-                    data-patrol-action="${escapeHtml(patrol.id)}"
-                >
-                    <i class="fa-solid fa-pen"></i>
-                </button>
-            ` : `<div class="patrol-no-action" aria-hidden="true"></div>`}
         `;
 
         const joinButton = card.querySelector("[data-patrol-join]");
@@ -2807,8 +2802,12 @@
             if (list && !state.saving && !(modal && modal.classList.contains("open"))) {
                 fetchPatrols(true).catch(function () {});
             }
-        }, 15000);
+        }, 5000);
     }
+    window.__fibPageLifecycle.on(window, "fib-mdt:duty-started", function () {
+        const list = document.getElementById("patrolsList");
+        if (list) fetchPatrols(true).catch(function () {});
+    });
     window.__fibPageLifecycle.on(window, "fib-mdt:refresh-request", function (event) { const modal=document.getElementById("fibGlobalModalOverlay"); if (document.getElementById("patrolsList") && !state.saving && !(modal && modal.classList.contains("open"))) refreshPatrolData(); });
     window.__fibPageLifecycle.on(window, "fib-mdt:data-changed", function (event) { const modal=document.getElementById("fibGlobalModalOverlay"); if (document.getElementById("patrolsList") && !(modal && modal.classList.contains("open")) && /Patrol|patrol|Member|member/.test(String(event.detail && event.detail.method || ""))) refreshPatrolData(); });
 })();
@@ -3747,5 +3746,68 @@
     .patrol-card { overflow-x: auto !important; }
     .patrol-card > * { flex-shrink: 0 !important; }
     .patrol-members { flex: 0 0 auto !important; }
+}
+</style>
+<style>
+/* =========================================================
+   LEITSTELLE v35 – MODERN PATROL ROSTER
+   Functional DOM contract unchanged; presentation completely rebuilt.
+========================================================= */
+.patrols-content{gap:14px!important}
+.patrol-group{padding:0!important;margin:0 0 18px!important}
+.patrol-group-title{margin:0 0 8px!important;padding:0 4px!important;display:flex!important;align-items:center!important;gap:9px!important;color:#52677d!important;font-size:11px!important;letter-spacing:.08em!important}
+.patrol-group-title:before{content:"";width:3px;height:16px;border-radius:4px;background:#2d6da8;display:block}
+.patrol-group-count{min-width:22px!important;height:20px!important;padding:0 7px!important;border-radius:999px!important;background:#e8f1f9!important;border:1px solid #cbdceb!important;color:#2d6da8!important;font-size:9px!important;font-weight:900!important}
+.patrol-card-modern{display:block!important;overflow:hidden!important;margin:0 0 9px!important;padding:0!important;min-height:0!important;background:#fff!important;border:1px solid #d8e2eb!important;border-radius:14px!important;box-shadow:0 3px 12px rgba(37,66,94,.065)!important}
+.patrol-card-modern:hover{background:#fff!important;border-color:#b9cfe1!important;box-shadow:0 7px 22px rgba(37,66,94,.105)!important;transform:translateY(-1px)!important}
+.patrol-card-head{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:12px!important;padding:12px 14px!important;background:linear-gradient(180deg,#f9fbfd 0%,#f3f7fa 100%)!important;border-bottom:1px solid #e1e8ef!important}
+.patrol-card-identity{display:flex!important;align-items:center!important;gap:10px!important;min-width:0!important}
+.patrol-call-sign-badge{display:inline-flex!important;align-items:center!important;gap:8px!important;min-height:32px!important;padding:0 11px!important;border-radius:9px!important;background:#e8f1f9!important;border:1px solid #c9dbea!important;color:#245b91!important;font-size:12px!important;font-weight:900!important;letter-spacing:.02em!important}
+.patrol-call-sign-icon{width:24px!important;height:24px!important;display:grid!important;place-items:center!important;border-radius:7px!important;background:#2d6da8!important;color:#fff!important;font-size:10px!important}
+.patrol-card-live{display:inline-flex!important;align-items:center!important;gap:6px!important;color:#5f7488!important;font-size:8px!important;font-weight:900!important;letter-spacing:.1em!important}
+.patrol-card-live span{width:6px!important;height:6px!important;border-radius:50%!important;background:#31a56d!important;box-shadow:0 0 0 3px #dff3e9!important}
+.patrol-card-actions{display:flex!important;align-items:center!important;gap:6px!important;flex:0 0 auto!important}
+.patrol-card-actions .patrol-action-button{width:auto!important;min-width:36px!important;height:34px!important;min-height:34px!important;padding:0 10px!important;border-radius:8px!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;gap:7px!important;background:#f4f7fa!important;border:1px solid #d6e1ea!important;color:#5c7185!important;font-size:10px!important;font-weight:850!important}
+.patrol-card-actions .patrol-join-button{background:#e8f2fb!important;border-color:#bdd5e9!important;color:#2868a9!important}
+.patrol-card-actions .patrol-join-button:hover:not(:disabled){background:#dcecf9!important;border-color:#9fc1df!important;color:#205d95!important}
+.patrol-card-actions .patrol-join-button:disabled{opacity:1!important;cursor:default!important;background:#eef5ef!important;border-color:#cfe3d5!important;color:#3b8a5a!important}
+.patrol-card-main{display:grid!important;grid-template-columns:1.05fr 1.4fr .95fr 1.25fr!important;gap:0!important;padding:12px 14px!important}
+.patrol-info-block{min-width:0!important;padding:0 13px!important;border-right:1px solid #e7edf2!important}
+.patrol-info-block:first-child{padding-left:0!important}
+.patrol-info-block:last-child{padding-right:0!important;border-right:0!important}
+.patrol-info-label{display:block!important;margin-bottom:5px!important;color:#8998a7!important;font-size:8px!important;font-weight:900!important;text-transform:uppercase!important;letter-spacing:.09em!important}
+.patrol-info-value{display:flex!important;align-items:center!important;gap:7px!important;min-width:0!important;color:#33495e!important;font-size:10px!important;font-weight:750!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+.patrol-info-value i{width:15px!important;color:#7090aa!important;text-align:center!important;font-size:9px!important}
+.patrol-modern-status{display:inline-flex!important;align-items:center!important;min-height:25px!important;padding:0 9px!important;border-radius:7px!important;border:1px solid #d9e3ec!important;background:#eef3f7!important;color:#40536a!important;font-size:9px!important;font-weight:900!important}
+.patrol-modern-status.status-10-1{background:#e8f6ee!important;color:#24724b!important;border-color:#bfe4cc!important}
+.patrol-modern-status.status-10-3{background:#fff0f0!important;color:#a33d3d!important;border-color:#eccaca!important}
+.patrol-modern-status.status-10-6{background:#fff8df!important;color:#8a6710!important;border-color:#eedb9e!important}
+.patrol-modern-status.status-10-19,.patrol-modern-status.status-10-23,.patrol-modern-status.status-10-76{background:#eaf3fb!important;color:#2c6799!important;border-color:#c9dced!important}
+.patrol-card-crew{padding:10px 14px 13px!important;background:#fafcfd!important;border-top:1px solid #e8eef3!important}
+.patrol-crew-heading{display:flex!important;align-items:center!important;gap:8px!important;margin-bottom:7px!important;color:#72869a!important;font-size:8px!important;font-weight:900!important;text-transform:uppercase!important;letter-spacing:.08em!important}
+.patrol-crew-heading i{color:#7b9ab4!important}
+.patrol-crew-count{min-width:18px!important;height:18px!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;border-radius:999px!important;background:#e7f0f7!important;border:1px solid #d1e0eb!important;color:#35688f!important;font-size:8px!important}
+.patrol-crew-list{display:flex!important;flex-wrap:wrap!important;gap:6px!important;min-width:0!important}
+.patrol-crew-person{position:relative!important;display:flex!important;align-items:center!important;min-width:0!important;min-height:31px!important;border:1px solid #dce5ec!important;border-radius:8px!important;background:#fff!important;overflow:hidden!important}
+.patrol-crew-person.is-lead{border-color:#bdd4e5!important;background:#f7fbfe!important}
+.patrol-crew-rank{align-self:stretch!important;display:flex!important;align-items:center!important;padding:0 7px!important;background:#eaf2f8!important;color:#416783!important;font-size:7px!important;font-weight:900!important;white-space:nowrap!important}
+.patrol-crew-name{padding:0 8px!important;color:#3d5267!important;font-size:9px!important;font-weight:800!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+.patrol-crew-callsign{padding-right:8px!important;color:#4e82ae!important;font-size:7px!important;font-weight:800!important;white-space:nowrap!important}
+.patrol-crew-lead{margin-right:6px!important;padding:3px 5px!important;border-radius:4px!important;background:#e2eef8!important;color:#2c6799!important;font-size:6px!important;font-weight:950!important;letter-spacing:.08em!important}
+.patrol-crew-empty{display:flex!important;align-items:center!important;gap:7px!important;color:#8a99a7!important;font-size:9px!important;font-weight:700!important}
+.patrol-crew-empty i{font-size:10px!important;color:#a3b1bd!important}
+@media (max-width:900px){
+ .patrol-card-main{grid-template-columns:1fr 1fr!important;row-gap:12px!important}
+ .patrol-info-block:nth-child(2){border-right:0!important}
+ .patrol-info-block:nth-child(3){padding-left:0!important}
+}
+@media (max-width:620px){
+ .patrol-card-head{align-items:flex-start!important;flex-direction:column!important}
+ .patrol-card-actions{width:100%!important}
+ .patrol-card-actions .patrol-join-button{flex:1!important}
+ .patrol-card-main{grid-template-columns:1fr!important}
+ .patrol-info-block{padding:0!important;border-right:0!important}
+ .patrol-crew-list{display:grid!important;grid-template-columns:1fr!important}
+ .patrol-crew-person{width:100%!important}
 }
 </style>
