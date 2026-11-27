@@ -21,7 +21,7 @@
     "getCurrentUser", "getSessionInfo", "getMyPermissions", "getPatrols", "getPatrolRevision", "getOwnDuty",
     "getDashboardStats", "getDashboardStatistics", "getActivePatrols",
     "getLivePatrols", "getCurrentSession", "getNotifications",
-    "getWarrantStatistics", "getFinanceAccess", "getBonusData", "getAccountingData", "getPersonnelFileBundle", "getPersonnelHistory"
+    "getWarrantStatistics", "getRecords", "getRecord", "getRecordShares", "getFinanceAccess", "getBonusData", "getAccountingData", "getPersonnelFileBundle", "getPersonnelHistory"
   ]);
   let lastToken = null;
 

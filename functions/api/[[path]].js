@@ -1,8 +1,10 @@
-import { config, db, json, readJson, rpc } from "../_lib/supabase.js";
+import { config, db, dbCount, json, readJson, rpc } from "../_lib/supabase.js";
 import { SHEET_BACKED_METHODS, googleSheetsCall } from "../_lib/google-sheets.js";
 import { bearer, clearAuthCaches, createSession, getPermissions, publicUser, requireSession, sha256, verifyPassword } from "../_lib/auth.js";
 const bad=(message,status=400,code)=>json({success:false,message,...(code?{code}:{})},status);
-const dashboardStatsCache={value:null,at:0};
+const dashboardStatsCache=new Map();
+const dashboardQueryCache=new Map();
+let dashboardStatsEpoch=0;
 const text=v=>String(v??"").trim();
 const id=prefix=>prefix+crypto.randomUUID().replace(/-/g,"").slice(0,14).toUpperCase();
 async function authz(env,token,permission){
@@ -499,7 +501,7 @@ async function internalFineDispatch(method,args,env,token){
   const query={select:"id,item_type,category_id,title,description,amount,sanction_type,sanction_value,sanction_unit,sanction_components,active,sort_order,created_at,created_by",order:"sort_order.asc,title.asc",limit:"1000"};
   if(!au.master)query.active="eq.true";
   const rows=await db(env,"fib_internal_fine_catalog",{query});
-  return {canManage:au.master===true,items:(rows||[]).map(r=>({...r,item_type:r.item_type==="fine"?"sanction":r.item_type,sanction_type:r.sanction_type||(r.item_type==="fine"?"fine":null)}))};
+  return {canManage:au.master===true,canIssue:effectivePermission(au,"ifines.manage"),items:(rows||[]).map(r=>({...r,item_type:r.item_type==="fine"?"sanction":r.item_type,sanction_type:r.sanction_type||(r.item_type==="fine"?"fine":null)}))};
  }
  if(method==="getInternalFineCatalog"){
   const au=await view();if(!au.master)throw Object.assign(new Error("Die Katalogverwaltung ist ausschließlich Master-Benutzern vorbehalten."),{status:403});
@@ -577,7 +579,78 @@ async function internalFineDispatch(method,args,env,token){
 
 function canonicalRecordType(value){
  const t=text(value).toLowerCase();
- return ({doc:"ia",director:"highcommand",ia:"ia",highcommand:"highcommand",investigation:"investigation",report:"report"})[t]||t;
+ return t==="doc"?"ia":t==="director"?"highcommand":t;
+}
+const RECORD_BASES=Object.freeze({investigation:"records.investigations",report:"records.reports",ia:"records.ia",highcommand:"records.highcommand"});
+const RECORD_TYPES=Object.freeze({investigation:["investigation"],report:["report"],ia:["ia","doc"],highcommand:["highcommand","director"]});
+const RECORD_LIST_COLUMNS="id,case_number,type,title,subject,status,classification,summary,created_at,created_by,created_by_name,updated_at,updated_by,updated_by_name,archived_at";
+const RECORD_DETAIL_COLUMNS=RECORD_LIST_COLUMNS+",content,archived_by,archived_by_name";
+const recordError=(message,status=400)=>Object.assign(new Error(message),{status});
+function effectivePermission(au,permission){return !!permission&&(au.master||((au.permissions.includes("*")||au.permissions.includes(permission))&&(!au.departmentScopedPermissions.includes(permission)||au.departmentPermissions.includes(permission))));}
+function recordAllowed(au,type,action="view"){
+ const canonical=canonicalRecordType(type);
+ const base=Object.hasOwn(RECORD_BASES,canonical)?RECORD_BASES[canonical]:null;
+ return !!base&&effectivePermission(au,"records.view")&&effectivePermission(au,base+".view")&&(action==="view"||effectivePermission(au,base+"."+action));
+}
+function visibleRecordTypes(au){return Object.keys(RECORD_BASES).filter(t=>recordAllowed(au,t)).flatMap(t=>RECORD_TYPES[t]);}
+function normalizedRecord(r){return {...r,type:canonicalRecordType(r.type)};}
+async function recordById(env,au,rid,action="view",columns="id,type,status,updated_at"){
+ if(!rid)throw recordError("Akten-ID fehlt.");
+ const types=visibleRecordTypes(au);
+ if(!types.length)throw recordError("Keine Berechtigung für diese Akte.",403);
+ const rows=await db(env,"fib_records",{query:{select:columns,id:`eq.${rid}`,type:`in.(${types.join(",")})`,limit:"1"}});
+ const r=rows?.[0];
+ if(!r||!recordAllowed(au,r.type,action))throw recordError("Akte nicht verfügbar oder keine Berechtigung.",403);
+ return r;
+}
+function recordPatch(d,creating=false){
+ const row={};
+ for(const [k,max] of Object.entries({title:160,subject:160,summary:500,content:200000})){
+  if(d[k]===undefined&&!creating)continue;
+  const value=k==="content"?String(d[k]??""):text(d[k]);
+  if(value.length>max)throw recordError(`Das Feld ${k} ist zu lang.`);
+  if(k==="title"&&!value)throw recordError("Titel ist erforderlich.");
+  row[k]=value;
+ }
+ if(d.status!==undefined||creating){const status=text(d.status)||"open";if(!["open","in_progress","closed"].includes(status))throw recordError("Ungültiger Status. Nutze zum Archivieren die Archivfunktion.");row.status=status;}
+ return row;
+}
+// Share identical authorized count queries across users of one deployment. The
+// aggregate snapshot remains user-scoped; no privileged data is reused for other scopes.
+function dashboardQuery(env,key,fn,force=false){
+ const cacheKey=JSON.stringify([env.SUPABASE_URL,key]);const old=dashboardQueryCache.get(cacheKey);
+ if(old&&(old.pending||!force&&Date.now()-old.at<30000))return old.task;
+ for(const [k,v] of dashboardQueryCache)if(!v.pending&&Date.now()-v.at>=30000)dashboardQueryCache.delete(k);
+ if(dashboardQueryCache.size>=100)dashboardQueryCache.delete(dashboardQueryCache.keys().next().value);
+ const entry={at:Date.now(),pending:true,task:null};
+ entry.task=Promise.resolve().then(fn).then(value=>{entry.pending=false;entry.at=Date.now();return value;},error=>{if(dashboardQueryCache.get(cacheKey)===entry)dashboardQueryCache.delete(cacheKey);throw error;});
+ dashboardQueryCache.set(cacheKey,entry);return entry.task;
+}
+async function dashboardStatistics(env,au,token,force=false){
+ const types=visibleRecordTypes(au);
+ const access={warrants:effectivePermission(au,"warrants.view"),wanted:effectivePermission(au,"wanted.view"),records:types.length>0,users:effectivePermission(au,"officers.view"),patrols:effectivePermission(au,"patrols.view"),announcements:effectivePermission(au,"announcements.view")};
+ // The cache scope includes effective permissions and the user (the Sheets bridge is user-authenticated).
+ const key=JSON.stringify([env.SUPABASE_URL,au.user.id,access,types]);const cached=dashboardStatsCache.get(key);
+ if(!force&&cached&&Date.now()-cached.at<30000)return cached.task;
+ for(const [k,v] of dashboardStatsCache)if(Date.now()-v.at>=30000)dashboardStatsCache.delete(k);
+ const epoch=dashboardStatsEpoch;
+ const safe=async(enabled,fn)=>{if(!enabled)return null;try{return await fn();}catch(e){console.warn("Dashboard-Teilabfrage fehlgeschlagen",e?.message);return null;}};
+ const shared=(key,fn)=>dashboardQuery(env,key,fn,force);
+ const task=(async()=>{
+  const [openWarrants,activeWanted,openRecords,activeUsers,activePatrols,announcements,profileDepartment]=await Promise.all([
+   safe(access.warrants,async()=>{const r=await googleSheetsCall(env,"getWarrantStatistics",[token],{timeoutMs:6500});const n=r?.open??r?.openWarrants??r?.activeWarrants;return n!=null&&Number.isFinite(Number(n))?Number(n):null;}),
+   safe(access.wanted,()=>shared("wanted",()=>dbCount(env,"fib_wanted",{status:"not.in.(closed,Closed,resolved,Resolved,cancelled,Cancelled,inactive,Inactive,captured,Captured,archived,Archived)"}))),
+   safe(access.records,()=>shared(["records",types],()=>dbCount(env,"fib_records",{type:`in.(${types.join(",")})`,status:"in.(open,in_progress)"}))),
+   safe(access.users,()=>shared("users",()=>dbCount(env,"users",{active:"eq.true",approved:"eq.true"}))),
+   safe(access.patrols,()=>shared("patrols",()=>dbCount(env,"patrols"))),
+   safe(access.announcements,()=>shared("announcements",async()=>{const rows=await db(env,"fib_announcements",{query:{select:"id,title,description,event_date,created_at,metadata",status:"eq.active",order:"created_at.desc",limit:"4"}});return (rows||[]).map(r=>({id:r.id,title:r.title,description:String(r.description||"").slice(0,240),eventDate:r.event_date||r.created_at,important:r.metadata?.priority==="important"}));})),
+   au.master?safe(true,async()=>text((await db(env,"personnel",{query:{select:"department",user_id:`eq.${au.user.id}`,limit:"1"}}))?.[0]?.department)||"Nicht zugeordnet"):Promise.resolve(au.department||"Nicht zugeordnet")
+  ]);
+  return {access,openWarrants,activeWanted,openRecords,activeUsers,activePatrols,announcements,profileDepartment,updatedAt:new Date().toISOString()};
+ })();
+ if(dashboardStatsCache.size>=100)dashboardStatsCache.delete(dashboardStatsCache.keys().next().value);
+ if(epoch===dashboardStatsEpoch)dashboardStatsCache.set(key,{at:Date.now(),task});
+ return task;
 }
 async function dispatchCore(method,args,env,token){
  // These legacy reference modules remain live in their original Google Sheets.
@@ -595,7 +668,7 @@ async function dispatchCore(method,args,env,token){
   const query={select:"id,name,vehicle_class,image_url,description,active,created_at,updated_at",order:"vehicle_class.asc,name.asc",limit:"500"};
   if(!au.master)query.active="eq.true";
   const items=await db(env,"fib_vehicle_catalog",{query});
-  return {items:items||[],canManage:await has(env,au,"vehicles.manage")};
+  return {items:items||[],canManage:effectivePermission(au,"vehicles.manage")};
  }
  if(method==="saveVehicleCatalogItem"){
   const au=await authz(env,token,"vehicles.manage");
@@ -658,7 +731,7 @@ async function dispatchCore(method,args,env,token){
   const us=await db(env,"users",{query:{select:"id,username,name,rank,active,approved,profile_image",id:`eq.${uid}`,limit:"1"}});if(!us?.length)throw Object.assign(new Error("Beamter nicht gefunden."),{status:404});
   const [pp,tt,nn,hh,tx,ranks]=await Promise.all([
    db(env,"personnel",{query:{select:"user_id,service_number,phone,call_sign,department,unit,email,address,entry_date,personnel_status,note",user_id:`eq.${uid}`,limit:"1"}}),
-   db(env,"personnel_trainings",{query:{select:"id,user_id,name,category,date,instructor,status,expiry_date,notes,created_by,created_by_name,created_at",user_id:`eq.${uid}`,order:"created_at.desc"}}),
+   db(env,"personnel_trainings",{query:{select:"*",user_id:`eq.${uid}`,order:"created_at.desc"}}),
    db(env,"personnel_notes",{query:{select:"id,user_id,type,title,content,created_by,created_by_name,created_at",user_id:`eq.${uid}`,order:"created_at.desc"}}),
    db(env,"personnel_history",{query:{select:"id,user_id,action,detail,actor_id,actor_name,created_at",user_id:`eq.${uid}`,order:"created_at.desc",limit:"300"}}).catch(()=>[]),
    db(env,"personnel_terminations",{query:{select:"id,user_id,document_number,payload,created_by_name,created_at",user_id:`eq.${uid}`,order:"created_at.desc",limit:"100"}}).catch(()=>[]),
@@ -720,10 +793,10 @@ async function dispatchCore(method,args,env,token){
   const au=await authz(env,token,"officers.edit");const uid=text(args[1]),d=args[2]||{};if(!uid)throw new Error("Keine Benutzer-ID angegeben.");const user=await db(env,"users",{query:{select:"id",id:`eq.${uid}`,limit:"1"}});if(!user?.length)throw Object.assign(new Error("Beamter nicht gefunden."),{status:404});const now=new Date().toISOString();
   const training=method==="createPersonnelTraining";
   const row=training?{
-   id:id("TR"),user_id:uid,name:text(d.name),category:text(d.category),date:d.date||null,instructor:text(d.instructor),status:text(d.status)||"Bestanden",expiry_date:d.expiryDate||d.expiry_date||null,notes:text(d.notes),created_by:au.user.id,created_by_name:au.user.name,created_at:now
+   id:id("TR"),user_id:uid,name:text(d.name),category:text(d.category),date:d.date||null,instructor:text(d.instructor),status:text(d.status)||"Bestanden",expiry_date:d.expiryDate||d.expiry_date||null,notes:text(d.notes),created_by:au.user.id,created_at:now
   }:{id:id("NT"),user_id:uid,type:text(d.type)||"Vermerk",title:text(d.title),content:text(d.content),created_by:au.user.id,created_by_name:au.user.name,created_at:now};
   if(training&&!row.name)throw new Error("Bitte eine Bezeichnung für die Schulung angeben.");if(!training&&!row.title)throw new Error("Bitte einen Titel für den Vermerk angeben.");
-  const rows=await db(env,training?"personnel_trainings":"personnel_notes",{method:"POST",query:{select:"*"},body:row,prefer:"return=representation"});const saved=rows?.[0]||row;await writePersonnelHistory(env,au,uid,training?"training_created":"note_created",training?`Schulung „${row.name}“ hinzugefügt.`:`Vermerk „${row.title}“ hinzugefügt.`);return training?normalizeTrainingRow(saved):normalizePersonnelNoteRow(saved);
+  const rows=await db(env,training?"personnel_trainings":"personnel_notes",{method:"POST",query:{select:"*"},body:row,prefer:"return=representation"});const saved=rows?.[0]||row;await writePersonnelHistory(env,au,uid,training?"training_created":"note_created",training?`Schulung „${row.name}“ hinzugefügt.`:`Vermerk „${row.title}“ hinzugefügt.`);return training?normalizeTrainingRow({...saved,created_by_name:saved.created_by_name||au.user.name}):normalizePersonnelNoteRow(saved);
  }
  if(method==="createPersonnelTermination"){
   const au=await authz(env,token,"officers.terminate");
@@ -975,9 +1048,38 @@ async function dispatchCore(method,args,env,token){
  if(method==="deletePatrol"){await authz(env,token,"patrols.delete");const pid=text(args[1]);await db(env,"patrol_members",{method:"DELETE",query:{patrol_id:`eq.${pid}`},prefer:"return=minimal"});await db(env,"patrols",{method:"DELETE",query:{id:`eq.${pid}`},prefer:"return=minimal"});return {success:true};}
  // records: security is enforced on every operation
  if(method==="getRecordsConfig"){await authz(env,token,"records.view");return {listLimit:50,maxListLimit:100,deleteMasterOnly:true,statuses:[{id:"open",label:"Offen"},{id:"in_progress",label:"In Bearbeitung"},{id:"closed",label:"Abgeschlossen"},{id:"archived",label:"Archiviert"}],types:[{id:"investigation",label:"Ermittlungsakten",permissions:{view:"records.investigations.view",create:"records.investigations.create",edit:"records.investigations.edit"}},{id:"report",label:"Berichte",permissions:{view:"records.reports.view",create:"records.reports.create",edit:"records.reports.edit"}},{id:"ia",label:"IA-Akten",permissions:{view:"records.ia.view",create:"records.ia.create",edit:"records.ia.edit"}},{id:"highcommand",label:"High Command Akten",permissions:{view:"records.highcommand.view",create:"records.highcommand.create",edit:"records.highcommand.edit"}}]};}
- if(method==="getRecords"){const au=await authz(env,token);const view=canonicalRecordType(args[1]),status=text(args[2]),search=text(args[3]),limit=Math.min(100,Math.max(1,Number(args[4])||50));const perm={investigation:"records.investigations.view",report:"records.reports.view",ia:"records.ia.view",highcommand:"records.highcommand.view"};let types=Object.keys(perm).filter(t=>au.master||au.permissions.includes(perm[t]));if(view&&view!=="all")types=types.filter(t=>t===view);if(!types.length)return [];const q={select:"id,case_number,type,title,subject,status,classification,summary,created_at,created_by,created_by_name,updated_at,updated_by,updated_by_name,archived_at",type:`in.(${types.join(",")})`,order:"updated_at.desc",limit:String(limit)};if(status&&status!=="all")q.status=`eq.${status}`;if(search)q.or=`(title.ilike.*${search}*,subject.ilike.*${search}*,summary.ilike.*${search}*)`;const rows=await db(env,"fib_records",{query:q});return (rows||[]).map(r=>({...r,type:canonicalRecordType(r.type)}));}
- if(method==="getRecord"){const au=await authz(env,token);const rows=await db(env,"fib_records",{query:{select:"id,case_number,type,title,subject,status,classification,summary,content,created_at,created_by,created_by_name,updated_at,updated_by,updated_by_name,archived_at,archived_by,archived_by_name",id:`eq.${text(args[1])}`,limit:"1"}});const r=rows?.[0];if(!r)throw new Error("Akte nicht gefunden.");const perm={investigation:"records.investigations.view",report:"records.reports.view",ia:"records.ia.view",highcommand:"records.highcommand.view"};const canonicalType=canonicalRecordType(r.type);if(canonicalType!==r.type)r.type=canonicalType;if(!au.master&&!au.permissions.includes(perm[canonicalType]))throw Object.assign(new Error("Keine Berechtigung für diese Akte."),{status:403});return r;}
- if(["createRecord","updateRecord","archiveRecord","deleteRecord"].includes(method)){const au=await authz(env,token);const rid=text(args[1]),d=(method==="createRecord"?args[1]:args[2])||{};if(method==="deleteRecord"){if(!au.master)throw Object.assign(new Error("Nur Master dürfen Akten endgültig löschen."),{status:403});await db(env,"fib_records",{method:"DELETE",query:{id:`eq.${text(args[1])}`},prefer:"return=minimal"});return {success:true};}const type=canonicalRecordType(method==="createRecord"?d.type:(method==="archiveRecord"?args[2]:(d.type||d.recordType)));const perms={investigation:"records.investigations",report:"records.reports",ia:"records.ia",highcommand:"records.highcommand"};const base=perms[type];if(!base)throw new Error("Ungültige Aktenart.");const action=method==="createRecord"?"create":"edit";if(!au.master&&!au.permissions.includes(`${base}.${action}`))throw Object.assign(new Error("Keine Berechtigung für diese Aktion."),{status:403});const now=new Date().toISOString();if(method==="createRecord"){if(!text(d.title))throw new Error("Titel ist erforderlich.");const row={id:id("R"),case_number:`LSPD-${new Date().getFullYear()}-${Math.floor(10000+Math.random()*90000)}`,type,title:text(d.title),subject:text(d.subject),status:text(d.status)||"open",classification:type==="highcommand"?"Streng vertraulich – High Command":type==="ia"?"Geschützt – Internal Affairs":"Intern",summary:text(d.summary),content:String(d.content||""),created_by:au.user.id,created_by_name:au.user.name,updated_by:au.user.id,updated_by_name:au.user.name,created_at:now,updated_at:now};const rows=await db(env,"fib_records",{method:"POST",query:{select:"id,case_number,type,title,subject,status,classification,summary,content,created_at,created_by,created_by_name,updated_at,updated_by,updated_by_name,archived_at,archived_by,archived_by_name"},body:row,prefer:"return=representation"});return rows?.[0]||row;}if(method==="archiveRecord"){const rows=await db(env,"fib_records",{method:"PATCH",query:{id:`eq.${rid}`,type:`eq.${type}`,select:"id,case_number,type,title,subject,status,classification,summary,content,created_at,created_by,created_by_name,updated_at,updated_by,updated_by_name,archived_at,archived_by,archived_by_name"},body:{status:"archived",archived_at:now,archived_by:au.user.id,archived_by_name:au.user.name,updated_at:now},prefer:"return=representation"});if(!rows?.length)throw new Error("Akte nicht gefunden.");return rows[0];}const patch={updated_at:now,updated_by:au.user.id,updated_by_name:au.user.name};for(const k of ["title","subject","summary","content","status"])if(d[k]!==undefined)patch[k]=d[k];const rows=await db(env,"fib_records",{method:"PATCH",query:{id:`eq.${rid}`,type:`eq.${type}`,select:"id,case_number,type,title,subject,status,classification,summary,content,created_at,created_by,created_by_name,updated_at,updated_by,updated_by_name,archived_at,archived_by,archived_by_name"},body:patch,prefer:"return=representation"});if(!rows?.length)throw new Error("Akte nicht gefunden.");return rows[0];}
+ if(method==="getRecords"){
+  const au=await authz(env,token,"records.view"),view=canonicalRecordType(args[1]),status=text(args[2]),search=text(args[3]).slice(0,100),limit=Math.min(100,Math.max(1,Math.trunc(Number(args[4]))||50)),offset=Math.min(1000000,Math.max(0,Math.trunc(Number(args[5]))||0));
+  let types=visibleRecordTypes(au);
+  if(view&&view!=="all"&&view!=="archive")types=types.filter(t=>canonicalRecordType(t)===view);
+  if(!types.length)return [];
+  const q={select:RECORD_LIST_COLUMNS,type:`in.(${types.join(",")})`,order:"updated_at.desc,id.asc",limit:String(limit),offset:String(offset)};
+  if(view==="archive"||status==="archived")q.status="eq.archived";
+  else if(["open","in_progress","closed"].includes(status))q.status=`eq.${status}`;
+  else q.status="in.(open,in_progress,closed)";
+  if(search){const value=search.replace(/[\\"(),.*%_]/g," ").replace(/\s+/g," ").trim();if(value)q.or=`(case_number.ilike.*${value}*,title.ilike.*${value}*,subject.ilike.*${value}*,summary.ilike.*${value}*)`;}
+  const rows=await db(env,"fib_records",{query:q});return (rows||[]).map(normalizedRecord);
+ }
+ if(method==="getRecord"){
+  const au=await authz(env,token,"records.view");return normalizedRecord(await recordById(env,au,text(args[1]),"view",RECORD_DETAIL_COLUMNS));
+ }
+ if(["createRecord","updateRecord","archiveRecord","deleteRecord"].includes(method)){
+  const au=await authz(env,token,"records.view"),rid=text(args[1]),d=(method==="createRecord"?args[1]:args[2])||{},now=new Date().toISOString();
+  if(method==="createRecord"){
+   const type=canonicalRecordType(d.type);if(!recordAllowed(au,type,"create"))throw recordError("Keine Berechtigung für diese Aktenart.",403);
+   const row={id:id("R"),case_number:`LSPD-${new Date().getFullYear()}-${Math.floor(10000+Math.random()*90000)}`,type,...recordPatch(d,true),classification:type==="highcommand"?"Streng vertraulich – High Command":type==="ia"?"Geschützt – Internal Affairs":"Intern",created_by:au.user.id,created_by_name:au.user.name,updated_by:au.user.id,updated_by_name:au.user.name,created_at:now,updated_at:now};
+   const rows=await db(env,"fib_records",{method:"POST",query:{select:RECORD_DETAIL_COLUMNS},body:row,prefer:"return=representation"});return normalizedRecord(rows?.[0]||row);
+  }
+  if(method==="deleteRecord"&&!au.master)throw recordError("Nur Master dürfen Akten endgültig löschen.",403);
+  const existing=await recordById(env,au,rid,method==="deleteRecord"?"view":"edit");
+  if(method==="deleteRecord"){await db(env,"fib_records",{method:"DELETE",query:{id:`eq.${rid}`},prefer:"return=minimal"});return {success:true};}
+  if(existing.status==="archived")throw recordError("Archivierte Akten sind schreibgeschützt.",409);
+  if(method==="updateRecord"&&d.expectedUpdatedAt&&String(d.expectedUpdatedAt)!==String(existing.updated_at))throw recordError("Die Akte wurde zwischenzeitlich geändert. Bitte sichere deine Eingaben und öffne die Akte erneut.",409);
+  const query={id:`eq.${rid}`,type:`eq.${existing.type}`,select:RECORD_DETAIL_COLUMNS};
+  if(existing.updated_at)query.updated_at=`eq.${existing.updated_at}`;
+  const patch={updated_at:now,updated_by:au.user.id,updated_by_name:au.user.name,...(method==="archiveRecord"?{status:"archived",archived_at:now,archived_by:au.user.id,archived_by_name:au.user.name}:recordPatch(d))};
+  const rows=await db(env,"fib_records",{method:"PATCH",query,body:patch,prefer:"return=representation"});if(!rows?.length)throw recordError("Die Akte wurde zwischenzeitlich geändert. Bitte erneut öffnen.",409);return normalizedRecord(rows[0]);
+ }
  // Wanted records (Supabase table: wanted)
  if(method==="getWantedConfig"){const au=await authz(env,token,"wanted.view");return {master:au.master,permissions:{view:await has(env,au,"wanted.view"),create:await has(env,au,"wanted.create"),edit:await has(env,au,"wanted.edit"),delete:await has(env,au,"wanted.delete")},types:[{id:"person",label:"Person"},{id:"vehicle",label:"Fahrzeug"}],statuses:[{id:"wanted",label:"Gesucht",className:"active"},{id:"observation",label:"Beobachtung",className:"watch"},{id:"captured",label:"Gefasst",className:"captured"}],dangerLevels:[{id:"low",label:"Niedrig"},{id:"medium",label:"Mittel"},{id:"high",label:"Hoch"},{id:"extreme",label:"Sehr hoch"}]};}
  if(method==="getWanted"||method==="getWantedEntries"){await authz(env,token,"wanted.view");const search=text(args[1]);const q={select:"id,type,name,alias,person_id,plate,vehicle_model,vehicle_color,reason,danger_level,last_seen,wanted_since,captured_at,description,notes,status,created_by_id,created_by,created_at,updated_by,updated_at",order:"created_at.desc",limit:String(Math.min(200,Math.max(1,Number(args[2])||100)))};if(search)q.or=`(name.ilike.*${search}*,plate.ilike.*${search}*,reason.ilike.*${search}*,description.ilike.*${search}*)`;return await db(env,"fib_wanted",{query:q});}
@@ -986,23 +1088,25 @@ async function dispatchCore(method,args,env,token){
  if(method==="updateWanted"){const au=await authz(env,token,"wanted.edit");const d=args[2]||{};const r=await db(env,"fib_wanted",{method:"PATCH",query:{id:`eq.${text(args[1])}`,select:"id,type,name,alias,person_id,plate,vehicle_model,vehicle_color,reason,danger_level,last_seen,wanted_since,captured_at,description,notes,status,created_by_id,created_by,created_at,updated_by,updated_at"},body:{...d,updated_at:new Date().toISOString(),updated_by:au.user.name},prefer:"return=representation"});return r?.[0]||{success:true};}
  if(method==="deleteWanted"){await authz(env,token,"wanted.delete");await db(env,"fib_wanted",{method:"DELETE",query:{id:`eq.${text(args[1])}`},prefer:"return=minimal"});return {success:true};}
  // External record sharing. Tokens are only stored as SHA-256 hashes.
- if(method==="createRecordShare") {const au=await authz(env,token);const rid=text(args[1]),minutes=Math.min(10080,Math.max(5,Number(args[2])||60));const rows=await db(env,"fib_records",{query:{select:"id,type",id:`eq.${rid}`,limit:"1"}});const rec=rows?.[0];if(!rec)throw new Error("Akte nicht gefunden.");const viewPerm={investigation:"records.investigations.view",report:"records.reports.view",ia:"records.ia.view",highcommand:"records.highcommand.view"}[rec.type];if(!au.master&&!au.permissions.includes(viewPerm))throw Object.assign(new Error("Keine Berechtigung für diese Akte."),{status:403});const raw=[...crypto.getRandomValues(new Uint8Array(32))].map(b=>b.toString(16).padStart(2,"0")).join("");const share={id:id("SH"),record_id:rid,token_hash:await sha256(raw),created_by:au.user.id,created_by_name:au.user.name,created_at:new Date().toISOString(),expires_at:new Date(Date.now()+minutes*60000).toISOString(),revoked_at:null};await db(env,"fib_record_shares",{method:"POST",body:share,prefer:"return=minimal"});return {success:true,token:raw,expiresAt:share.expires_at,url:`/?recordShare=${raw}`};}
- if(method==="getRecordShares") {const au=await authz(env,token);const rid=text(args[1]);const rows=await db(env,"fib_record_shares",{query:{select:"id,record_id,created_by,created_by_name,created_at,expires_at,revoked_at",record_id:`eq.${rid}`,order:"created_at.desc"}});return (rows||[]).map(r=>({...r,active:!r.revoked_at&&Date.parse(r.expires_at)>Date.now()}));}
- if(method==="revokeRecordShare") {await authz(env,token);await db(env,"fib_record_shares",{method:"PATCH",query:{id:`eq.${text(args[1])}`},body:{revoked_at:new Date().toISOString()},prefer:"return=minimal"});return {success:true};}
+ if(method==="createRecordShare"){
+  const au=await authz(env,token,"records.view"),rid=text(args[1]),minutes=Math.min(10080,Math.max(5,Math.trunc(Number(args[2]))||60));
+  await recordById(env,au,rid,"edit");
+  const raw=[...crypto.getRandomValues(new Uint8Array(32))].map(b=>b.toString(16).padStart(2,"0")).join("");
+  const share={id:id("SH"),record_id:rid,token_hash:await sha256(raw),created_by:au.user.id,created_by_name:au.user.name,created_at:new Date().toISOString(),expires_at:new Date(Date.now()+minutes*60000).toISOString(),revoked_at:null};
+  await db(env,"fib_record_shares",{method:"POST",body:share,prefer:"return=minimal"});return {success:true,token:raw,expiresAt:share.expires_at,url:`/?recordShare=${raw}`};
+ }
+ if(method==="getRecordShares"){
+  const au=await authz(env,token,"records.view"),rid=text(args[1]);await recordById(env,au,rid,"edit");
+  const rows=await db(env,"fib_record_shares",{query:{select:"id,record_id,created_by,created_by_name,created_at,expires_at,revoked_at",record_id:`eq.${rid}`,order:"created_at.desc",limit:"100"}});
+  return (rows||[]).map(r=>({...r,active:!r.revoked_at&&Date.parse(r.expires_at)>Date.now()}));
+ }
+ if(method==="revokeRecordShare"){
+  const au=await authz(env,token,"records.view"),sid=text(args[1]);const rows=await db(env,"fib_record_shares",{query:{select:"id,record_id",id:`eq.${sid}`,limit:"1"}});if(!rows?.length)throw recordError("Freigabe nicht verfügbar.",403);
+  await recordById(env,au,rows[0].record_id,"edit");await db(env,"fib_record_shares",{method:"PATCH",query:{id:`eq.${sid}`},body:{revoked_at:new Date().toISOString()},prefer:"return=minimal"});return {success:true};
+ }
  if(method==="getExternalRecord") {const raw=text(args[0]);if(!raw)throw new Error("Ungültiger Freigabe-Link.");const shares=await db(env,"fib_record_shares",{query:{select:"id,record_id,expires_at,revoked_at",token_hash:`eq.${await sha256(raw)}`,limit:"1"}});const sh=shares?.[0];if(!sh||sh.revoked_at||Date.parse(sh.expires_at)<=Date.now())throw Object.assign(new Error("Diese externe Aktenfreigabe ist ungültig oder abgelaufen."),{status:404});const records=await db(env,"fib_records",{query:{select:"id,case_number,type,title,subject,status,classification,summary,content,created_at,created_by_name,updated_at,updated_by_name",id:`eq.${sh.record_id}`,limit:"1"}});if(!records?.length)throw Object.assign(new Error("Akte nicht gefunden."),{status:404});return records[0];}
  if(method==="getDashboardStatistics"){
-  const au=await authz(env,token,"dashboard.view");
-  if(dashboardStatsCache.value&&Date.now()-dashboardStatsCache.at<60000)return dashboardStatsCache.value;
-  const [users,records,warrants,wanted,patrols]=await Promise.all([
-   db(env,"users",{query:{select:"id,active,approved"}}),
-   db(env,"fib_records",{query:{select:"id,status"}}).catch(()=>[]),
-   googleSheetsCall(env,"getWarrants",[token]).catch(()=>[]),
-   db(env,"fib_wanted",{query:{select:"id,status"}}).catch(()=>[]),
-   db(env,"patrols",{query:{select:"id,status"}}).catch(()=>[])
-  ]);
-  const active=(users||[]).filter(x=>x.active===true&&x.approved===true).length;
-  const result={agents:active,activeAgents:active,users:active,activeUsers:active,totalAgents:(users||[]).length,records:(records||[]).length,openRecords:(records||[]).filter(x=>!['closed','archived'].includes(String(x.status||'').toLowerCase())).length,warrants:(warrants||[]).length,openWarrants:(warrants||[]).filter(x=>!['closed','resolved','cancelled'].includes(String(x.status||'').toLowerCase())).length,wanted:(wanted||[]).length,activeWanted:(wanted||[]).filter(x=>!['closed','resolved','cancelled','inactive'].includes(String(x.status||'').toLowerCase())).length,searches:(wanted||[]).filter(x=>!['closed','resolved','cancelled','inactive'].includes(String(x.status||'').toLowerCase())).length,patrols:(patrols||[]).length,activePatrols:(patrols||[]).filter(x=>!['closed','ended','inactive'].includes(String(x.status||'').toLowerCase())).length};
-  dashboardStatsCache.value=result;dashboardStatsCache.at=Date.now();return result;
+  const au=await authz(env,token,"dashboard.view");return dashboardStatistics(env,au,token,args[1]===true);
  }
  // Rank lookup remains in Supabase; legacy sheet modules are handled above.
  if(method==="getRankById"){await authz(env,token);const rows=await db(env,"ranks",{query:{select:"id,name,short_name,level,active",id:`eq.${text(args[1])}`,limit:"1"}});return rows?.[0]||null;}
@@ -1032,7 +1136,7 @@ async function dispatchCore(method,args,env,token){
    ["rank_permissions","rank_id,permission_id"],["fib_mdt_sessions","token_hash,user_id,expires_at"],
    ["patrols","id,callsign,number,vehicle_type,status,created_at,updated_at"],["patrol_members","patrol_id,user_id,position"],
    ["personnel","user_id,service_number,phone,call_sign,department,unit,email,address,entry_date,personnel_status,note"],
-   ["personnel_trainings","id,user_id,name,category,date,instructor,status,expiry_date,notes,created_by,created_by_name,created_at"],
+   ["personnel_trainings","id,user_id,name,category,date,instructor,status,expiry_date,notes,created_by,created_at"],
    ["personnel_notes","id,user_id,type,title,content,created_by,created_by_name,created_at"],
    ["personnel_history","id,user_id,action,detail,actor_id,actor_name,created_at"],
    ["personnel_terminations","id,user_id,document_number,public_token_hash,payload,created_by,created_by_name,created_at"],
@@ -1129,6 +1233,7 @@ function auditAction(method){
 }
 async function dispatch(method,args,env,token){
  const result = await dispatchCore(method,args,env,token);
+ if(/^(createRecord|updateRecord|archiveRecord|deleteRecord|createWanted|updateWanted|deleteWanted|startDuty|leavePatrol|joinPatrol|createPatrol|deletePatrol|system(?:Create|Update|Set|Approve|Deactivate).*|savePersonnelDepartment|refreshWarrantsCache)$/.test(method)||(/ModuleItem$/.test(method)&&method!=="getModuleItems"&&args[1]==="announcements")){dashboardStatsEpoch++;dashboardStatsCache.clear();dashboardQueryCache.clear();}
  if(!READ_ONLY_METHODS.has(method) && !/^(get|list|search|check|has|validate|preview|load)/i.test(method)){
   try{
    const actor = await authz(env,token);

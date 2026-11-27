@@ -1,4 +1,3 @@
-
 (function () {
 
   "use strict";
@@ -1247,7 +1246,7 @@
     "loading"
   ) {
 
-    window.__fibPageLifecycle.on(document, 
+    document.addEventListener(
       "DOMContentLoaded",
       initLawyersPage
     );

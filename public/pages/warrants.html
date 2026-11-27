@@ -166,6 +166,7 @@
        AUSWERTUNG
        ===================================================== -->
 
+  <details class="v51-warrant-analysis"><summary>Statistische Auswertung <span>Prioritäten und häufigste Straftaten</span></summary>
   <div class="warrants-analysis">
 
 
@@ -225,6 +226,7 @@
   </div>
 
 
+</details>
   <!-- =====================================================
        SUCHE
        ===================================================== -->
@@ -236,7 +238,8 @@
       <input
         id="warrantsSearch"
         class="warrants-search"
-        type="text"
+        aria-label="Haftbefehle durchsuchen"
+        type="search"
         placeholder="Haftbefehl, Aktenzeichen, Beschuldigter, Straftat ..."
         autocomplete="off"
       >
@@ -451,113 +454,26 @@ function loadWarrants(
    AKTUALISIEREN
    ========================================================= */
 
-function refreshWarrants() {
-
-  window.FIBMDTCache?.refresh("getWarrants");
-
-  const button =
-    document.getElementById(
-      "warrantsRefreshButton"
-    );
-
-
-  if (button) {
-
-    button.disabled =
-      true;
-
-    button.textContent =
-      "↻ Aktualisiere...";
-
-  }
-
-
+async function refreshWarrants() {
+  const button=document.getElementById("warrantsRefreshButton"), list=document.getElementById("warrantsList");
+  if(!button||button.disabled)return;
+  button.disabled=true;button.textContent="Aktualisiere …";
   try {
-
-    sessionStorage.removeItem(
-      "fib_mdt_warrants"
-    );
-
-  } catch (error) {
-
-    console.warn(
-      "Browser-Cache konnte nicht gelöscht werden.",
-      error
-    );
-
-  }
-
-
-  CloudApi.run
-
-    .withSuccessHandler(
-      data => {
-
-        const state =
-          window.fibWarrantState;
-
-
-        state.warrants =
-          Array.isArray(data)
-            ? data
-            : [];
-
-
-        setWarrantClientCache_(
-          state.warrants
-        );
-
-
-        filterWarrants();
-
-
-        if (button) {
-
-          button.disabled =
-            false;
-
-          button.textContent =
-            "↻ Aktualisieren";
-
-        }
-
-      }
-    )
-
-    .withFailureHandler(
-      error => {
-
-        if (button) {
-
-          button.disabled =
-            false;
-
-          button.textContent =
-            "↻ Aktualisieren";
-
-        }
-
-
-        showWarrantError(
-
-          error &&
-          error.message
-
-            ? error.message
-
-            : "Die Haftbefehle konnten nicht aktualisiert werden."
-
-        );
-
-      }
-    )
-
-    .refreshWarrantsCache(
-      sessionToken
-    );
-
+    await window.FIBMDTCache?.refresh("getWarrants");
+    sessionStorage.removeItem("fib_mdt_warrants");
+    // Only authorised managers may clear the shared sheet cache. A read-only officer may still reload the list.
+    let rows;
+    if(typeof hasPermission==="function"&&hasPermission("warrants.manage")){
+      const refreshed=await window.runServer("refreshWarrantsCache",sessionToken);
+      if(Array.isArray(refreshed))rows=refreshed;
+    }
+    if(!Array.isArray(rows))rows=await window.runServer("getWarrants",sessionToken);
+    if(!Array.isArray(rows))throw new Error("Die Anbindung lieferte keine Haftbefehlsliste.");
+    if(!list?.isConnected)return;
+    window.fibWarrantState.warrants=rows;setWarrantClientCache_(rows);filterWarrants();
+  }catch(error){if(list?.isConnected)showWarrantError(error?.message||"Die Haftbefehle konnten nicht aktualisiert werden.");}
+  finally{button.disabled=false;button.textContent="↻ Aktualisieren";}
 }
-
 
 /* =========================================================
    PRÜFUNG:
@@ -1577,9 +1493,9 @@ function createWarrantCard(
           <button
             class="warrant-copy-button"
             type="button"
-            title="Vollständigen Originaltext kopieren"
+            title="Vollständigen Originaltext kopieren" aria-label="Tatdetails kopieren"
           >
-            ⧉
+            Kopieren
           </button>
 
         </div>

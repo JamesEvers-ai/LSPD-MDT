@@ -1,0 +1,148 @@
+/* v51 — scoped catalog and justice workspace styling; no styles leak to other pages. */
+html body #pageContainer :is(#finesPage,#ifines-page,.lawyers-page,.warrants-page,#vehicleCatalogPage){padding:22px 24px 60px!important;box-sizing:border-box!important;min-width:0!important;color:#243b53!important;font-size:14px!important}
+html body #pageContainer :is(#finesPage,#ifines-page) .fines-sticky-top{position:relative!important;top:auto!important;display:block!important;min-height:0!important;margin:0 0 16px!important;padding:20px 24px!important}
+html body #pageContainer #finesPage .fines-header{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:12px!important}
+html body #pageContainer #finesPage .fines-disclaimer{margin:0 0 12px!important;padding:12px 16px!important;border:1px solid #e1d7b0!important;border-left:3px solid #d5b447!important;background:#fffcf2!important;color:#584b28!important;font-size:13px!important;line-height:1.55!important;border-radius:8px!important;max-width:none!important;width:100%!important;box-sizing:border-box!important}
+html body #pageContainer #finesPage .fines-disclaimer *{color:inherit!important;font-size:inherit!important}
+html body #pageContainer :is(#finesPage,#ifines-page) .fines-search-panel{display:flex!important;align-items:end!important;gap:12px!important;margin:0 0 16px!important;padding:14px 16px!important;background:#fff!important;border:1px solid #d8e1eb!important;border-radius:10px!important;box-shadow:none!important;min-height:0!important}
+html body #pageContainer :is(#finesPage,#ifines-page) .fines-search-main{flex:1!important;min-width:0!important}
+html body #pageContainer :is(#finesPage,#ifines-page) .fines-search-label{font-size:13px!important;color:#17395f!important;font-weight:750!important}
+html body #pageContainer :is(#finesPage,#ifines-page) .fines-search-count{font-size:12px!important;color:#52677d!important}
+html body #pageContainer :is(#finesPage,#ifines-page) .fines-search-input{min-height:40px!important;font-size:14px!important;color:#243b53!important;background:#fff!important;border:1px solid #cbd7e4!important}
+html body #pageContainer #finesPage :is(.fines-search-icon,.fines-search-clear){color:#536b83!important}
+html body #pageContainer #finesPage .fines-refresh-button{width:auto!important;min-width:112px!important;height:40px!important;padding:0 12px!important;background:#17395f!important;color:#fff!important;border:1px solid #17395f!important;border-radius:7px!important;font-size:13px!important;white-space:nowrap!important}
+html body #pageContainer #finesPage .fines-lawbook{margin:0 0 18px!important;overflow:hidden!important;background:#fff!important;border:1px solid #d8e1eb!important;border-radius:10px!important;box-shadow:none!important}
+html body #pageContainer #finesPage .fines-lawbook-header{display:flex!important;align-items:center!important;min-height:0!important;padding:12px 16px!important;background:#17395f!important;border:0!important;border-bottom:2px solid #e2c52b!important;border-radius:0!important}
+html body #pageContainer #finesPage .fines-lawbook-header::before{display:none!important}
+html body #pageContainer #finesPage .fines-lawbook-name{font-size:15px!important;font-weight:750!important;color:#fff!important}
+html body #pageContainer #finesPage .fines-lawbook-count{font-size:12px!important;color:#e4edf7!important}
+html body #pageContainer :is(#finesPage,#ifines-page) .fines-lawbook-table{border:0!important;background:#fff!important;padding:0!important}
+html body #pageContainer :is(#finesPage,#ifines-page) .fines-table-wrapper{width:100%!important;max-width:100%!important;overflow-x:auto!important;overflow-y:hidden!important;box-shadow:none!important;border-radius:8px!important}
+html body #pageContainer #finesPage .fines-table-wrapper{border:0!important;border-radius:0!important}
+html body #pageContainer #finesPage .fines-table{table-layout:fixed!important;min-width:1080px!important;width:100%!important;border-collapse:collapse!important}
+html body #pageContainer #finesPage .fines-table-col-paragraph{width:100px!important}
+html body #pageContainer #finesPage .fines-table-col-offense{width:25%!important}
+html body #pageContainer #finesPage .fines-table-col-fine{width:115px!important}
+html body #pageContainer #finesPage .fines-table-col-wanteds{width:82px!important}
+html body #pageContainer #finesPage .fines-table-col-info{width:auto!important}
+html body #pageContainer #finesPage .fines-table-col-handover{width:60px!important}
+html body #pageContainer #finesPage .fines-table-col-finished{width:122px!important}
+html body #pageContainer :is(#finesPage,#ifines-page,.lawyers-page) :is(.fines-table,.lawyers-table) thead th{padding:12px 12px!important;color:#415a73!important;background:#edf3f8!important;border:0!important;border-bottom:1px solid #d8e1eb!important;font-size:11px!important;letter-spacing:.035em!important;line-height:1.4!important;white-space:normal!important;text-align:left!important}
+html body #pageContainer :is(#finesPage,#ifines-page,.lawyers-page) :is(.fines-table,.lawyers-table) tbody td{padding:11px 12px!important;color:#243b53!important;background:#fff!important;font-size:13px!important;line-height:1.45!important;border:0!important;border-bottom:1px solid #e4ebf1!important;vertical-align:middle!important;white-space:normal!important;overflow-wrap:anywhere!important;box-shadow:none!important}
+html body #pageContainer :is(#finesPage,#ifines-page,.lawyers-page) :is(.fines-table,.lawyers-table) tbody tr:not(.fines-category-row):hover td{background:#f2f7fc!important}
+html body #pageContainer :is(#finesPage,#ifines-page) .fines-table .fines-category-row td{padding:9px 14px!important;background:#e6eef7!important;color:#17395f!important;font-size:12px!important;font-weight:800!important;letter-spacing:.025em!important}
+html body #pageContainer #finesPage .fines-table :is(.fines-col-fine,.fines-col-wanteds,.fines-col-handover,.fines-col-finished){text-align:center!important}
+html body #pageContainer #finesPage .fines-table :is(.fines-col-paragraph,.fines-col-offense){font-weight:700!important;color:#17395f!important;white-space:normal!important;overflow-wrap:anywhere!important;text-overflow:clip!important}
+html body #pageContainer #finesPage .fines-table .fines-col-info{white-space:normal!important;text-overflow:clip!important}
+html body #pageContainer #finesPage .fines-table :is(.fines-money,.fines-wanted,.fines-info){font-size:13px!important;color:#243b53!important;white-space:normal!important;line-height:1.5!important;font-variant-numeric:tabular-nums!important}
+html body #pageContainer #finesPage .fines-wanted{display:inline-flex!important;min-height:28px!important;align-items:center!important;justify-content:center!important;padding:3px 8px!important;background:#e9f1fb!important;border:1px solid #cbdced!important;border-radius:6px!important;font-weight:750!important}
+html body #pageContainer #finesPage .fines-handover{font-size:12px!important;min-height:25px!important;min-width:28px!important}
+html body #pageContainer #finesPage .fines-copy-button{display:inline-flex!important;align-items:center!important;justify-content:center!important;gap:5px!important;width:auto!important;min-width:96px!important;height:34px!important;padding:0 9px!important;border:1px solid #b7cde0!important;border-radius:6px!important;background:#eaf2fa!important;color:#214e77!important;font-size:12px!important;font-weight:750!important;white-space:nowrap!important}
+html body #pageContainer #finesPage .fines-copy-button:hover{background:#dcebf8!important;border-color:#80a8cc!important}
+html body #pageContainer #finesPage .fines-copy-button.copied{background:#e2f4e9!important;color:#226743!important;border-color:#b0d7bf!important}
+/* The global modal is outside pageContainer. Scope styling to the dedicated content wrapper. */
+#fibGlobalModalOverlay:has(.v51-copy) .fib-global-modal{width:min(670px,calc(100vw - 28px))!important;max-width:670px!important;min-width:0!important;border-radius:12px!important}
+#fibGlobalModalOverlay:has(.v51-copy) .fib-global-modal-header{background:#17395f!important;color:#fff!important;padding:18px 22px!important}
+#fibGlobalModalOverlay:has(.v51-copy) :is(.fib-global-modal-title,.fib-global-modal-subtitle){color:#fff!important}
+#fibGlobalModalOverlay:has(.v51-copy) .fib-global-modal-body{padding:22px!important;background:#f5f8fb!important;color:#243b53!important}
+#fibGlobalModalOverlay .v51-copy{display:grid!important;gap:17px!important;color:#243b53!important;font-size:14px!important}
+#fibGlobalModalOverlay .v51-copy-context{display:grid;gap:6px;padding:13px 15px;border:1px solid #cedceb;border-left:3px solid #2868a9;border-radius:8px;background:#fff;color:#17395f}
+#fibGlobalModalOverlay .v51-copy-context span,#fibGlobalModalOverlay .v51-copy label{font-size:12px!important;font-weight:750!important;color:#415a73!important;display:block!important;line-height:1.4!important}
+#fibGlobalModalOverlay .v51-copy-context strong{font-size:15px;font-weight:750;line-height:1.5;overflow-wrap:anywhere}
+#fibGlobalModalOverlay .v51-copy-fields{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+#fibGlobalModalOverlay .v51-copy :is(input,textarea){display:block!important;width:100%!important;min-width:0!important;box-sizing:border-box!important;padding:10px 12px!important;margin:6px 0!important;font:inherit!important;font-size:14px!important;color:#243b53!important;background:#fff!important;border:1px solid #c9d6e3!important;border-radius:7px!important;line-height:1.5!important}
+#fibGlobalModalOverlay .v51-copy textarea{resize:vertical;min-height:90px;font-weight:650!important;background:#fff!important;border-color:#9bbbd8!important}
+#fibGlobalModalOverlay .v51-copy small{color:#60748a!important;font-size:12px!important;line-height:1.5!important}
+#fibGlobalModalOverlay #fibFinesCopyFeedback{color:#a52832!important;font-size:13px!important;line-height:1.5!important}
+#fibGlobalModalOverlay #fibFinesCopyFeedback:empty{display:none}
+/* Internal sanctions: same table language and clearly separated workspaces. */
+html body #pageContainer #ifines-page .ifines-tabs{margin:0 0 16px!important;padding:5px!important;display:flex!important;gap:6px!important;flex-wrap:wrap!important;background:#fff!important;border:1px solid #d8e1eb!important;border-radius:9px!important}
+html body #pageContainer #ifines-page .ifines-tab{padding:10px 14px!important;border:1px solid transparent!important;border-radius:6px!important;background:#fff!important;color:#48647e!important;font-size:13px!important}
+html body #pageContainer #ifines-page .ifines-tab.active{background:#e9f1fa!important;border-color:#b7cde0!important;color:#17395f!important;box-shadow:none!important}
+html body #pageContainer #ifines-page .ifines-tab[hidden]{display:none!important}
+html body #pageContainer #ifines-page .fines-table{min-width:720px!important;table-layout:fixed!important}
+html body #pageContainer #ifines-page .ifines-measure-list{display:grid!important;gap:5px!important}
+html body #pageContainer #ifines-page .ifines-measure{padding:5px 8px!important;border:1px solid #dce5ee!important;border-radius:5px!important;background:#f5f8fb!important;gap:12px!important;flex-wrap:wrap!important}
+html body #pageContainer #ifines-page .ifines-measure span{font-size:12px!important;color:#536b83!important}
+html body #pageContainer #ifines-page .ifines-measure strong{font-size:13px!important;color:#17395f!important}
+html body #pageContainer #ifines-page :is(.ifines-muted,.ifines-note,.ifines-row-meta,.ifines-row-desc,.ifines-status){font-size:13px!important;line-height:1.5!important;color:#52677d!important}
+html body #pageContainer #ifines-page :is(.ifines-row-title,.ifines-card h3){font-size:15px!important;font-weight:750!important;color:#17395f!important}
+html body #pageContainer #ifines-page :is(.ifines-field input,.ifines-field textarea,.ifines-field select,.ifines-search){font-size:14px!important;min-height:40px!important}
+html body #pageContainer #ifines-page .ifines-field label{font-size:12px!important}
+html body #pageContainer #ifines-page .ifines-card{padding:18px!important;box-shadow:none!important}
+/* Vehicle catalogue */
+html body #pageContainer #vehicleCatalogPage .vc-grid{grid-template-columns:repeat(auto-fill,minmax(min(100%,285px),1fr))!important;gap:15px!important}
+html body #pageContainer #vehicleCatalogPage .vc-card{display:flex!important;flex-direction:column!important;border-radius:10px!important;box-shadow:none!important;overflow:hidden!important}
+html body #pageContainer #vehicleCatalogPage .vc-image{height:auto!important;aspect-ratio:16/10!important;background:#e9eff5!important;border-bottom:1px solid #d8e1eb!important}
+html body #pageContainer #vehicleCatalogPage .vc-image img{object-fit:contain!important;width:100%!important;height:100%!important}
+html body #pageContainer #vehicleCatalogPage .vc-no-image{font-size:12px!important;color:#52677d!important;letter-spacing:.04em!important}
+html body #pageContainer #vehicleCatalogPage .vc-card-body{display:flex!important;flex-direction:column!important;flex:1!important;gap:9px!important;padding:15px!important}
+html body #pageContainer #vehicleCatalogPage .vc-name{font-size:16px!important;color:#17395f!important;overflow-wrap:anywhere!important}
+html body #pageContainer #vehicleCatalogPage .vc-description{font-size:13px!important;line-height:1.55!important;color:#52677d!important;margin:0!important}
+html body #pageContainer #vehicleCatalogPage .vc-tag{background:#e9f1fa!important;color:#214e77!important;border-color:#bfd2e4!important;font-size:12px!important}
+html body #pageContainer #vehicleCatalogPage .vc-card-actions{margin-top:auto!important;padding-top:10px!important;border-top:1px solid #e2e9f0!important}
+html body #pageContainer #vehicleCatalogPage :is(.vc-search,.vc-field){font-size:14px!important;color:#243b53!important;background:#fff!important;min-height:40px!important;border:1px solid #cbd7e4!important}
+html body #pageContainer #vehicleCatalogPage .vc-button{font-size:13px!important;min-height:36px!important;border-radius:7px!important}
+html body #pageContainer #vehicleCatalogPage .vc-button[hidden]{display:none!important}
+html body #pageContainer #vehicleCatalogPage .vc-filter{font-size:12px!important;min-height:34px!important;border-radius:6px!important}
+html body #pageContainer #vehicleCatalogPage .vc-filter.active{border-color:#9dbbd6!important;background:#dfeefa!important;color:#17395f!important}
+html body #pageContainer #vehicleCatalogPage .vc-count{font-size:13px!important;color:#52677d!important}
+html body #pageContainer #vehicleCatalogPage .vc-admin{background:#fff!important;border:1px solid #d8e1eb!important;padding:18px!important;border-radius:10px!important;color:#243b53!important}
+html body #pageContainer #vehicleCatalogPage .vc-admin h3{font-size:17px!important;color:#17395f!important}
+html body #pageContainer #vehicleCatalogPage .vc-form-label{display:grid!important;gap:6px!important;font-size:13px!important;font-weight:650!important;color:#415a73!important;min-width:0!important}
+html body #pageContainer #vehicleCatalogPage .vc-form-label.full{grid-column:1/-1!important}
+/* Lawyers — keep all licence/availability fields; scroll horizontally only on narrow displays. */
+html body #pageContainer .lawyers-page .lawyers-toolbar{background:#fff!important;border:1px solid #d8e1eb!important;padding:14px!important;border-radius:10px!important;gap:14px!important;box-shadow:none!important}
+html body #pageContainer .lawyers-page .lawyers-search-wrap{flex:1!important;min-width:180px!important}
+html body #pageContainer .lawyers-page .lawyers-search{min-height:40px!important;font-size:14px!important}
+html body #pageContainer .lawyers-page .lawyers-stats{gap:8px!important}
+html body #pageContainer .lawyers-page .lawyers-stat{min-width:80px!important;padding:8px 13px!important;border-radius:7px!important}
+html body #pageContainer .lawyers-page .lawyers-stat-value{font-size:22px!important;font-variant-numeric:tabular-nums!important}
+html body #pageContainer .lawyers-page .lawyers-stat-label{font-size:12px!important}
+html body #pageContainer .lawyers-page .lawyers-section{padding:0!important;margin:0 0 18px!important;border:0!important;background:transparent!important;box-shadow:none!important}
+html body #pageContainer .lawyers-page .lawyers-section-title{font-size:16px!important}
+html body #pageContainer .lawyers-page .lawyers-card{border:1px solid #d8e1eb!important;border-radius:10px!important;box-shadow:none!important;overflow:hidden!important}
+html body #pageContainer .lawyers-page .lawyers-table-wrap{overflow-x:auto!important;border:0!important;box-shadow:none!important;border-radius:0!important}
+html body #pageContainer .lawyers-page .lawyers-table{width:100%!important;min-width:1140px!important;table-layout:auto!important}
+html body #pageContainer .lawyers-page .lawyers-table.trainee-table{min-width:680px!important}
+html body #pageContainer .lawyers-page .lawyers-table td:nth-child(2){font-weight:750!important;color:#17395f!important;min-width:112px!important}
+html body #pageContainer .lawyers-page .lawyers-table td:last-child{min-width:140px!important;white-space:normal!important}
+html body #pageContainer .lawyers-page :is(.lawyer-status,.lawyer-bool){font-size:12px!important;line-height:1.35!important;padding:5px 8px!important;border-radius:6px!important;white-space:normal!important;max-width:none!important}
+html body #pageContainer .lawyers-page .lawyer-status.reachable,html body #pageContainer .lawyers-page .lawyer-bool.yes{background:#e4f2e9!important;color:#226743!important;border:1px solid #b5d7c1!important}
+html body #pageContainer .lawyers-page .lawyer-status.unreachable,html body #pageContainer .lawyers-page .lawyer-bool.no{background:#fae9e9!important;color:#9c3434!important;border:1px solid #e9c4c4!important}
+html body #pageContainer .lawyers-page .lawyer-status.trainee{background:#e8f0fa!important;color:#245b91!important;border:1px solid #c4d6e7!important}
+/* Warrants — five KPI cards, compact case cards and optional detailed analytics. */
+html body #pageContainer .warrants-page .warrants-statistics{display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:12px!important}
+html body #pageContainer .warrants-page .warrants-stat-card{padding:13px 16px!important;box-shadow:none!important;min-height:0!important}
+html body #pageContainer .warrants-page .warrants-stat-label{font-size:12px!important;color:#415a73!important}
+html body #pageContainer .warrants-page .warrants-stat-value{font-size:27px!important}
+html body #pageContainer .warrants-page .warrants-stat-sub{font-size:12px!important;color:#52677d!important}
+html body #pageContainer .warrants-page .v51-warrant-analysis{border:1px solid #d8e1eb;border-radius:9px;background:#fff;padding:0 14px;margin:0!important}
+html body #pageContainer .warrants-page .v51-warrant-analysis summary{cursor:pointer;padding:13px 0;font-size:14px;font-weight:750;color:#17395f}
+html body #pageContainer .warrants-page .v51-warrant-analysis summary span{font-weight:400;font-size:12px;color:#52677d;margin-left:10px}
+html body #pageContainer .warrants-page .v51-warrant-analysis[open] .warrants-analysis{padding:0 0 13px!important}
+html body #pageContainer .warrants-page :is(.warrants-analysis-title,.warrants-priority-name,.warrants-crime-name,.warrants-priority-count,.warrants-crime-count){font-size:13px!important;color:#415a73!important}
+html body #pageContainer .warrants-page :is(.warrants-search,.warrants-count){font-size:14px!important}
+html body #pageContainer .warrants-page .warrants-list .warrant-card{border-radius:9px!important;box-shadow:none!important;transform:none!important}
+html body #pageContainer .warrants-page .warrants-list .warrant-card-top{grid-template-columns:minmax(90px,.8fr) minmax(100px,.9fr) minmax(120px,1fr) minmax(160px,1.3fr) minmax(180px,2fr)!important;gap:14px!important;padding:14px 18px!important}
+html body #pageContainer .warrants-page .warrants-list .warrant-card-details{padding:12px 18px!important;border:0!important;border-radius:0!important;box-shadow:none!important;background:#f5f8fb!important}
+html body #pageContainer .warrants-page .warrant-card :is(.warrant-field-label,.warrant-detail-label){font-size:11px!important;color:#536b83!important;letter-spacing:.025em!important}
+html body #pageContainer .warrants-page .warrant-card :is(.warrant-number,.warrant-field-value,.warrant-defendant,.warrant-crime,.warrant-processor-value,.warrant-detail-value,.warrant-crime-details){font-size:14px!important;line-height:1.5!important;color:#243b53!important}
+html body #pageContainer .warrants-page .warrant-card .warrant-number{color:#17395f!important;font-weight:800!important}
+html body #pageContainer .warrants-page .warrant-card .warrant-priority{font-size:12px!important;padding:6px 9px!important;border-radius:6px!important;color:#226743!important;background:#e4f2e9!important;border:1px solid #b5d7c1!important}
+html body #pageContainer .warrants-page .warrant-card .warrant-priority.priority-hoch{color:#a34c1b!important;background:#fff0df!important;border-color:#edcfad!important}
+html body #pageContainer .warrants-page .warrant-card .warrant-priority.priority-sehr-hoch{color:#9c3434!important;background:#fae9e9!important;border-color:#e9c4c4!important}
+html body #pageContainer .warrants-page .warrant-card .warrant-priority.priority-untergetaucht{color:#64458c!important;background:#f0eafa!important;border-color:#d8c8ed!important}
+@media(max-width:1100px){html body #pageContainer .warrants-page .warrants-statistics{grid-template-columns:repeat(3,minmax(0,1fr))!important}html body #pageContainer .warrants-page .warrants-list .warrant-card-top{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+@media(max-width:700px){html body #pageContainer :is(#finesPage,#ifines-page,.lawyers-page,.warrants-page,#vehicleCatalogPage){padding:14px!important}html body #pageContainer .warrants-page .warrants-statistics{grid-template-columns:repeat(2,minmax(0,1fr))!important}html body #pageContainer .warrants-page .warrants-list .warrant-card-top{grid-template-columns:1fr!important}#fibGlobalModalOverlay .v51-copy-fields{grid-template-columns:1fr}html body #pageContainer .warrants-page .warrants-analysis{grid-template-columns:1fr!important}}
+html body #pageContainer .warrants-page .warrant-card .warrant-copy-button{min-width:94px!important;width:auto!important;flex:0 0 auto!important;padding:0 10px!important;font-size:12px!important;font-weight:750!important;height:34px!important}
+html body #pageContainer #finesPage .fines-copy-button.copied{min-width:96px!important}
+html body #pageContainer .warrants-page .warrants-statistics{margin-bottom:12px!important}
+html body #pageContainer .warrants-page .v51-warrant-analysis{margin-bottom:12px!important}
+html body #pageContainer .warrants-page .warrants-toolbar{margin-bottom:14px!important}
+html body #pageContainer #ifines-page .fines-search-input{padding-left:34px!important}
+html body #pageContainer #ifines-page .fines-search-icon{color:#60748a!important}
+html body #pageContainer #vehicleCatalogPage .vc-eyebrow{color:#e5c431!important}
+html body #pageContainer #finesPage .fines-clock{background:rgba(255,255,255,.12)!important;border:1px solid rgba(255,255,255,.25)!important;border-radius:7px!important;padding:8px 13px!important}
+html body #pageContainer #finesPage .fines-clock strong{font-size:15px!important;color:#fff!important;font-variant-numeric:tabular-nums!important}
+html body #pageContainer #ifines-page #if-issue[hidden],html body #pageContainer #ifines-page #if-issue-access[hidden]{display:none!important}

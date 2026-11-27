@@ -1,4 +1,3 @@
-
 (function () {
   "use strict";
 
@@ -31,7 +30,7 @@
       secure: false,
       icon: "fa-file-lines"
     },
-    doc: {
+    ia: {
       label: "IA-Akten",
       shortLabel: "IA-Akte",
       description: "Besonders geschützte Akten der Internal Affairs Division.",
@@ -42,7 +41,7 @@
       secure: true,
       icon: "fa-shield-halved"
     },
-    director: {
+    highcommand: {
       label: "High Command Akten",
       shortLabel: "High Command Akte",
       description: "Besonders geschützte Akten des High Command.",
@@ -64,12 +63,21 @@
 
   const TAB_ORDER = ["investigation", "report", "ia", "highcommand", "archive"];
   const CACHE_TTL = 12000;
+  const PAGE_SIZE = 50;
+  const root = document.getElementById("fibRecordsPage");
+  if (!root) return;
+  const life = window.__fibPageLifecycle;
 
   const state = {
     initialized: false,
     currentTab: "investigation",
     currentStatus: "all",
     search: "",
+    page: 0,
+    hasNext: false,
+    pendingKey: null,
+    modalRequestId: 0,
+    alive: true,
     records: [],
     recordCache: new Map(),
     requestId: 0,
@@ -189,6 +197,7 @@
 
   function getVisibleTabs() {
     const result = [];
+    if (!can("records.view")) return result;
 
     Object.keys(TYPES).forEach(function (typeId) {
       if (can(TYPES[typeId].view)) result.push(typeId);
@@ -204,7 +213,7 @@
 
   function getCreatableTypes() {
     return Object.keys(TYPES).filter(function (typeId) {
-      return can(TYPES[typeId].create);
+      return can(TYPES[typeId].view) && can(TYPES[typeId].create);
     });
   }
 
@@ -301,7 +310,7 @@
   }
 
   function cacheKey() {
-    return [state.currentTab, state.currentStatus, state.search].join("|");
+    return JSON.stringify([state.currentTab, state.currentStatus, state.search, state.page, getVisibleTabs()]);
   }
 
   function renderLoading() {
@@ -310,7 +319,7 @@
 
     body.innerHTML = `
       <tr class="records-loading-row">
-        <td colspan="8">
+        <td colspan="6">
           <div class="records-loading">
             <span class="records-spinner"></span>
             Akten werden geladen...
@@ -326,7 +335,7 @@
 
     body.innerHTML = `
       <tr>
-        <td colspan="8" class="records-empty">
+        <td colspan="6" class="records-empty">
           <div class="records-empty-icon">
             <i class="fa-solid fa-folder-open"></i>
           </div>
@@ -337,10 +346,17 @@
     `;
   }
 
+  function updatePager(loading=false) {
+    const count=document.getElementById("recordsResultCount"),prev=document.getElementById("recordsPrevPage"),next=document.getElementById("recordsNextPage");
+    if(count)count.textContent=loading?"Akten werden geladen …":state.records.length?`${state.page*PAGE_SIZE+1}–${state.page*PAGE_SIZE+state.records.length} · Seite ${state.page+1}`:"Keine Einträge";
+    if(prev)prev.disabled=loading||state.page===0;
+    if(next)next.disabled=loading||!state.hasNext;
+  }
   function renderRecords(records) {
     const body = document.getElementById("recordsTableBody");
     if (!body) return;
 
+    updatePager();
     if (!Array.isArray(records) || !records.length) {
       renderEmpty(
         "Keine Einträge gefunden",
@@ -364,107 +380,46 @@
         className: "inactive"
       };
 
-      const canEdit = !isMasterAccount() && type.edit
-        ? can(type.edit)
-        : isMasterAccount() || !!type.edit && can(type.edit);
-
-      const canArchive = record.status !== "archived" && (isMasterAccount() || can(type.edit));
-
-      const actions = [
-        `<button type="button" class="records-button small" onclick="recordsOpenRecord('${escapeAttr(record.id)}')">Öffnen</button>`
-      ];
-
-      if (canEdit && record.status !== "archived") {
-        actions.push(`<button type="button" class="records-button small" onclick="recordsOpenEditModal('${escapeAttr(record.id)}')">Bearbeiten</button>`);
-      }
-
-      if (canArchive) {
-        actions.push(`<button type="button" class="records-button small" onclick="recordsArchive('${escapeAttr(record.id)}','${escapeAttr(record.type)}')">Archivieren</button>`);
-      }
-
-      if (isMasterAccount()) {
-        actions.push(`<button type="button" class="records-button small danger" onclick="recordsDelete('${escapeAttr(record.id)}')">Löschen</button>`);
-      }
-
+      const editable = can(type.edit) && record.status !== "archived";
       const secureClass = record.type === "highcommand" ? "director" : record.type === "ia" ? "doc" : "";
-
-      return `
-        <tr>
-          <td>
-            <div class="records-case-number">${escapeHtml(record.case_number || record.caseNumber || "—")}</div>
-            <div class="records-secondary">${escapeHtml(formatDate(record.updated_at || record.updatedAt || record.created_at || record.createdAt))}</div>
-          </td>
-
-          <td>
-            <div class="records-record-title">${escapeHtml(record.title || "—")}</div>
-            <div class="records-secondary">${escapeHtml(record.summary || "Keine Kurzfassung")}</div>
-          </td>
-
-          <td>${escapeHtml(record.subject || "—")}</td>
-
-          <td><span class="records-type-badge">${escapeHtml(type.shortLabel || type.label)}</span></td>
-
+      return `<tr>
+          <td><span class="records-case-number">${escapeHtml(record.case_number || record.caseNumber || "—")}</span></td>
+          <td class="records-title-cell"><button type="button" class="records-title-link" data-record-open="${escapeAttr(record.id)}">${escapeHtml(record.title || "—")}</button>${record.subject?`<div class="records-secondary records-subject">${escapeHtml(record.subject)}</div>`:""}${record.summary?`<div class="records-secondary records-summary">${escapeHtml(record.summary)}</div>`:""}</td>
+          <td><span class="records-type-badge">${escapeHtml(type.shortLabel || type.label)}</span><div class="records-secondary records-classification ${secureClass}">${escapeHtml(record.classification || type.classification || "—")}</div></td>
           <td><span class="records-status-badge ${escapeAttr(status.className)}">${escapeHtml(status.label)}</span></td>
-
-          <td><span class="records-security-badge ${secureClass}">${escapeHtml(record.classification || type.classification || "—")}</span></td>
-
-          <td>${escapeHtml(formatDate(record.updated_at || record.updatedAt))}</td>
-
-          <td>
-            <div class="records-actions">${actions.join("")}</div>
-          </td>
-        </tr>
-      `;
+          <td><div class="records-updated">${escapeHtml(formatDate(record.updated_at || record.updatedAt))}</div><div class="records-secondary">${escapeHtml(record.updated_by_name||record.created_by_name||"")}</div></td>
+          <td><div class="records-actions"><button type="button" class="records-button small" data-record-open="${escapeAttr(record.id)}">Öffnen</button>${editable?`<button type="button" class="records-button small" data-record-edit="${escapeAttr(record.id)}">Bearbeiten</button>`:""}</div></td>
+        </tr>`;
     }).join("");
   }
 
-  function loadCurrent(force) {
-    const currentToken = token();
-    if (!currentToken) {
-      renderEmpty("Keine aktive Sitzung", "Es ist keine gültige MDT-Sitzung vorhanden.");
-      return;
-    }
-
-    if (state.currentTab !== "archive" && !can(TYPES[state.currentTab]?.view)) {
-      renderEmpty("Kein Zugriff", "Für diesen Aktenbereich fehlt die erforderliche Berechtigung.");
-      return;
-    }
-
-    const key = cacheKey();
-    const cached = state.recordCache.get(key);
-
-    if (!force && cached && Date.now() - cached.timestamp < CACHE_TTL) {
-      state.records = cached.records;
+  function loadCurrent(force=false,background=false) {
+    if(!state.alive||!root.isConnected)return;
+    const currentToken=token();
+    if(!currentToken||!getVisibleTabs().includes(state.currentTab)){state.requestId++;state.pendingKey=null;state.records=[];state.hasNext=false;updatePager();renderEmpty("Kein Zugriff","Für diesen Aktenbereich fehlt die erforderliche Berechtigung.");return;}
+    const key=cacheKey();
+    if(state.pendingKey===key&&!force)return;
+    const requestId=++state.requestId;
+    const cached=state.recordCache.get(key);
+    if(!force&&cached&&Date.now()-cached.timestamp<CACHE_TTL){state.pendingKey=null;state.records=cached.records;state.hasNext=cached.hasNext;renderRecords(state.records);return;}
+    state.pendingKey=key;
+    const requestedPage=state.page;
+    if(!background){state.records=[];state.hasNext=false;renderLoading();updatePager(true);}
+    window.runServer("getRecords",currentToken,state.currentTab,state.currentStatus,state.search,PAGE_SIZE+1,requestedPage*PAGE_SIZE).then(rows=>{
+      if(!state.alive||!root.isConnected||requestId!==state.requestId||key!==cacheKey())return;
+      state.pendingKey=null;
+      const records=Array.isArray(rows)?rows:[];
+      if(!records.length&&state.page>0){state.page--;loadCurrent(true);return;}
+      state.hasNext=records.length>PAGE_SIZE;state.records=records.slice(0,PAGE_SIZE);
+      if(state.recordCache.size>=24)state.recordCache.delete(state.recordCache.keys().next().value);
+      state.recordCache.set(key,{timestamp:Date.now(),records:state.records,hasNext:state.hasNext});
       renderRecords(state.records);
-      return;
-    }
-
-    const requestId = ++state.requestId;
-    renderLoading();
-
-    CloudApi.run
-      .withSuccessHandler(function (records) {
-        if (requestId !== state.requestId) return;
-
-        state.records = Array.isArray(records) ? records : [];
-        state.recordCache.set(key, {
-          timestamp: Date.now(),
-          records: state.records
-        });
-        renderRecords(state.records);
-      })
-      .withFailureHandler(function (error) {
-        if (requestId !== state.requestId) return;
-        renderEmpty("Akten konnten nicht geladen werden", error?.message || "Die Abfrage ist fehlgeschlagen.");
-      })
-      .getRecords(
-        currentToken,
-        state.currentTab,
-        state.currentStatus,
-        state.search,
-        50
-      );
+    }).catch(error=>{
+      if(!state.alive||!root.isConnected||requestId!==state.requestId)return;
+      state.pendingKey=null;state.records=[];state.hasNext=false;updatePager();renderEmpty("Akten konnten nicht geladen werden",error?.message||"Die Abfrage ist fehlgeschlagen.");
+    });
   }
+  function changePage(delta){if(state.pendingKey)return;const next=state.page+delta;if(next<0||delta>0&&!state.hasNext)return;state.page=next;loadCurrent(false);}
 
   function invalidateCache() {
     state.recordCache.clear();
@@ -478,23 +433,29 @@
     }
 
     state.currentTab = tabId;
+    state.page = 0;
+    if(state.searchTimer)clearTimeout(state.searchTimer);
     state.currentStatus = tabId === "archive" ? "archived" : "all";
     buildTabs();
     updateToolbar();
     updateCreateButton();
+    window.FIB_MDT_SELECTS?.refresh?.();
     loadCurrent(false);
   }
 
   function statusChanged(value) {
     state.currentStatus = String(value || "all");
+    state.page = 0;
     loadCurrent(false);
   }
 
   function searchChanged(value) {
     state.search = String(value || "").trim().slice(0, 100);
+    state.page = 0;
+    state.requestId++;state.pendingKey=null;state.records=[];state.hasNext=false;updatePager(true);renderLoading();
 
     if (state.searchTimer) clearTimeout(state.searchTimer);
-    state.searchTimer = window.__fibPageLifecycle.timeout(function () {
+    state.searchTimer = life.timeout(function () {
       loadCurrent(false);
     }, 260);
   }
@@ -529,22 +490,26 @@
     if (!modal) return;
 
     state.busy = false;
-
+    const requestId=++state.modalRequestId;
     modal.open({
       title: title || "Akte",
       subtitle: subtitle || "",
       body: `
-        <div class="records-loading-modal">
+        <div class="records-loading-modal" data-record-request="${requestId}">
           <span class="records-spinner"></span>
           <span>${escapeHtml(message || "Akte wird geladen...")}</span>
         </div>
       `,
       saveVisible: false,
+      modalClass: "records",
       focus: false
     });
+    return requestId;
   }
+  function modalRequestValid(id){return state.alive&&root.isConnected&&state.modalRequestId===id&&!!document.querySelector(`#fibGlobalModalBody [data-record-request="${id}"]`);}
 
   function closeModal() {
+    state.modalRequestId++;
     const modal = getGlobalModal();
     if (modal) modal.close();
     state.modalMode = null;
@@ -635,7 +600,18 @@
 
         <div class="records-form-group full">
           <label class="records-form-label">Akteninhalt</label>
-          <textarea id="recordContent" class="records-form-textarea" placeholder="Vollständiger Akteninhalt..."></textarea>
+          <div class="records-rich-toolbar" aria-label="Textformatierung">
+            <button type="button" data-mdt-format="bold" data-target="recordContent" title="Fett"><strong>B</strong></button>
+            <button type="button" data-mdt-format="italic" data-target="recordContent" title="Kursiv"><em>I</em></button>
+            <button type="button" data-mdt-format="underline" data-target="recordContent" title="Unterstrichen"><u>U</u></button>
+            <button type="button" data-mdt-format="h1" data-target="recordContent">H1</button>
+            <button type="button" data-mdt-format="h2" data-target="recordContent">H2</button>
+            <button type="button" data-mdt-format="h3" data-target="recordContent">H3</button>
+            <button type="button" data-mdt-format="list" data-target="recordContent">• Liste</button>
+            <button type="button" data-mdt-format="table" data-target="recordContent">Tabelle</button>
+          </div>
+          <div class="records-editor-workspace"><textarea maxlength="200000" id="recordContent" class="records-form-textarea" data-mdt-editor placeholder="Vollständiger Akteninhalt..."></textarea>
+          <div class="records-rich-preview" data-record-rich-preview><div class="records-rich-preview-label">Vorschau</div><div class="mdt-rich-content">Der Akteninhalt wird hier formatiert angezeigt.</div></div></div>
         </div>
       </div>
     `;
@@ -681,7 +657,18 @@
 
         <div class="records-form-group full">
           <label class="records-form-label">Akteninhalt</label>
-          <textarea id="recordContent" class="records-form-textarea">${escapeHtml(record.content || "")}</textarea>
+          <div class="records-rich-toolbar" aria-label="Textformatierung">
+            <button type="button" data-mdt-format="bold" data-target="recordContent" title="Fett"><strong>B</strong></button>
+            <button type="button" data-mdt-format="italic" data-target="recordContent" title="Kursiv"><em>I</em></button>
+            <button type="button" data-mdt-format="underline" data-target="recordContent" title="Unterstrichen"><u>U</u></button>
+            <button type="button" data-mdt-format="h1" data-target="recordContent">H1</button>
+            <button type="button" data-mdt-format="h2" data-target="recordContent">H2</button>
+            <button type="button" data-mdt-format="h3" data-target="recordContent">H3</button>
+            <button type="button" data-mdt-format="list" data-target="recordContent">• Liste</button>
+            <button type="button" data-mdt-format="table" data-target="recordContent">Tabelle</button>
+          </div>
+          <div class="records-editor-workspace"><textarea maxlength="200000" id="recordContent" class="records-form-textarea" data-mdt-editor>${escapeHtml(record.content || "")}</textarea>
+          <div class="records-rich-preview" data-record-rich-preview><div class="records-rich-preview-label">Vorschau</div><div class="mdt-rich-content">${window.MDTRichText ? window.MDTRichText.render(record.content || "") : escapeHtml(record.content || "")}</div></div></div>
         </div>
       </div>
     `;
@@ -748,7 +735,7 @@
     state.currentRecord = record;
     state.modalType = record.type;
 
-    openModalLoading(
+    const detailRequest = openModalLoading(
       "Akte bearbeiten",
       (record.case_number || record.caseNumber || "") + " · " + (type.classification || ""),
       "Akte wird geladen..."
@@ -756,6 +743,8 @@
 
     CloudApi.run
       .withSuccessHandler(function (fullRecord) {
+        if(!modalRequestValid(detailRequest))return;
+        if(fullRecord.status==="archived"){renderDetail(fullRecord);return;}
         state.currentRecord = fullRecord;
         state.modalType = fullRecord.type;
 
@@ -768,6 +757,7 @@
         );
       })
       .withFailureHandler(function (error) {
+        if(!modalRequestValid(detailRequest))return;
         closeModal();
         notifyRecords("error", "Akte konnte nicht geöffnet werden", error?.message || "Die Detailansicht konnte nicht geladen werden.");
       })
@@ -820,19 +810,15 @@
 
         <div class="records-detail-section">
           <div class="records-detail-section-title">Akteninhalt</div>
-          <div class="records-detail-content">${record.content ? formatRecordText(record.content) : '<span class="records-detail-empty">Kein Akteninhalt hinterlegt.</span>'}</div>
+          <div class="records-detail-content">${record.content ? (window.MDTRichText ? window.MDTRichText.render(record.content) : formatRecordText(record.content)) : '<span class="records-detail-empty">Kein Akteninhalt hinterlegt.</span>'}</div>
         </div>
 
-        <div class="records-detail-section records-share-tools">
-          <div class="records-detail-section-title">Zeitlich begrenzte externe Freigabe</div>
-          <div style="display:flex;gap:9px;align-items:center;flex-wrap:wrap">
-            <select id="recordShareDuration" class="records-form-input" style="max-width:230px">
-              <option value="60">1 Stunde</option><option value="240">4 Stunden</option><option value="1440" selected>24 Stunden</option><option value="4320">3 Tage</option><option value="10080">7 Tage</option>
-            </select>
-            <span style="font-size:10px;color:#8495aa">Der Link läuft automatisch ab und kann anschließend nicht mehr geöffnet werden.</span>
-          </div>
-        </div>
-
+        ${can(type.edit)?`<div class="records-detail-section records-share-tools">
+          <div class="records-detail-section-title">Externe Freigaben</div>
+          <p class="records-share-note">Jeder mit dem Link kann diese Akte bis zum Ablauf oder Widerruf einsehen.</p>
+          <div class="records-share-controls"><select id="recordShareDuration" class="records-form-select" aria-label="Gültigkeitsdauer"><option value="60">1 Stunde</option><option value="240">4 Stunden</option><option value="1440" selected>24 Stunden</option><option value="4320">3 Tage</option><option value="10080">7 Tage</option></select><button type="button" class="records-button" id="recordShareCreate">Link erstellen</button><button type="button" class="records-button" id="recordShareListButton">Freigaben anzeigen</button></div>
+          <div id="recordShareOutput" aria-live="polite"></div><div id="recordShareList"></div>
+        </div>`:""}
         <div class="records-detail-section">
           <div class="records-detail-section-title">Dokumentation</div>
           <div class="records-detail-content">Erstellt von ${escapeHtml(record.created_by_name || record.createdBy || "Unbekannt")} am ${escapeHtml(formatDate(record.created_at || record.createdAt))}.\nZuletzt bearbeitet von ${escapeHtml(record.updated_by_name || record.updatedBy || "Unbekannt")} am ${escapeHtml(formatDate(record.updated_at || record.updatedAt))}.</div>
@@ -860,14 +846,11 @@
       footer.insertBefore(button, footer.lastElementChild || null);
     };
 
-    addAction("Freigabelink erstellen", "", function () {
-      const duration = Number(document.getElementById("recordShareDuration")?.value || 1440);
-      CloudApi.run.withSuccessHandler(async function(result) {
-        const url = new URL(result.url || ("/?recordShare=" + encodeURIComponent(result.token)), window.location.origin).href;
-        try { await navigator.clipboard.writeText(url); notifyRecords("success", "Freigabelink erstellt", "Der zeitlich begrenzte Link wurde in die Zwischenablage kopiert. Gültig bis " + formatDate(result.expiresAt) + "."); }
-        catch (_) { notifyRecords("success", "Freigabelink erstellt", url + " · Gültig bis " + formatDate(result.expiresAt)); }
-      }).withFailureHandler(function(error) { notifyRecords("error", "Freigabe fehlgeschlagen", error?.message || "Der Link konnte nicht erstellt werden."); }).createRecordShare(token(), record.id, duration);
-    });
+    const shareCreate=document.getElementById("recordShareCreate"),shareListButton=document.getElementById("recordShareListButton"),shareList=document.getElementById("recordShareList"),shareOutput=document.getElementById("recordShareOutput");
+    async function loadShares(){if(!shareList?.isConnected)return;shareListButton.disabled=true;shareList.textContent="Freigaben werden geladen …";try{const rows=await window.runServer("getRecordShares",token(),record.id);if(!shareList.isConnected)return;shareList.innerHTML=rows.length?rows.map(r=>`<div class="records-share-row"><div><strong>${escapeHtml(r.created_by_name||"Unbekannt")}</strong><div class="records-secondary">Gültig bis ${escapeHtml(formatDate(r.expires_at))} · ${r.revoked_at?"Widerrufen":r.active?"Aktiv":"Abgelaufen"}</div></div>${r.active?`<button type="button" class="records-button small" data-share-revoke="${escapeAttr(r.id)}">Widerrufen</button>`:""}</div>`).join(""):"Keine Freigaben vorhanden.";}catch(e){if(shareList.isConnected)shareList.textContent=e.message||"Freigaben konnten nicht geladen werden.";}finally{if(shareListButton.isConnected)shareListButton.disabled=false;}}
+    if(shareListButton)shareListButton.onclick=loadShares;
+    if(shareList)shareList.addEventListener("click",async e=>{const b=e.target.closest("[data-share-revoke]");if(!b||!window.confirm("Diese externe Freigabe widerrufen?"))return;b.disabled=true;try{await window.runServer("revokeRecordShare",token(),b.dataset.shareRevoke);await loadShares();}catch(e){b.disabled=false;notifyRecords("error","Widerruf fehlgeschlagen",e.message);}});
+    if(shareCreate)shareCreate.onclick=async()=>{if(!window.confirm("Externe Freigabe erstellen? Jeder mit dem Link kann den Inhalt einsehen."))return;shareCreate.disabled=true;try{const result=await window.runServer("createRecordShare",token(),record.id,Number(document.getElementById("recordShareDuration")?.value||1440));if(!shareOutput.isConnected)return;const url=new URL(result.url,document.baseURI).href;shareOutput.replaceChildren();const input=document.createElement("input");input.className="records-form-input";input.readOnly=true;input.value=url;input.setAttribute("aria-label","Externer Freigabelink");input.onclick=()=>input.select();const copy=document.createElement("button");copy.type="button";copy.className="records-button";copy.textContent="Kopieren";copy.onclick=async()=>{try{await navigator.clipboard.writeText(url);copy.textContent="Kopiert";}catch(_){input.focus();input.select();}};shareOutput.append(input,copy);await loadShares();}catch(e){notifyRecords("error","Freigabe fehlgeschlagen",e.message);}finally{if(shareCreate.isConnected)shareCreate.disabled=false;}};
 
     if (record.status !== "archived" && can(type.edit)) {
       addAction("Bearbeiten", "", function () {
@@ -894,22 +877,25 @@
       return String(record.id) === String(recordId);
     });
 
+    let detailRequest;
     if (item) {
       const type = getType(item.type);
-      openModalLoading(
+      detailRequest=openModalLoading(
         item.title || (type ? type.shortLabel : "Akte"),
         (item.case_number || item.caseNumber || "") + " · " + (type ? type.classification : ""),
         "Akte wird geladen..."
       );
     } else {
-      openModalLoading("Akte", "", "Akte wird geladen...");
+      detailRequest=openModalLoading("Akte", "", "Akte wird geladen...");
     }
 
     CloudApi.run
       .withSuccessHandler(function (record) {
+        if(!modalRequestValid(detailRequest))return;
         renderDetail(record);
       })
       .withFailureHandler(function (error) {
+        if(!modalRequestValid(detailRequest))return;
         closeModal();
         notifyRecords("error", "Akte konnte nicht geöffnet werden", error?.message || "Die Detailansicht konnte nicht geladen werden.");
       })
@@ -920,6 +906,9 @@
     if (state.busy) return false;
 
     const data = readForm();
+    if(state.modalMode==="edit")data.expectedUpdatedAt=state.currentRecord?.updated_at||"";
+    const formNode=document.getElementById("recordTitle");
+    const sameForm=()=>state.alive&&root.isConnected&&formNode?.isConnected&&document.getElementById("recordTitle")===formNode;
     if (!data.title) {
       notifyRecords("error", "Eingabe fehlt", "Bitte einen Titel eingeben.");
       return false;
@@ -942,22 +931,25 @@
     if (state.modalMode === "create") {
       CloudApi.run
         .withSuccessHandler(function (record) {
-          closeModal();
+          if(!state.alive||!root.isConnected)return;
+          const originalForm=sameForm();
+          if(originalForm)closeModal();
           invalidateCache();
 
-          if (record && record.type) {
+          if (originalForm && record && record.type) {
             state.currentTab = record.type;
             state.currentStatus = "all";
+            state.page=0;state.search="";document.getElementById("recordsSearch").value="";
             buildTabs();
             updateToolbar();
             updateCreateButton();
           }
 
-          renderRecords([record]);
           loadCurrent(true);
           notifyRecords("success", "Akte erstellt", "Die Akte wurde erfolgreich erstellt.");
         })
         .withFailureHandler(function (error) {
+          if(!sameForm())return;
           setBusy(false, "Erstellen");
           notifyRecords("error", "Akte konnte nicht erstellt werden", error?.message || "Die Akte konnte nicht erstellt werden.");
         })
@@ -968,12 +960,14 @@
 
     CloudApi.run
       .withSuccessHandler(function (record) {
-        closeModal();
+        if(!state.alive||!root.isConnected)return;
+        if(sameForm())closeModal();
         invalidateCache();
         loadCurrent(true);
         notifyRecords("success", "Akte gespeichert", "Die Akte wurde erfolgreich aktualisiert.");
       })
       .withFailureHandler(function (error) {
+        if(!sameForm())return;
         setBusy(false, "Speichern");
         notifyRecords("error", "Akte konnte nicht gespeichert werden", error?.message || "Die Akte konnte nicht aktualisiert werden.");
       })
@@ -1028,6 +1022,17 @@
 
     state.initialized = true;
 
+    if (window.MDTRichText && !document.body.dataset.recordsRichTools) {
+      window.MDTRichText.attachToolbar(document.body);
+      document.body.dataset.recordsRichTools = "1";
+      document.body.addEventListener("input", function (event) {
+        if (event.target && event.target.id === "recordContent") {
+          const preview = document.querySelector("[data-record-rich-preview] .mdt-rich-content");
+          if (preview) preview.innerHTML = window.MDTRichText.render(event.target.value || "");
+        }
+      });
+    }
+
     if (!token()) {
       renderEmpty("Keine aktive Sitzung", "Bitte melde dich erneut an.");
       return;
@@ -1045,21 +1050,28 @@
     buildTabs();
     updateToolbar();
     updateCreateButton();
+    window.FIB_MDT_SELECTS?.refresh?.();
     loadCurrent(false);
   }
 
   state.cleanup = function () {
+    state.alive=false;
     state.requestId += 1;
-    closeModal();
+    state.modalRequestId += 1;
+    if (document.querySelector("#fibGlobalModalOverlay.fib-modal-records-mode.open")) closeModal();
     if (state.searchTimer) clearTimeout(state.searchTimer);
     state.searchTimer = null;
     state.initialized = false;
   };
 
+  life.addCleanup(state.cleanup);
+  document.getElementById("recordsTableBody").addEventListener("click",e=>{const open=e.target.closest("[data-record-open]"),edit=e.target.closest("[data-record-edit]");if(open)openRecord(open.dataset.recordOpen);if(edit)openEditModal(edit.dataset.recordEdit);});
+  document.getElementById("recordsPrevPage").onclick=()=>changePage(-1);
+  document.getElementById("recordsNextPage").onclick=()=>changePage(1);
   window.recordsOpenTab = openTab;
   window.recordsLoadCurrent = function () { loadCurrent(true); };
-  window.__fibPageLifecycle.on(window, "fib-mdt:refresh-request", function (event) { if (document.getElementById("fibRecordsPage") && !(event.detail && event.detail.source === "mutation")) loadCurrent(true); });
-  window.__fibPageLifecycle.on(window, "fib-mdt:data-changed", function (event) { const modal=document.getElementById("fibGlobalModalOverlay"); if (document.getElementById("fibRecordsPage") && !(modal && modal.classList.contains("open")) && /Record|Akten|record/i.test(String(event.detail && event.detail.method || ""))) loadCurrent(true); });
+  life.on(window,"fib-mdt:refresh-request",function(){if(state.alive&&!state.pendingKey&&!document.querySelector("#fibGlobalModalOverlay.open")){const visible=getVisibleTabs();if(!visible.includes(state.currentTab)){state.currentTab=visible[0]||"";state.page=0;buildTabs();updateToolbar();updateCreateButton();}loadCurrent(true,true);}});
+  life.on(window,"fib-mdt:data-changed",function(event){if(/Record|Akten|record/i.test(String(event.detail?.method||""))){invalidateCache();}});
   window.recordsSearchChanged = searchChanged;
   window.recordsStatusChanged = statusChanged;
   window.recordsOpenRecord = openRecord;
@@ -1078,5 +1090,5 @@
     // Hier werden deshalb bewusst KEINE weiteren Escape-/Backdrop-Listener registriert.
   }
 
-  window.__fibPageLifecycle.timeout(initialize, 0);
+  life.timeout(initialize, 0);
 })();

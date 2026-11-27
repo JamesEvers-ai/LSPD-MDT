@@ -1,5 +1,3 @@
-
-
 (function () {
 
     "use strict";
@@ -10,7 +8,7 @@
        ========================================================= */
 
     const app =
-        window.__FIB_MDT_FINES_PAGE__ ||
+        
         {
 
             data:
@@ -28,8 +26,8 @@
         };
 
 
-    window.__FIB_MDT_FINES_PAGE__ =
-        app;
+    window.__FIB_MDT_FINES_PAGE__ = app;
+    const mountedPage = document.getElementById("finesPage");
 
 
     /* =========================================================
@@ -600,6 +598,7 @@
                     data
                 ) {
 
+                    if (!mountedPage?.isConnected) return;
                     const raw =
                         Array.isArray(
                             data
@@ -646,6 +645,7 @@
                     error
                 ) {
 
+                    if (!mountedPage?.isConnected) return;
                     console.error(
                         "FINES:",
                         error
@@ -1080,10 +1080,10 @@
                                 <col class="fines-table-col-offense">
                                 <col class="fines-table-col-fine">
                                 <col class="fines-table-col-wanteds">
-                                <col class="fines-table-col-finished">
                                 <col class="fines-table-col-info">
                                 <col class="fines-table-col-handover">
                                 <col class="fines-table-col-handover">
+                                <col class="fines-table-col-finished">
 
                             </colgroup>
 
@@ -1108,10 +1108,6 @@
                                         Wanteds
                                     </th>
 
-                                    <th class="fines-col-finished center">
-                                        Fertig
-                                    </th>
-
                                     <th class="fines-col-info">
                                         Info
                                     </th>
@@ -1123,6 +1119,7 @@
                                     <th class="fines-col-handover center">
                                         StA
                                     </th>
+                                    <th class="fines-col-finished center">Aktion</th>
 
                                 </tr>
 
@@ -1353,25 +1350,6 @@
                 </td>
 
 
-                <td class="fines-col-finished">
-
-                    <button
-                        type="button"
-                        class="fines-copy-button"
-                        data-fine="${fineJson}"
-                        title="Tatbestand kopieren"
-                        aria-label="Tatbestand kopieren"
-                    >
-
-                        <span class="fines-copy-icon">
-                            ⧉
-                        </span>
-
-                    </button>
-
-                </td>
-
-
                 <td class="fines-col-info">
 
                     ${
@@ -1418,6 +1396,24 @@
 
                 </td>
 
+            
+
+
+                <td class="fines-col-finished">
+
+                    <button
+                        type="button"
+                        class="fines-copy-button"
+                        data-fine="${fineJson}"
+                        title="Tatbestand kopieren"
+                        aria-label="Tatbestand kopieren"
+                    >
+
+                        <span aria-hidden="true">⧉</span> <span>Kopieren</span>
+
+                    </button>
+
+                </td>
             </tr>
 
         `;
@@ -1672,188 +1668,34 @@
     }
 
 
-    function openFinesCopyModal(
-        text,
-        sourceButton
-    ) {
+    function openFinesCopyModal(text, sourceButton) {
         const modal = window.FIB_MDT_MODAL;
-        if (!modal || typeof modal.open !== "function") {
-            console.error("Das zentrale MDT-Modal ist nicht verfügbar.");
-            return;
-        }
-
+        if (!modal) return;
         const body = document.createElement("div");
-        body.className = "fib-fines-copy-extra";
+        body.className = "fib-fines-copy-extra v51-copy";
         body.innerHTML = `
-            <div class="fib-form-group">
-                <label for="fibFinesCopyExtra">Zusatz in Klammern (optional)</label>
-                <input id="fibFinesCopyExtra" type="text" maxlength="120"
-                    placeholder="z. B. StA n.V."
-                    autocomplete="off" spellcheck="false">
-                <small>Dieser Zusatz wird direkt hinter dem Straftatentext in Klammern eingefügt.</small>
+            <div class="v51-copy-context"><span>Ausgewählter Tatbestand</span><strong id="fibFinesCopyBase"></strong></div>
+            <div class="v51-copy-fields">
+              <div><label for="fibFinesCopyExtra">Zusatz in Klammern (optional)</label><input id="fibFinesCopyExtra" type="text" maxlength="120" placeholder="z. B. StA n.V." autocomplete="off" spellcheck="false"><small>Wird in Klammern an den Text angehängt.</small></div>
+              <div><label for="fibFinesCopySuffix">Zusatz danach (optional)</label><input id="fibFinesCopySuffix" type="text" maxlength="40" placeholder="z. B. 1/2 oder 2/2" autocomplete="off" spellcheck="false"><small>Wird nach dem Klammerzusatz angefügt.</small></div>
             </div>
-            <div class="fib-form-group">
-                <label for="fibFinesCopySuffix">Zusatz nach der Klammer (optional)</label>
-                <input id="fibFinesCopySuffix" type="text" maxlength="40"
-                    placeholder="z. B. 1/2 oder 2/2"
-                    autocomplete="off" spellcheck="false">
-                <small>Dieser Zusatz wird hinter der schließenden Klammer angefügt.</small>
-            </div>
-            <div class="fib-fines-copy-preview">
-                <div class="fib-fines-copy-preview-label">Vorschau</div>
-                <div id="fibFinesCopyPreview"></div>
-            </div>`;
-
-        const input = body.querySelector("#fibFinesCopyExtra");
-        const suffixInput = body.querySelector("#fibFinesCopySuffix");
-        const preview = body.querySelector("#fibFinesCopyPreview");
-        const buildFinalText = () => {
-            const extra = input.value.trim();
-            const suffix = suffixInput.value.trim();
-            let result = extra ? `${text} (${extra})` : text;
-            if (suffix) result += ` ${suffix}`;
-            return result;
-        };
-        const renderPreview = () => {
-            preview.textContent = buildFinalText();
-        };
-        input.addEventListener("input", renderPreview);
-        suffixInput.addEventListener("input", renderPreview);
-        renderPreview();
-
-        modal.open({
-            title: "Straftat kopieren",
-            subtitle: "Optionale Zusätze ergänzen",
-            body,
-            cancelText: "Abbrechen",
-            cancelVisible: true,
-            focus: false,
-            buttons: [
-                {
-                    label: "Kopieren",
-                    variant: "primary",
-                    onClick: function () {
-                        copyFinesText(buildFinalText(), sourceButton);
-                        modal.close();
-                    }
-                }
-            ]
-        });
-        requestAnimationFrame(() => input.focus());
+            <div class="v51-copy-result"><label for="fibFinesCopyPreview">Fertiger Kopiertext</label><textarea id="fibFinesCopyPreview" readonly rows="3" spellcheck="false"></textarea><small>Dieser Text wird unverändert in die Zwischenablage übernommen.</small></div>
+            <div id="fibFinesCopyFeedback" role="status" aria-live="polite"></div>`;
+        const input = body.querySelector("#fibFinesCopyExtra"), suffix = body.querySelector("#fibFinesCopySuffix"), preview = body.querySelector("#fibFinesCopyPreview"), feedback = body.querySelector("#fibFinesCopyFeedback");
+        body.querySelector("#fibFinesCopyBase").textContent = text;
+        const render = () => { preview.value = text + (input.value.trim() ? ` (${input.value.trim()})` : "") + (suffix.value.trim() ? ` ${suffix.value.trim()}` : ""); feedback.textContent = ""; };
+        input.addEventListener("input", render); suffix.addEventListener("input", render); render();
+        modal.open({title:"Tatbestand kopieren",subtitle:"Dokumentation · Zusätze und Vorschau",body,cancelText:"Abbrechen",saveVisible:true,saveText:"In Zwischenablage kopieren",onSave:async button=>{
+            button.disabled=true; const value=preview.value;
+            try {
+                let copied=false;
+                if(navigator.clipboard?.writeText){try{await navigator.clipboard.writeText(value);copied=true;}catch(_){}}
+                if(!copied){preview.focus();preview.select();try{copied=document.execCommand("copy")===true;}catch(_){}}
+                if(!copied){feedback.textContent="Automatisches Kopieren nicht möglich. Der Text ist markiert – bitte Strg+C verwenden.";return;}
+                showFinesCopied(sourceButton);if(body.isConnected)modal.close();
+            }finally{if(body.isConnected)button.disabled=false;}
+        }});
     }
-
-    function copyFinesText(
-        text,
-        button
-    ) {
-
-        if (
-            navigator.clipboard &&
-            navigator.clipboard.writeText
-        ) {
-
-            navigator.clipboard
-
-                .writeText(
-                    text
-                )
-
-                .then(
-                    function () {
-
-                        showFinesCopied(
-                            button
-                        );
-
-                    }
-                )
-
-                .catch(
-                    function () {
-
-                        fallbackCopyFinesText(
-                            text,
-                            button
-                        );
-
-                    }
-                );
-
-            return;
-
-        }
-
-
-        fallbackCopyFinesText(
-            text,
-            button
-        );
-
-    }
-
-
-    function fallbackCopyFinesText(
-        text,
-        button
-    ) {
-
-        const textarea =
-            document.createElement(
-                "textarea"
-            );
-
-
-        textarea.value =
-            text;
-
-
-        textarea.style.position =
-            "fixed";
-
-
-        textarea.style.left =
-            "-9999px";
-
-
-        textarea.style.top =
-            "0";
-
-
-        document.body.appendChild(
-            textarea
-        );
-
-
-        textarea.focus();
-
-        textarea.select();
-
-
-        try {
-
-            document.execCommand(
-                "copy"
-            );
-
-
-            showFinesCopied(
-                button
-            );
-
-        } catch (error) {
-
-            console.error(
-                "FINES Copy:",
-                error
-            );
-
-        }
-
-
-        textarea.remove();
-
-    }
-
 
     function showFinesCopied(
         button
@@ -1884,7 +1726,7 @@
         `;
 
 
-        window.__fibPageLifecycle.timeout(
+        setTimeout(
             function () {
 
                 button.classList.remove(
@@ -1955,51 +1797,9 @@
 
 
     function scheduleFinesClock() {
-
-        if (
-            app.clockTimer
-        ) {
-
-            clearTimeout(
-                app.clockTimer
-            );
-
-        }
-
-
-        const now =
-            new Date();
-
-
-        const millisecondsUntilNextMinute =
-            (
-                60 -
-                now.getSeconds()
-            ) *
-            1000 -
-
-            now.getMilliseconds() +
-
-            100;
-
-
-        app.clockTimer =
-            window.__fibPageLifecycle.timeout(
-
-                function () {
-
-                    updateFinesClock();
-
-                    scheduleFinesClock();
-
-                },
-
-                millisecondsUntilNextMinute
-
-            );
-
+        if (app.clockTimer) clearInterval(app.clockTimer);
+        app.clockTimer=window.__fibPageLifecycle.interval(updateFinesClock,15000);
     }
-
 
     /* =========================================================
        REFRESH
@@ -2028,13 +1828,8 @@
         );
 
 
-        button.textContent =
-
-            loading
-
-                ? "◌"
-
-                : "↻";
+        button.disabled=!!loading;
+        button.textContent=loading?"Lädt …":"Aktualisieren";
 
     }
 
@@ -2315,11 +2110,10 @@
     window.__fibPageLifecycle.timeout(
         function () {
 
-            initFinesPage();
+            if(mountedPage?.isConnected)initFinesPage();
 
         },
         0
     );
 
 })();
-

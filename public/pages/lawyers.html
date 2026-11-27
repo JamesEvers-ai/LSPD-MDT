@@ -627,7 +627,8 @@
       <input
         id="lawyersSearch"
         class="lawyers-search"
-        type="text"
+        aria-label="Anwaltskammer durchsuchen"
+        type="search"
         autocomplete="off"
         placeholder="Anwalt, Reisepassnummer, Telefon, Prüfer ...">
 
@@ -2044,7 +2045,7 @@
 
 
     window.lawyersClockInterval =
-      setInterval(
+      window.__fibPageLifecycle.interval(
         updateLawyersClock,
         1000
       );

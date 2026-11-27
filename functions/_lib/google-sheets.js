@@ -6,12 +6,12 @@ export const SHEET_BACKED_METHODS = new Set([
   "getFines", "getLawyers", "getWarrants", "getWarrantStatistics", "refreshWarrantsCache"
 ]);
 
-export async function googleSheetsCall(env, method, args = []) {
+export async function googleSheetsCall(env, method, args = [], {timeoutMs} = {}) {
   const endpoint = String(env.GOOGLE_SHEETS_API_URL || "").trim();
   if (!endpoint) throw Object.assign(new Error("Die Google-Sheets-API ist nicht konfiguriert. In Cloudflare muss GOOGLE_SHEETS_API_URL auf die Web-App-URL der Apps-Script-Bridge zeigen."), { status: 503, code: "GOOGLE_SHEETS_NOT_CONFIGURED" });
   let response;
   try {
-    response = await fetch(endpoint, { method: "POST", redirect: "follow", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ method, args }) });
+    response = await fetch(endpoint, { method: "POST", redirect: "follow", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ method, args }), ...(timeoutMs&&typeof AbortSignal.timeout==="function"?{signal:AbortSignal.timeout(timeoutMs)}:{}) });
   } catch (error) {
     throw Object.assign(new Error(`Google Sheets konnte nicht erreicht werden: ${error?.message || "Netzwerkfehler"}`), { status: 502, code: "GOOGLE_SHEETS_UNREACHABLE" });
   }

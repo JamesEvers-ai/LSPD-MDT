@@ -1,5 +1,3 @@
-
-
 /* =========================================================
    STATE
    ========================================================= */
@@ -179,113 +177,26 @@ function loadWarrants(
    AKTUALISIEREN
    ========================================================= */
 
-function refreshWarrants() {
-
-  window.FIBMDTCache?.refresh("getWarrants");
-
-  const button =
-    document.getElementById(
-      "warrantsRefreshButton"
-    );
-
-
-  if (button) {
-
-    button.disabled =
-      true;
-
-    button.textContent =
-      "↻ Aktualisiere...";
-
-  }
-
-
+async function refreshWarrants() {
+  const button=document.getElementById("warrantsRefreshButton"), list=document.getElementById("warrantsList");
+  if(!button||button.disabled)return;
+  button.disabled=true;button.textContent="Aktualisiere …";
   try {
-
-    sessionStorage.removeItem(
-      "fib_mdt_warrants"
-    );
-
-  } catch (error) {
-
-    console.warn(
-      "Browser-Cache konnte nicht gelöscht werden.",
-      error
-    );
-
-  }
-
-
-  CloudApi.run
-
-    .withSuccessHandler(
-      data => {
-
-        const state =
-          window.fibWarrantState;
-
-
-        state.warrants =
-          Array.isArray(data)
-            ? data
-            : [];
-
-
-        setWarrantClientCache_(
-          state.warrants
-        );
-
-
-        filterWarrants();
-
-
-        if (button) {
-
-          button.disabled =
-            false;
-
-          button.textContent =
-            "↻ Aktualisieren";
-
-        }
-
-      }
-    )
-
-    .withFailureHandler(
-      error => {
-
-        if (button) {
-
-          button.disabled =
-            false;
-
-          button.textContent =
-            "↻ Aktualisieren";
-
-        }
-
-
-        showWarrantError(
-
-          error &&
-          error.message
-
-            ? error.message
-
-            : "Die Haftbefehle konnten nicht aktualisiert werden."
-
-        );
-
-      }
-    )
-
-    .refreshWarrantsCache(
-      sessionToken
-    );
-
+    await window.FIBMDTCache?.refresh("getWarrants");
+    sessionStorage.removeItem("fib_mdt_warrants");
+    // Only authorised managers may clear the shared sheet cache. A read-only officer may still reload the list.
+    let rows;
+    if(typeof hasPermission==="function"&&hasPermission("warrants.manage")){
+      const refreshed=await window.runServer("refreshWarrantsCache",sessionToken);
+      if(Array.isArray(refreshed))rows=refreshed;
+    }
+    if(!Array.isArray(rows))rows=await window.runServer("getWarrants",sessionToken);
+    if(!Array.isArray(rows))throw new Error("Die Anbindung lieferte keine Haftbefehlsliste.");
+    if(!list?.isConnected)return;
+    window.fibWarrantState.warrants=rows;setWarrantClientCache_(rows);filterWarrants();
+  }catch(error){if(list?.isConnected)showWarrantError(error?.message||"Die Haftbefehle konnten nicht aktualisiert werden.");}
+  finally{button.disabled=false;button.textContent="↻ Aktualisieren";}
 }
-
 
 /* =========================================================
    PRÜFUNG:
@@ -544,13 +455,10 @@ function updateWarrantStatistics() {
     warrants.length;
 
 
+  let veryHigh =
+    0;
+
   let high =
-    0;
-
-  let medium =
-    0;
-
-  let low =
     0;
 
   let normal =
@@ -589,41 +497,22 @@ function updateWarrantStatistics() {
       }
 
       else if (
-        priority.includes(
-          "hoch"
-        ) ||
-        priority.includes(
-          "dringend"
-        ) ||
-        priority.includes(
-          "kritisch"
-        )
+        priority.includes("sehr hoch") ||
+        priority.includes("kritisch") ||
+        priority.includes("höchste") ||
+        priority.includes("very high")
+      ) {
+
+        veryHigh++;
+
+      }
+
+      else if (
+        priority.includes("hoch") ||
+        priority.includes("dringend")
       ) {
 
         high++;
-
-      }
-
-      else if (
-        priority.includes(
-          "mittel"
-        )
-      ) {
-
-        medium++;
-
-      }
-
-      else if (
-        priority.includes(
-          "niedrig"
-        ) ||
-        priority.includes(
-          "gering"
-        )
-      ) {
-
-        low++;
 
       }
 
@@ -704,20 +593,13 @@ function updateWarrantStatistics() {
 
 
   setWarrantStatisticValue_(
+    "warrantStatVeryHigh",
+    veryHigh
+  );
+
+  setWarrantStatisticValue_(
     "warrantStatHigh",
     high
-  );
-
-
-  setWarrantStatisticValue_(
-    "warrantStatMedium",
-    medium
-  );
-
-
-  setWarrantStatisticValue_(
-    "warrantStatLow",
-    low
   );
 
 
@@ -754,67 +636,10 @@ function updateWarrantStatistics() {
   if (priorityList) {
 
     const priorityData = [
-
-      {
-        label:
-          "Hoch",
-
-        count:
-          high,
-
-        css:
-          "high"
-
-      },
-
-      {
-        label:
-          "Mittel",
-
-        count:
-          medium,
-
-        css:
-          "medium"
-
-      },
-
-      {
-        label:
-          "Niedrig",
-
-        count:
-          low,
-
-        css:
-          "low"
-
-      },
-
-      {
-        label:
-          "Normal",
-
-        count:
-          normal,
-
-        css:
-          "normal"
-
-      },
-
-      {
-        label:
-          "Untergetaucht",
-
-        count:
-          undercover,
-
-        css:
-          "undercover"
-
-      }
-
+      {label:"Sehr hoch",count:veryHigh,css:"very-high"},
+      {label:"Hoch",count:high,css:"high"},
+      {label:"Normal",count:normal,css:"normal"},
+      {label:"Untergetaucht",count:undercover,css:"undercover"}
     ];
 
 
@@ -1104,8 +929,16 @@ function renderWarrants() {
   }
 
 
-  const warrants =
-    state.filtered;
+  const priorityRank = priority => {
+    const key = getWarrantPriorityClass_(priority);
+    return key === "priority-sehr-hoch" ? 0
+      : key === "priority-hoch" ? 1
+      : key === "priority-normal" ? 2
+      : 3;
+  };
+  const warrants = (state.filtered || []).slice().sort((a, b) =>
+    priorityRank(a.priority) - priorityRank(b.priority)
+  );
 
 
   if (count) {
@@ -1187,25 +1020,15 @@ function createWarrantCard(
     );
 
 
+  const priorityClass = isUndergetaucht
+    ? "priority-untergetaucht"
+    : getWarrantPriorityClass_(priority);
+
   const displayedPriority =
-    isUndergetaucht
-
-      ? "Untergetaucht"
-
-      : (
-          priority ||
-          "Normal"
-        );
-
-
-  const priorityClass =
-    isUndergetaucht
-
-      ? "priority-untergetaucht"
-
-      : getWarrantPriorityClass_(
-          priority
-        );
+    priorityClass === "priority-sehr-hoch" ? "Sehr hoch"
+    : priorityClass === "priority-hoch" ? "Hoch"
+    : priorityClass === "priority-untergetaucht" ? "Untergetaucht"
+    : "Normal";
 
 
   card.innerHTML = `
@@ -1393,9 +1216,9 @@ function createWarrantCard(
           <button
             class="warrant-copy-button"
             type="button"
-            title="Vollständigen Originaltext kopieren"
+            title="Vollständigen Originaltext kopieren" aria-label="Tatdetails kopieren"
           >
-            ⧉
+            Kopieren
           </button>
 
         </div>
@@ -1440,52 +1263,13 @@ function createWarrantCard(
    PRIORITÄTSKLASSE
    ========================================================= */
 
-function getWarrantPriorityClass_(
-  priority
-) {
-
-  const value =
-    String(
-      priority || ""
-    )
-      .trim()
-      .toLowerCase();
-
-
-  if (
-    value.includes("hoch") ||
-    value.includes("dringend") ||
-    value.includes("kritisch")
-  ) {
-
-    return "priority-hoch";
-
-  }
-
-
-  if (
-    value.includes("mittel")
-  ) {
-
-    return "priority-mittel";
-
-  }
-
-
-  if (
-    value.includes("niedrig") ||
-    value.includes("gering")
-  ) {
-
-    return "priority-niedrig";
-
-  }
-
-
+function getWarrantPriorityClass_(priority) {
+  const value = String(priority || "").trim().toLowerCase();
+  if (value.includes("untergetaucht")) return "priority-untergetaucht";
+  if (value.includes("sehr hoch") || value.includes("kritisch") || value.includes("höchste") || value.includes("very high")) return "priority-sehr-hoch";
+  if (value.includes("hoch") || value.includes("dringend")) return "priority-hoch";
   return "priority-normal";
-
 }
-
 
 /* =========================================================
    UNTERGETAUCHT
@@ -1552,7 +1336,7 @@ function copyWarrantDetails(
         "✓";
 
 
-      window.__fibPageLifecycle.timeout(
+      setTimeout(
         () => {
 
           button.classList.remove(
@@ -1812,7 +1596,7 @@ function showWarrantError(
   );
 
 
-  window.__fibPageLifecycle.timeout(
+  setTimeout(
     () => {
 
       if (error) {
@@ -1877,7 +1661,7 @@ if (
   "loading"
 ) {
 
-  window.__fibPageLifecycle.on(document, 
+  document.addEventListener(
     "DOMContentLoaded",
     initializeWarrants
   );
@@ -1887,4 +1671,3 @@ if (
   initializeWarrants();
 
 }
-

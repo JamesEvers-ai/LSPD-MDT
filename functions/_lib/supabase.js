@@ -29,6 +29,18 @@ export async function db(env, table, { method = "GET", query = {}, body, prefer 
   return parsed;
 }
 
+// Exact count without downloading the rows (PostgREST count=exact).
+export async function dbCount(env, table, filters = {}) {
+  const {url,key}=config(env);
+  const query=new URLSearchParams({...filters,select:"id",limit:"1"});
+  const response=await fetch(`${url}/rest/v1/${encodeURIComponent(table)}?${query}`,{
+    method:"HEAD",headers:{apikey:key,Authorization:`Bearer ${key}`,Prefer:"count=exact",Accept:"application/json"}
+  });
+  if(!response.ok)throw new Error(`Anzahl nicht verfügbar (HTTP ${response.status})`);
+  const match=String(response.headers.get("content-range")||"").match(/\/(\d+)$/);
+  if(!match)throw new Error("Datenbank lieferte keine genaue Anzahl.");
+  return Number(match[1]);
+}
 export async function rpc(env, fn, body = {}) {
   const { url, key } = config(env);
   const response = await fetch(`${url}/rest/v1/rpc/${encodeURIComponent(fn)}`, {
