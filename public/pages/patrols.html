@@ -3893,3 +3893,487 @@
   }
 }
 </style>
+
+<style>
+/* =========================================================
+   v37 – LEITSTELLE COMMAND BOARD
+   Final visual layer. This intentionally supersedes the older
+   compact roster/reference rules without changing the DOM or JS.
+========================================================= */
+html body #pageContainer .patrols-page #patrolsList.patrols-content {
+  display:flex !important;
+  flex-direction:column !important;
+  gap:18px !important;
+  width:100% !important;
+  height:auto !important;
+  min-height:0 !important;
+  max-height:none !important;
+  overflow:visible !important;
+}
+
+html body #pageContainer .patrols-page #patrolsList .patrol-group {
+  display:block !important;
+  width:100% !important;
+  height:auto !important;
+  min-height:0 !important;
+  margin:0 !important;
+  overflow:visible !important;
+}
+
+html body #pageContainer .patrols-page #patrolsList .patrol-group-title {
+  display:flex !important;
+  align-items:center !important;
+  gap:10px !important;
+  width:100% !important;
+  min-height:34px !important;
+  box-sizing:border-box !important;
+  margin:0 0 8px !important;
+  padding:0 4px 0 12px !important;
+  border:0 !important;
+  border-left:4px solid #2d78b8 !important;
+  border-radius:0 !important;
+  background:transparent !important;
+  color:#27445e !important;
+  box-shadow:none !important;
+  font-size:11px !important;
+  font-weight:900 !important;
+  letter-spacing:.06em !important;
+  text-transform:uppercase !important;
+}
+
+html body #pageContainer .patrols-page #patrolsList .patrol-group-count {
+  margin-left:auto !important;
+  min-width:24px !important;
+  height:24px !important;
+  padding:0 7px !important;
+  box-sizing:border-box !important;
+  border:1px solid #d5e2ed !important;
+  border-radius:999px !important;
+  background:#f4f8fb !important;
+  color:#52718d !important;
+  font-size:9px !important;
+  font-weight:900 !important;
+}
+
+html body #pageContainer .patrols-page #patrolsList .patrol-card.patrol-card-modern {
+  position:relative !important;
+  display:block !important;
+  width:100% !important;
+  min-width:0 !important;
+  max-width:none !important;
+  height:auto !important;
+  min-height:0 !important;
+  max-height:none !important;
+  margin:0 0 10px !important;
+  padding:0 !important;
+  box-sizing:border-box !important;
+  overflow:visible !important;
+  border:1px solid #d6e1ea !important;
+  border-radius:14px !important;
+  background:#fff !important;
+  box-shadow:0 5px 18px rgba(34,65,94,.07) !important;
+  transform:none !important;
+}
+
+html body #pageContainer .patrols-page #patrolsList .patrol-card.patrol-card-modern::before {
+  content:"" !important;
+  position:absolute !important;
+  left:0 !important;
+  top:0 !important;
+  bottom:0 !important;
+  width:4px !important;
+  border-radius:14px 0 0 14px !important;
+  background:#2d78b8 !important;
+  pointer-events:none !important;
+}
+
+html body #pageContainer .patrols-page #patrolsList .patrol-card.patrol-card-modern:hover {
+  background:#fff !important;
+  border-color:#b9cddd !important;
+  box-shadow:0 8px 24px rgba(34,65,94,.10) !important;
+  transform:translateY(-1px) !important;
+}
+
+html body #pageContainer .patrols-page #patrolsList .patrol-card-modern .patrol-card-head {
+  display:flex !important;
+  align-items:center !important;
+  justify-content:space-between !important;
+  gap:16px !important;
+  width:100% !important;
+  min-height:68px !important;
+  height:auto !important;
+  box-sizing:border-box !important;
+  padding:14px 16px 13px 20px !important;
+  overflow:visible !important;
+  background:linear-gradient(180deg,#ffffff 0%,#f8fbfd 100%) !important;
+  border:0 !important;
+  border-bottom:1px solid #e4ebf1 !important;
+  border-radius:14px 14px 0 0 !important;
+}
+
+html body #pageContainer .patrols-page #patrolsList .patrol-card-modern .patrol-card-identity {
+  display:flex !important;
+  align-items:center !important;
+  gap:12px !important;
+  min-width:0 !important;
+}
+
+html body #pageContainer .patrols-page #patrolsList .patrol-card-modern .patrol-call-sign-badge {
+  display:inline-flex !important;
+  align-items:center !important;
+  gap:9px !important;
+  min-height:38px !important;
+  padding:0 13px !important;
+  box-sizing:border-box !important;
+  border:1px solid #c9dbea !important;
+  border-radius:10px !important;
+  background:#edf5fb !important;
+  color:#1f5f94 !important;
+  font-size:13px !important;
+  font-weight:900 !important;
+  letter-spacing:.02em !important;
+}
+
+html body #pageContainer .patrols-page #patrolsList .patrol-card-modern .patrol-call-sign-icon {
+  width:26px !important;
+  height:26px !important;
+  border-radius:8px !important;
+  display:grid !important;
+  place-items:center !important;
+  background:#2d78b8 !important;
+  color:#fff !important;
+  font-size:10px !important;
+}
+
+html body #pageContainer .patrols-page #patrolsList .patrol-card-modern .patrol-card-live {
+  display:inline-flex !important;
+  align-items:center !important;
+  gap:7px !important;
+  color:#547087 !important;
+  font-size:9px !important;
+  font-weight:900 !important;
+  letter-spacing:.11em !important;
+}
+
+html body #pageContainer .patrols-page #patrolsList .patrol-card-modern .patrol-card-live span {
+  width:8px !important;
+  height:8px !important;
+  border-radius:50% !important;
+  background:#2fa36a !important;
+  box-shadow:0 0 0 4px #e2f4ea !important;
+}
+
+html body #pageContainer .patrols-page #patrolsList .patrol-card-modern .patrol-card-actions {
+  display:flex !important;
+  align-items:center !important;
+  gap:8px !important;
+  flex:0 0 auto !important;
+}
+
+html body #pageContainer .patrols-page #patrolsList .patrol-card-modern .patrol-card-actions .patrol-action-button {
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  gap:7px !important;
+  width:auto !important;
+  min-width:42px !important;
+  min-height:36px !important;
+  height:36px !important;
+  padding:0 12px !important;
+  box-sizing:border-box !important;
+  border:1px solid #d3e0ea !important;
+  border-radius:9px !important;
+  background:#f5f8fa !important;
+  color:#526b81 !important;
+  font-size:10px !important;
+  font-weight:850 !important;
+}
+
+html body #pageContainer .patrols-page #patrolsList .patrol-card-modern .patrol-card-actions .patrol-join-button {
+  min-width:105px !important;
+  background:#2d78b8 !important;
+  border-color:#2d78b8 !important;
+  color:#fff !important;
+}
+
+html body #pageContainer .patrols-page #patrolsList .patrol-card-modern .patrol-card-actions .patrol-join-button:hover:not(:disabled) {
+  background:#23679f !important;
+  border-color:#23679f !important;
+  color:#fff !important;
+}
+
+html body #pageContainer .patrols-page #patrolsList .patrol-card-modern .patrol-card-actions .patrol-join-button:disabled {
+  min-width:88px !important;
+  background:#edf7f0 !important;
+  border-color:#cbe3d2 !important;
+  color:#398052 !important;
+  opacity:1 !important;
+}
+
+html body #pageContainer .patrols-page #patrolsList .patrol-card-modern .patrol-card-main {
+  display:grid !important;
+  grid-template-columns:repeat(4,minmax(0,1fr)) !important;
+  gap:0 !important;
+  width:100% !important;
+  min-height:92px !important;
+  height:auto !important;
+  max-height:none !important;
+  box-sizing:border-box !important;
+  padding:17px 20px !important;
+  overflow:visible !important;
+  background:#fff !important;
+}
+
+html body #pageContainer .patrols-page #patrolsList .patrol-card-modern .patrol-info-block {
+  min-width:0 !important;
+  min-height:55px !important;
+  padding:0 17px !important;
+  border-right:1px solid #e7edf2 !important;
+  display:flex !important;
+  flex-direction:column !important;
+  justify-content:center !important;
+}
+
+html body #pageContainer .patrols-page #patrolsList .patrol-card-modern .patrol-info-block:first-child {
+  padding-left:0 !important;
+}
+html body #pageContainer .patrols-page #patrolsList .patrol-card-modern .patrol-info-block:last-child {
+  padding-right:0 !important;
+  border-right:0 !important;
+}
+
+html body #pageContainer .patrols-page #patrolsList .patrol-card-modern .patrol-info-label {
+  display:block !important;
+  margin:0 0 7px !important;
+  color:#8798a8 !important;
+  font-size:8px !important;
+  font-weight:900 !important;
+  letter-spacing:.11em !important;
+  text-transform:uppercase !important;
+}
+
+html body #pageContainer .patrols-page #patrolsList .patrol-card-modern .patrol-info-value {
+  display:flex !important;
+  align-items:center !important;
+  gap:8px !important;
+  min-width:0 !important;
+  color:#29445d !important;
+  font-size:11px !important;
+  font-weight:800 !important;
+  line-height:1.35 !important;
+  white-space:nowrap !important;
+  overflow:hidden !important;
+  text-overflow:ellipsis !important;
+}
+
+html body #pageContainer .patrols-page #patrolsList .patrol-card-modern .patrol-info-value i {
+  width:17px !important;
+  flex:0 0 17px !important;
+  color:#7092ad !important;
+  text-align:center !important;
+  font-size:10px !important;
+}
+
+html body #pageContainer .patrols-page #patrolsList .patrol-card-modern .patrol-modern-status {
+  display:inline-flex !important;
+  align-items:center !important;
+  width:max-content !important;
+  max-width:100% !important;
+  min-height:28px !important;
+  padding:0 10px !important;
+  box-sizing:border-box !important;
+  border-radius:8px !important;
+  border:1px solid #cfe0eb !important;
+  background:#edf4f9 !important;
+  color:#315d7e !important;
+  font-size:9px !important;
+  font-weight:900 !important;
+}
+
+html body #pageContainer .patrols-page #patrolsList .patrol-card-modern .patrol-modern-status.status-10-1 {
+  background:#e9f7ef !important;color:#247247 !important;border-color:#c3e3ce !important;
+}
+html body #pageContainer .patrols-page #patrolsList .patrol-card-modern .patrol-modern-status.status-10-3 {
+  background:#fff0f0 !important;color:#a33d3d !important;border-color:#eccaca !important;
+}
+html body #pageContainer .patrols-page #patrolsList .patrol-card-modern .patrol-modern-status.status-10-6 {
+  background:#fff7df !important;color:#8a6710 !important;border-color:#eedb9e !important;
+}
+html body #pageContainer .patrols-page #patrolsList .patrol-card-modern .patrol-modern-status.status-10-19,
+html body #pageContainer .patrols-page #patrolsList .patrol-card-modern .patrol-modern-status.status-10-23,
+html body #pageContainer .patrols-page #patrolsList .patrol-card-modern .patrol-modern-status.status-10-76 {
+  background:#eaf3fb !important;color:#2c6799 !important;border-color:#c9dced !important;
+}
+
+html body #pageContainer .patrols-page #patrolsList .patrol-card-modern .patrol-card-crew {
+  display:block !important;
+  width:100% !important;
+  height:auto !important;
+  min-height:0 !important;
+  max-height:none !important;
+  box-sizing:border-box !important;
+  padding:12px 20px 15px !important;
+  overflow:visible !important;
+  background:#f8fafc !important;
+  border:0 !important;
+  border-top:1px solid #e5ecf2 !important;
+  border-radius:0 0 14px 14px !important;
+}
+
+html body #pageContainer .patrols-page #patrolsList .patrol-card-modern .patrol-crew-heading {
+  display:flex !important;
+  align-items:center !important;
+  gap:8px !important;
+  margin:0 0 9px !important;
+  color:#71869a !important;
+  font-size:8px !important;
+  font-weight:900 !important;
+  letter-spacing:.1em !important;
+  text-transform:uppercase !important;
+}
+
+html body #pageContainer .patrols-page #patrolsList .patrol-card-modern .patrol-crew-heading i {
+  color:#6f91ad !important;
+}
+
+html body #pageContainer .patrols-page #patrolsList .patrol-card-modern .patrol-crew-count {
+  min-width:20px !important;
+  height:20px !important;
+  padding:0 6px !important;
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  box-sizing:border-box !important;
+  border:1px solid #d2e0ea !important;
+  border-radius:999px !important;
+  background:#fff !important;
+  color:#4c718e !important;
+  font-size:8px !important;
+  font-weight:900 !important;
+}
+
+html body #pageContainer .patrols-page #patrolsList .patrol-card-modern .patrol-crew-list {
+  display:flex !important;
+  flex-wrap:wrap !important;
+  align-items:stretch !important;
+  gap:7px !important;
+  width:100% !important;
+  height:auto !important;
+  min-height:31px !important;
+  max-height:none !important;
+  overflow:visible !important;
+}
+
+html body #pageContainer .patrols-page #patrolsList .patrol-card-modern .patrol-crew-person {
+  display:flex !important;
+  align-items:stretch !important;
+  width:auto !important;
+  min-width:0 !important;
+  max-width:360px !important;
+  min-height:34px !important;
+  box-sizing:border-box !important;
+  overflow:hidden !important;
+  border:1px solid #d6e2eb !important;
+  border-radius:9px !important;
+  background:#fff !important;
+}
+
+html body #pageContainer .patrols-page #patrolsList .patrol-card-modern .patrol-crew-person.is-lead {
+  border-color:#b9d1e3 !important;
+  box-shadow:0 1px 3px rgba(36,88,125,.05) !important;
+}
+
+html body #pageContainer .patrols-page #patrolsList .patrol-card-modern .patrol-crew-rank {
+  display:flex !important;
+  align-items:center !important;
+  padding:0 8px !important;
+  background:#eaf2f8 !important;
+  color:#426783 !important;
+  font-size:7px !important;
+  font-weight:900 !important;
+  white-space:nowrap !important;
+}
+
+html body #pageContainer .patrols-page #patrolsList .patrol-card-modern .patrol-crew-name {
+  padding:0 10px !important;
+  color:#304b63 !important;
+  font-size:10px !important;
+  font-weight:850 !important;
+  white-space:nowrap !important;
+  overflow:hidden !important;
+  text-overflow:ellipsis !important;
+}
+
+html body #pageContainer .patrols-page #patrolsList .patrol-card-modern .patrol-crew-callsign {
+  align-self:center !important;
+  padding-right:9px !important;
+  color:#4b82ae !important;
+  font-size:7px !important;
+  font-weight:900 !important;
+  white-space:nowrap !important;
+}
+
+html body #pageContainer .patrols-page #patrolsList .patrol-card-modern .patrol-crew-lead {
+  align-self:center !important;
+  margin-right:7px !important;
+  padding:4px 6px !important;
+  border-radius:5px !important;
+  background:#e1eef8 !important;
+  color:#286898 !important;
+  font-size:6px !important;
+  font-weight:950 !important;
+  letter-spacing:.08em !important;
+}
+
+html body #pageContainer .patrols-page #patrolsList .patrol-card-modern .patrol-crew-empty {
+  color:#8999a8 !important;
+  font-size:9px !important;
+}
+
+@media (max-width:900px){
+  html body #pageContainer .patrols-page #patrolsList .patrol-card-modern .patrol-card-main {
+    grid-template-columns:1fr 1fr !important;
+    row-gap:14px !important;
+  }
+  html body #pageContainer .patrols-page #patrolsList .patrol-card-modern .patrol-info-block:nth-child(2) {
+    border-right:0 !important;
+  }
+  html body #pageContainer .patrols-page #patrolsList .patrol-card-modern .patrol-info-block:nth-child(3) {
+    padding-left:0 !important;
+  }
+}
+
+@media (max-width:620px){
+  html body #pageContainer .patrols-page #patrolsList .patrol-group-title {
+    min-height:30px !important;
+  }
+  html body #pageContainer .patrols-page #patrolsList .patrol-card-modern .patrol-card-head {
+    align-items:flex-start !important;
+    flex-direction:column !important;
+    padding:13px 14px 12px 18px !important;
+  }
+  html body #pageContainer .patrols-page #patrolsList .patrol-card-modern .patrol-card-actions {
+    width:100% !important;
+  }
+  html body #pageContainer .patrols-page #patrolsList .patrol-card-modern .patrol-card-actions .patrol-join-button {
+    flex:1 1 auto !important;
+  }
+  html body #pageContainer .patrols-page #patrolsList .patrol-card-modern .patrol-card-main {
+    grid-template-columns:1fr !important;
+    padding:14px 18px !important;
+  }
+  html body #pageContainer .patrols-page #patrolsList .patrol-card-modern .patrol-info-block,
+  html body #pageContainer .patrols-page #patrolsList .patrol-card-modern .patrol-info-block:nth-child(3) {
+    padding:0 !important;
+    border-right:0 !important;
+  }
+  html body #pageContainer .patrols-page #patrolsList .patrol-card-modern .patrol-crew {
+    padding-left:18px !important;
+    padding-right:18px !important;
+  }
+  html body #pageContainer .patrols-page #patrolsList .patrol-card-modern .patrol-crew-person {
+    width:100% !important;
+    max-width:none !important;
+  }
+}
+</style>
