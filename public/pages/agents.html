@@ -1,3 +1,11 @@
+<style id="agents-v49-readability">
+#fibGlobalModalOverlay.fib-modal-agents-mode .agents-file-overview{display:grid;grid-template-columns:1.6fr .7fr .9fr 1.4fr;gap:12px;background:linear-gradient(110deg,#12324f,#215981);color:#fff;padding:16px 18px;border-left:4px solid #d5aa40;border-radius:8px;margin:0 0 10px;align-items:center}
+#fibGlobalModalOverlay.fib-modal-agents-mode .agents-file-overview>div{display:grid;gap:5px;min-width:0}#fibGlobalModalOverlay.fib-modal-agents-mode .agents-file-overview span{font-size:12px;color:#e3edf6!important;-webkit-text-fill-color:#e3edf6!important}#fibGlobalModalOverlay.fib-modal-agents-mode .agents-file-overview strong{font-size:15px;line-height:1.35;color:#fff!important;-webkit-text-fill-color:#fff!important;overflow-wrap:anywhere}#fibGlobalModalOverlay.fib-modal-agents-mode .agents-file-overview>div:first-child strong{font-size:19px}#fibGlobalModalOverlay.fib-modal-agents-mode .agents-overview-kicker{font-size:10px;font-weight:800;letter-spacing:.1em}
+#fibGlobalModalOverlay.fib-modal-agents-mode .agents-personnel-tabs{gap:4px;padding:4px 8px;top:0;background:#fff!important}#fibGlobalModalOverlay.fib-modal-agents-mode .agents-personnel-tab{font-size:13px!important;height:40px!important;padding:0 10px!important;font-weight:700!important}
+#fibGlobalModalOverlay.fib-modal-agents-mode .agents-form-label{font-size:12px!important;font-weight:700!important;letter-spacing:.01em!important}#fibGlobalModalOverlay.fib-modal-agents-mode :is(.agents-form-input,.agents-form-select,.agents-form-textarea,.fib-ui-select-trigger){font-size:14px!important;min-height:38px!important}#fibGlobalModalOverlay.fib-modal-agents-mode :is(.agents-section-title,.agents-entry-title){font-size:15px!important}#fibGlobalModalOverlay.fib-modal-agents-mode :is(.agents-entry-content,.agents-form-hint,.agents-department-workspace-info,.agents-empty-list){font-size:13px!important;line-height:1.5!important}#fibGlobalModalOverlay.fib-modal-agents-mode :is(.agents-small-button,.agents-system-button){font-size:13px!important;min-height:35px!important}#fibGlobalModalOverlay.fib-modal-agents-mode .agents-form{padding:14px 0!important}
+#pageContainer .agents-page :is(.agents-agent-name,.agents-service-number,.agents-organization-main){font-size:14px!important}#pageContainer .agents-page :is(.agents-agent-rank,.agents-agent-username,.agents-organization-meta span,.agents-list-header-cell,.agents-file-button,.agents-department-tab,.agents-view-tab){font-size:12px!important}
+@media(max-width:720px){#fibGlobalModalOverlay.fib-modal-agents-mode .agents-file-overview{grid-template-columns:repeat(2,minmax(0,1fr));padding:12px}#fibGlobalModalOverlay.fib-modal-agents-mode .agents-personnel-tab{font-size:12px!important}}
+</style>
 <style>
 
 /* =========================================================
@@ -1311,6 +1319,7 @@
 
 <script>
 
+
 (function() {
 
     "use strict";
@@ -1328,7 +1337,6 @@
     ====================================================== */
 
     const state =
-        window.__FIB_MDT_AGENTS_PAGE__ ||
         {
 
             agents: [],
@@ -1376,8 +1384,11 @@
         };
 
 
-    window.__FIB_MDT_AGENTS_PAGE__ =
-        state;
+    window.__FIB_MDT_AGENTS_PAGE__ = state;
+    const pageRoot = document.getElementById("agentsPage");
+    const mounted = () => !!pageRoot?.isConnected;
+    const ownModal = () => mounted() && document.getElementById("fibGlobalModalOverlay")?.classList.contains("open") && document.getElementById("fibGlobalModalOverlay")?.classList.contains("fib-modal-agents-mode") && !!state.selectedAgent;
+    let listRequest = null, fileEpoch = 0, historyRequest = null;
 
 
     /* =====================================================
@@ -1513,44 +1524,8 @@
     ====================================================== */
 
     function hasAgentPermission(permission) {
-
-        if (
-            typeof isMaster !== "undefined" &&
-            isMaster === true
-        ) {
-            return true;
-        }
-
-        let permissions = [];
-
-        try {
-
-            if (
-                typeof myPermissions !== "undefined" &&
-                Array.isArray(myPermissions)
-            ) {
-                permissions = myPermissions;
-            }
-            else if (
-                Array.isArray(window.myPermissions)
-            ) {
-                permissions = window.myPermissions;
-            }
-
-        } catch (error) {
-
-            permissions = [];
-
-        }
-
-        return permissions.some(
-            value =>
-                String(value) ===
-                String(permission)
-        );
-
+        return typeof hasPermission === "function" ? hasPermission(permission) : false;
     }
-
 
     function canViewOfficers() {
 
@@ -1572,7 +1547,7 @@
 
     function canTerminateSelectedAgent() {
         const agent = state.selectedAgent;
-        if (!agent || !canEditOfficers()) return false;
+        if (!agent || !hasAgentPermission("officers.terminate")) return false;
         const currentId = (typeof currentUser !== "undefined" && currentUser) ? (currentUser.id || currentUser.userId || currentUser.ID || "") : "";
         if (String(currentId) === String(agent.id || agent.userId || "")) return false;
         if (agent.active === false) return false;
@@ -1729,10 +1704,10 @@
                     findAgentRankOption(b);
 
                 const aLevel =
-                    getRankLevel(aRank);
+                    Number(a.rankLevel ?? getRankLevel(aRank));
 
                 const bLevel =
-                    getRankLevel(bRank);
+                    Number(b.rankLevel ?? getRankLevel(bRank));
 
                 if (aLevel !== bLevel) {
                     return bLevel - aLevel;
@@ -1783,78 +1758,6 @@
 
     }
 
-
-    function loadAgentRankOrdering(
-        token,
-        callback
-    ) {
-
-        if (!Array.isArray(state.agents) || !state.agents.length) {
-
-            state.rankOptions = [];
-            sortAgentsByRank();
-            callback();
-            return;
-
-        }
-
-        const firstAgentId =
-            String(
-                getValue(
-                    state.agents[0],
-                    [
-                        "id",
-                        "ID"
-                    ],
-                    ""
-                )
-            );
-
-        if (!firstAgentId) {
-
-            state.rankOptions = [];
-            sortAgentsByRank();
-            callback();
-            return;
-
-        }
-
-        CloudApi.run
-
-            .withSuccessHandler(
-                bundle => {
-
-                    state.rankOptions =
-                        Array.isArray(bundle)
-                            ? bundle
-                            : (bundle && Array.isArray(bundle.rankOptions) ? bundle.rankOptions : []);
-
-                    sortAgentsByRank();
-                    callback();
-
-                }
-            )
-
-            .withFailureHandler(
-                error => {
-
-                    console.warn(
-                        "LSPD MDT – Beamte: Rangsortierung konnte nicht geladen werden. Die Liste wird mit Fallback-Reihenfolge sortiert.",
-                        error
-                    );
-
-                    state.rankOptions = [];
-                    sortAgentsByRank();
-                    callback();
-
-                }
-            )
-
-            .getPersonnelRankOptions(
-                token
-            );
-
-    }
 
 
     function formatDate(
@@ -2134,228 +2037,41 @@
     ====================================================== */
 
     function loadAgents() {
-
-        const list =
-            $("agentsList");
-
-
-        if (!list) {
-            return;
-        }
-
-
-        if (!canViewOfficers()) {
-
-            renderAgentsError(
-                "Du besitzt keine Berechtigung zum Einsehen der Personalakten."
-            );
-
-            updateAgentsCount();
-            return;
-
-        }
-
-
-        list.innerHTML = `
-
-            <div class="agents-state">
-
-                <div class="agents-loading">
-
-                    <div class="agents-loading-spinner"></div>
-
-                    Beamte werden geladen...
-
-                </div>
-
-            </div>
-
-        `;
-
-
-        const token =
-            getAgentsSessionToken();
-
-
-        console.log(
-            "LSPD MDT – Beamte: Starte Laden",
-            {
-                hasToken:
-                    !!token,
-
-                tokenLength:
-                    token
-                        ? String(token).length
-                        : 0
-            }
-        );
-
-
-        if (!token) {
-
-            console.error(
-                "LSPD MDT – Beamte: Kein Session-Token vorhanden."
-            );
-
-
-            renderAgentsError(
-                "Keine aktive Sitzung."
-            );
-
-            return;
-
-        }
-
-
-        CloudApi.run
-
-            .withSuccessHandler(
-                response => {
-
-                    console.log(
-                        "LSPD MDT – Beamte: Serverantwort",
-                        response
-                    );
-
-
-                    /*
-                     * Erwartet normalerweise:
-                     *
-                     * [
-                     *   {...},
-                     *   {...}
-                     * ]
-                     *
-                     * Akzeptiert zusätzlich:
-                     *
-                     * {
-                     *   agents: [...]
-                     * }
-                     *
-                     * Eine ungültige Antwort wird NICHT
-                     * mehr still zu [] umgewandelt.
-                     */
-
-                    let agents =
-                        null;
-
-
-                    if (
-                        Array.isArray(
-                            response
-                        )
-                    ) {
-
-                        agents =
-                            response;
-
-                    }
-                    else if (
-                        response &&
-                        Array.isArray(
-                            response.agents
-                        )
-                    ) {
-
-                        agents =
-                            response.agents;
-
-                    }
-
-
-                    if (
-                        !Array.isArray(
-                            agents
-                        )
-                    ) {
-
-                        console.error(
-                            "LSPD MDT – Beamte: Ungültige Serverantwort.",
-                            response
-                        );
-
-
-                        renderAgentsError(
-                            "Der Server hat keine gültige Beamtenliste zurückgegeben."
-                        );
-
-                        return;
-
-                    }
-
-
-                    state.agents =
-                        [
-                            ...agents
-                        ];
-
-
-                    loadAgentRankOrdering(
-                        token,
-                        function() {
-
-                            state.filteredAgents =
-                                [
-                                    ...state.agents
-                                ];
-
-
-                            console.log(
-                                "LSPD MDT – Beamte: Beamte geladen und nach Rang sortiert",
-                                state.agents.length
-                            );
-
-
-                            updateAgentsCount();
-
-                            renderAgentsList();
-
-                        }
-                    );
-
-                }
-            )
-
-            .withFailureHandler(
-                error => {
-
-                    console.error(
-                        "LSPD MDT – Beamte RPC-Fehler:",
-                        error
-                    );
-
-
-                    renderAgentsError(
-                        error?.message ||
-                        String(
-                            error ||
-                            ""
-                        ) ||
-                        "Die Beamten konnten nicht geladen werden."
-                    );
-
-                }
-            )
-
-            .getPersonnelList(
-                token
-            );
-
+        if (!mounted()) return Promise.resolve();
+        if (!canViewOfficers()) {renderAgentsError("Du besitzt keine Berechtigung zum Einsehen der Personalakten.");return Promise.resolve();}
+        if (state.viewMode === "terminated") return loadTerminatedAgents();
+        if (listRequest) return listRequest;
+        if (!state.agents.length) $("agentsList").innerHTML = `<div class="agents-state"><div class="agents-loading"><div class="agents-loading-spinner"></div>Beamte werden geladen …</div></div>`;
+        listRequest = (async()=>{
+            try {
+                const response = await window.runServer("getPersonnelList",getAgentsSessionToken());
+                if (!mounted()) return;
+                const agents=Array.isArray(response)?response:response?.agents;
+                if(!Array.isArray(agents))throw new Error("Der Server hat keine gültige Beamtenliste zurückgegeben.");
+                state.agents=agents;sortAgentsByRank();
+                if(state.viewMode==="active"){updateAgentsCount();filterAgents($("agentsSearchInput")?.value||"");}
+            } catch(error) {if(mounted()&&state.viewMode==="active") {if(!state.agents.length)renderAgentsError(error.message||"Die Beamten konnten nicht geladen werden.");else showAgentError(error.message||"Aktualisierung fehlgeschlagen.");}}
+            finally {listRequest=null;}
+        })();return listRequest;
     }
-
 
     function loadTerminatedAgents() {
         const list = $("agentsList");
         if (!list) return;
         if (state.terminatedLoaded) { filterAgents($("agentsSearchInput")?.value || ""); return; }
+        if (state.terminatedLoading) return;
+        state.terminatedLoading=true;
         list.innerHTML = `<div class="agents-state"><div class="agents-loading"><div class="agents-loading-spinner"></div>Gekündigte Personen werden geladen...</div></div>`;
         const token = getAgentsSessionToken();
-        if (!token) { renderAgentsError("Keine aktive Sitzung."); return; }
+        if (!token) { state.terminatedLoading=false;renderAgentsError("Keine aktive Sitzung."); return; }
         CloudApi.run.withSuccessHandler(rows => {
+            state.terminatedLoading=false;if(!mounted())return;
             state.terminatedRecords = Array.isArray(rows) ? rows : [];
             state.terminatedLoaded = true;
+            if(state.viewMode!=="terminated")return;
             filterAgents($("agentsSearchInput")?.value || "");
         }).withFailureHandler(error => {
+            state.terminatedLoading=false;if(!mounted()||state.viewMode!=="terminated")return;
             console.error("LSPD MDT – Kündigungsarchiv:", error);
             renderAgentsError(error?.message || "Die gekündigten Personen konnten nicht geladen werden.");
         }).getPersonnelTerminations(token);
@@ -2827,14 +2543,15 @@
     ====================================================== */
 
     function loadPersonnelHistory() {
-        const token = getAgentsSessionToken();
-        const agent = state.selectedAgent;
-        if (!token || !agent) return Promise.resolve([]);
-        return new Promise((resolve, reject) => {
-            CloudApi.run.withSuccessHandler(rows => { state.history = Array.isArray(rows) ? rows : []; state.historyLoaded = true; if (state.modalTab === "history") renderPersonnelModal(true); resolve(state.history); }).withFailureHandler(reject).getPersonnelHistory(token, String(agent.id));
-        });
+        const agent=state.selectedAgent,epoch=fileEpoch;
+        if(!agent||!ownModal())return Promise.resolve([]);
+        if(historyRequest?.epoch===epoch)return historyRequest.promise;
+        const promise=window.runServer("getPersonnelHistory",getAgentsSessionToken(),String(agent.id)).then(rows=>{
+            if(epoch===fileEpoch&&ownModal()){state.history=Array.isArray(rows)?rows:[];state.historyLoaded=true;state.historyError="";if(state.modalTab==="history")renderPersonnelModal(true);}
+            return rows;
+        }).finally(()=>{if(historyRequest?.promise===promise)historyRequest=null;});
+        historyRequest={epoch,promise};return promise;
     }
-
 
     function openPersonnelFile(
         userIdOrAgent
@@ -2905,10 +2622,9 @@
         }
 
 
-        state.selectedAgent =
-            {
-                ...agent
-            };
+        const epoch=++fileEpoch;
+        state.selectedAgent = { ...agent };
+        state.bundleError="";state.historyError="";
 
 
         state.modalTab =
@@ -2981,6 +2697,7 @@
             .withSuccessHandler(
                 bundle => {
 
+                    if (epoch!==fileEpoch || !ownModal()) return;
                     if (
                         !state.selectedAgent ||
                         String(
@@ -3091,11 +2808,9 @@
 
             .withFailureHandler(
                 error => {
-
-                    state.bundleLoading =
-                        false;
-
-
+                    if(epoch!==fileEpoch||!ownModal())return;
+                    state.bundleError=error?.message||"Die Personalakte konnte nicht geladen werden.";
+                    state.bundleLoading = false;
                     console.error(
                         "LSPD MDT – Personalakten-Bundle:",
                         error
@@ -3134,7 +2849,7 @@
     function openAgentsModal() {
         const manager = window.FIB_MDT_MODAL;
         if (!manager || typeof manager.open !== "function") { showAgentError("Das globale MDT-Modal ist nicht verfügbar."); return false; }
-        manager.open({ title:"Personalakte", subtitle:"", body:"", modalClass:"agents", cancelText:"Schließen", cancelVisible:true, focus:false });
+        manager.open({ title:"Personalakte", subtitle:"", body:"", modalClass:"agents", cancelText:"Schließen", cancelVisible:true, focus:false, onClose:()=>{fileEpoch++;state.selectedAgent=null;state.bundleLoading=false;state.bundleLoaded=false;if(mounted()&&state.listDirty){state.listDirty=false;loadAgents();}} });
         return true;
     }
 
@@ -3156,10 +2871,7 @@
             state.selectedAgent;
 
 
-        if (!agent) {
-            return;
-        }
-
+        if (!agent || !ownModal()) return;
 
         const name =
             String(
@@ -3209,6 +2921,7 @@
         }
 
 
+        window.FIB_MDT_MODAL.setFooterButtons([]);
         title.textContent =
             name;
 
@@ -3217,6 +2930,10 @@
             `Personalakte · ${rank}`;
 
 
+        if (state.bundleError && !state.bundleLoaded) {
+            body.innerHTML=`<div class="agents-form"><div class="agents-section-card"><p>${escapeHtml(state.bundleError)}</p><button class="agents-system-button" id="agents-retry-file">Erneut versuchen</button></div></div>`;
+            body.querySelector("#agents-retry-file").onclick=()=>openPersonnelFile(agent);return;
+        }
         if (!loaded && state.bundleLoading) {
             body.innerHTML = `${renderTabs("personal")}<div class="agents-form"><div class="agents-personnel-loading-strip">Personalakte wird geladen …</div></div>`;
             bindPersonnelTabEvents();
@@ -3269,6 +2986,7 @@
         }
 
 
+        body.insertAdjacentHTML("afterbegin",`<div class="agents-file-overview"><div><span class="agents-overview-kicker">PERSONALAKTE</span><strong>${escapeHtml(name)}</strong><span>${escapeHtml(rank)}</span></div><div><span>Dienstnummer</span><strong>${escapeHtml(agent.serviceNumber||"—")}</strong></div><div><span>Callsign</span><strong>${escapeHtml(agent.callSign||"—")}</strong></div><div><span>Abteilung</span><strong>${escapeHtml(agent.department||"—")}</strong></div></div>`);
         bindPersonnelTabEvents();
         populateRankSelect();
         if (window.FIB_MDT_SELECTS && typeof window.FIB_MDT_SELECTS.refresh === "function") window.FIB_MDT_SELECTS.refresh();
@@ -3280,6 +2998,10 @@
 
         bindNoteForm();
         bindTerminationForm();
+        // Keep the existing save action visible in the global modal footer, even on long forms.
+        const saveButton=body.querySelector('#agentSavePersonalButton, #agentDepartmentWorkspaceSave');
+        const footer=$("fibGlobalModalFooter");
+        if(saveButton&&footer){saveButton.className="fib-modal-button primary";saveButton.dataset.fibModalCustom="true";footer.insertBefore(saveButton,$("fibGlobalModalSave"));}
 
     }
 
@@ -3373,13 +3095,12 @@
 
 
     function bindPersonnelTabEvents() {
-        const body=$("fibGlobalModalBody");
-        if(!body || body.dataset.personnelTabsBound==="true") return;
-        body.dataset.personnelTabsBound="true";
-        body.addEventListener("click",function(event){
-            const button=event.target.closest("[data-personnel-tab]");
-            if(!button || !body.contains(button) || state.bundleLoading) return;
-            event.preventDefault(); state.modalTab=button.dataset.personnelTab||"personal"; renderPersonnelModal(true);
+        const body=$("fibGlobalModalBody");if(!body)return;
+        body.querySelectorAll("[data-personnel-tab]").forEach(button=>button.onclick=event=>{
+            if(!ownModal()||state.bundleLoading)return;event.preventDefault();
+            const tab=button.dataset.personnelTab||"personal";if(tab===state.modalTab)return;
+            state.modalTab=tab;renderPersonnelModal(true);
+            if(tab==="history"&&!state.historyLoaded){const epoch=fileEpoch;loadPersonnelHistory().catch(error=>{if(epoch!==fileEpoch||!ownModal())return;state.historyLoaded=true;state.historyError=error.message||"Historie konnte nicht geladen werden.";if(state.modalTab==="history")renderPersonnelModal(true);});}
         });
     }
 
@@ -3911,7 +3632,7 @@
         const currentRankId=String(getValue(state.selectedAgent,["rankId","RankId"],""));
         const sorted=[...(state.rankOptions||[])].sort((a,b)=>{const level=getRankLevel(b)-getRankLevel(a);if(level!==0)return level;return String(getValue(a,["name","Name"],"")).localeCompare(String(getValue(b,["name","Name"],"")),"de-DE",{sensitivity:"base"});});
         select.innerHTML=`<option value="">Rang auswählen...</option>`+sorted.map(rank=>{const id=String(getValue(rank,["id","ID"],""));const name=String(getValue(rank,["name","Name"],id));return `<option value="${escapeHtml(id)}" ${id===currentRankId?"selected":""}>${escapeHtml(name)}</option>`;}).join("");
-        select.onchange=function(){const selected=sorted.find(rank=>String(getValue(rank,["id","ID"],""))===String(select.value));if(!selected)return;const rankName=String(getValue(selected,["name","Name"],select.value));state.selectedAgent.rankId=String(select.value);state.selectedAgent.rankName=rankName;state.selectedAgent.rank=rankName;};
+        // The selected rank remains a draft until the profile write succeeds.
     }
 
 
@@ -4081,18 +3802,14 @@
         }
 
 
+        const saveEpoch=fileEpoch;
         CloudApi.run
 
             .withSuccessHandler(
                 () => {
+                    if(saveEpoch!==fileEpoch||!ownModal())return;
 
-                    state.selectedAgent = {
-
-                        ...state.selectedAgent,
-
-                        ...data
-
-                    };
+                    state.selectedAgent = {...state.selectedAgent,...data,personnelNote:data.note};
 
 
                     const selectedRank =
@@ -4135,7 +3852,7 @@
 
                         state.selectedAgent.rank =
                             state.selectedAgent.rankName;
-
+                        state.selectedAgent.rankLevel=getRankLevel(selectedRank);
                     }
 
 
@@ -4172,6 +3889,7 @@
                     }
 
 
+                    sortAgentsByRank();
                     filterAgents(
                         $("agentsSearchInput")
                             ?.value ||
@@ -4307,6 +4025,7 @@
         const save = $("agentDepartmentWorkspaceSave");
         if (save) { save.disabled=true; save.textContent="Wird gespeichert..."; }
         CloudApi.run.withSuccessHandler(() => {
+            if(!ownModal()||String(state.selectedAgent.id)!==userId)return;
             state.selectedAgent = {...state.selectedAgent, department:data.department};
             state.agents = state.agents.map(item => String(item.id)===userId ? {...item,department:data.department} : item);
             filterAgents($("agentsSearchInput")?.value || "");
@@ -4316,7 +4035,7 @@
         }).withFailureHandler(error => {
             if (save) { save.disabled=false; save.textContent="Abteilung speichern"; }
             showAgentError(error?.message || "Die Abteilung konnte nicht gespeichert werden.");
-        }).savePersonnelProfile(token,userId,data);
+        }).savePersonnelDepartment(token,userId,data.department);
     }
 
     /* =====================================================
@@ -4965,10 +4684,12 @@
         };
 
 
+        const saveEpoch=fileEpoch;
         CloudApi.run
 
             .withSuccessHandler(
                 created => {
+                    if(saveEpoch!==fileEpoch||!ownModal())return;
 
                     state.trainings =
                         [
@@ -5056,10 +4777,12 @@
             getAgentsSessionToken();
 
 
+        const saveEpoch=fileEpoch;
         CloudApi.run
 
             .withSuccessHandler(
                 () => {
+                    if(saveEpoch!==fileEpoch||!ownModal())return;
 
                     state.trainings =
                         state.trainings.filter(
@@ -5184,16 +4907,18 @@
             if(requiredIds.some(id=>!String($(id)?.value||"").trim())){showAgentError("Bitte fülle alle Pflichtfelder des Kündigungsschreibens aus.");return;}
             if(!data.issuerSignature){showAgentError("Bitte setze die Signatur der verantwortlichen Person.");return;}
             const button=$("terminationSubmitButton"); if(button)button.disabled=true;
+            const targetId=String(state.selectedAgent.id),saveEpoch=fileEpoch;
             CloudApi.run.withSuccessHandler(result=>{
-                const targetId=String(state.selectedAgent.id);
-                state.agents=state.agents.map(item=>String(item.id)===targetId?{...item,active:false,approved:false,personnelStatus:"Ausgeschieden"}:item);
+                if(saveEpoch!==fileEpoch||!ownModal())return;
+                state.agents=state.agents.filter(item=>String(item.id)!==targetId);
+                state.terminatedLoaded=false;updateAgentsCount();
                 state.selectedAgent={...state.selectedAgent,active:false,approved:false,personnelStatus:"Ausgeschieden"};
                 if (result.termination) state.terminations = [result.termination, ...(state.terminations || [])];
                 filterAgents($("agentsSearchInput")?.value || "");
                 showAgentSuccess("Kündigung dokumentiert. Das dauerhafte externe Dokument wurde geöffnet.");
                 if(result.url) { try { window.open(new URL(result.url,window.location.origin).href,"_blank","noopener"); } catch(e) {} if(navigator.clipboard) navigator.clipboard.writeText(new URL(result.url,window.location.origin).href).catch(()=>{}); }
                 state.modalTab="history"; renderPersonnelModal(true); loadPersonnelHistory().catch(()=>{});
-            }).withFailureHandler(error=>{if(button)button.disabled=false;showAgentError(error?.message||"Das Kündigungsschreiben konnte nicht erstellt werden.");}).createPersonnelTermination(getAgentsSessionToken(),String(state.selectedAgent.id),data);
+            }).withFailureHandler(error=>{if(button)button.disabled=false;showAgentError(error?.message||"Das Kündigungsschreiben konnte nicht erstellt werden.");}).createPersonnelTermination(getAgentsSessionToken(),targetId,data);
         });
     }
 
@@ -5216,7 +4941,7 @@
         const terminations = Array.isArray(state.terminations) ? state.terminations : [];
         const actionLabels = { profile_updated: "Stammdaten geändert", rank_changed: "Dienstgrad geändert", training_created: "Schulung hinzugefügt", training_deleted: "Schulung gelöscht", note_created: "Vermerk hinzugefügt", note_deleted: "Vermerk gelöscht", sanction_issued: "Interne Sanktion festgesetzt", termination_created: "Kündigung / Austritt dokumentiert" };
         const terminationCards = terminations.length ? `<div class="agents-section"><div class="agents-section-title">Kündigungsschreiben / Austritte</div><div class="agents-termination-history-list">${terminations.map(t=>{const p=t.payload||{};const url=t.publicToken?`/?terminationShare=${encodeURIComponent(t.publicToken)}`:"";return `<div class="agents-section-card agents-termination-link-card"><div><div class="agents-entry-title">${escapeHtml(p.documentNumber||t.documentNumber||"Kündigungsschreiben")}</div><div class="agents-entry-meta"><span>${escapeHtml(p.terminationType||"Kündigung / Austritt")}</span><span>${escapeHtml(p.effectiveDate||"")}</span><span>${escapeHtml(t.createdByName||"System")}</span></div><div class="agents-history-detail">${escapeHtml(p.reason||"Keine Begründung hinterlegt.")}</div></div>${url?`<a class="agents-system-button agents-system-button-primary agents-termination-link" href="${escapeHtml(url)}" target="_blank" rel="noopener">Dokument öffnen</a>`:`<span class="agents-terminated-legacy">Dokument vorhanden · kein öffentlicher Link im Datensatz</span>`}</div>`}).join("")}</div></div>` : `<div class="agents-section"><div class="agents-section-title">Kündigungsschreiben / Austritte</div><div class="agents-empty-list">Für diese Personalakte wurden noch keine Kündigungsschreiben gespeichert.</div></div>`;
-        return `${renderTabs("history")}<div class="agents-form">${terminationCards}<div class="agents-section"><div class="agents-section-title">Änderungshistorie</div><div class="agents-history-list">${!state.historyLoaded ? `<div class="agents-personnel-loading-strip">Historie wird geladen …</div>` : !entries.length ? `<div class="agents-empty-list">Für diese Personalakte sind noch keine Änderungen protokolliert.</div>` : entries.map(row => { const date = row.created_at || row.createdAt; return `<article class="agents-history-item"><div class="agents-history-dot"></div><div class="agents-history-main"><div class="agents-history-title">${escapeHtml(actionLabels[row.action] || row.action || "Änderung")}</div><div class="agents-history-meta">${date ? escapeHtml(new Date(date).toLocaleString("de-DE")) : "Datum unbekannt"} · ${escapeHtml(row.actor_name || row.actorName || "System")}</div>${row.detail ? `<div class="agents-history-detail">${escapeHtml(row.detail)}</div>` : ""}</div></article>`; }).join("")}</div></div></div>`;
+        return `${renderTabs("history")}<div class="agents-form">${terminationCards}<div class="agents-section"><div class="agents-section-title">Änderungshistorie</div><div class="agents-history-list">${state.historyError ? `<div class="agents-empty-list">${escapeHtml(state.historyError)}</div>` : !state.historyLoaded ? `<div class="agents-personnel-loading-strip">Historie wird geladen …</div>` : !entries.length ? `<div class="agents-empty-list">Für diese Personalakte sind noch keine Änderungen protokolliert.</div>` : entries.map(row => { const date = row.created_at || row.createdAt; return `<article class="agents-history-item"><div class="agents-history-dot"></div><div class="agents-history-main"><div class="agents-history-title">${escapeHtml(actionLabels[row.action] || row.action || "Änderung")}</div><div class="agents-history-meta">${date ? escapeHtml(new Date(date).toLocaleString("de-DE")) : "Datum unbekannt"} · ${escapeHtml(row.actor_name || row.actorName || "System")}</div>${row.detail ? `<div class="agents-history-detail">${escapeHtml(row.detail)}</div>` : ""}</div></article>`; }).join("")}</div></div></div>`;
     }
 
 
@@ -5721,10 +5446,12 @@
         };
 
 
+        const saveEpoch=fileEpoch;
         CloudApi.run
 
             .withSuccessHandler(
                 created => {
+                    if(saveEpoch!==fileEpoch||!ownModal())return;
 
                     state.notes =
                         [
@@ -5809,10 +5536,12 @@
             getAgentsSessionToken();
 
 
+        const saveEpoch=fileEpoch;
         CloudApi.run
 
             .withSuccessHandler(
                 () => {
+                    if(saveEpoch!==fileEpoch||!ownModal())return;
 
                     state.notes =
                         state.notes.filter(
@@ -5930,64 +5659,17 @@
     }
 
 
-    async function refreshOpenPersonnelFile() {
-        const agent = state.selectedAgent;
-        const token = getAgentsSessionToken();
-        if (!agent || !token || state.bundleLoading) return;
-
-        const idValue = String(agent.id || agent.userId || "");
-        if (!idValue) return;
-
-        try {
-            state.bundleLoading = true;
-            const bundle = await new Promise((resolve, reject) => {
-                CloudApi.run
-                    .withSuccessHandler(resolve)
-                    .withFailureHandler(reject)
-                    .getPersonnelFileBundle(token, idValue);
-            });
-
-            if (!state.selectedAgent || String(state.selectedAgent.id || state.selectedAgent.userId || "") !== idValue) return;
-
-            state.selectedAgent = { ...state.selectedAgent, ...(bundle?.agent || {}) };
-            state.rankOptions = Array.isArray(bundle?.rankOptions) ? bundle.rankOptions : state.rankOptions;
-            state.trainings = Array.isArray(bundle?.trainings) ? bundle.trainings : [];
-            state.notes = Array.isArray(bundle?.notes) ? bundle.notes : [];
-            state.sanctions = Array.isArray(bundle?.sanctions) ? bundle.sanctions : [];
-            state.terminations = Array.isArray(bundle?.terminations) ? bundle.terminations : [];
-            state.history = Array.isArray(bundle?.history) ? bundle.history : [];
-            state.sanctionsVisible = bundle?.sanctionsVisible === true;
-            state.trainingsLoaded = true;
-            state.notesLoaded = true;
-            state.sanctionsLoaded = true;
-            state.historyLoaded = true;
-            state.bundleLoaded = true;
-        } catch (error) {
-            console.warn("LSPD MDT – Offene Personalakte konnte nicht aktualisiert werden:", error);
-        } finally {
-            state.bundleLoading = false;
-            if (state.selectedAgent && String(state.selectedAgent.id || state.selectedAgent.userId || "") === idValue) {
-                renderPersonnelModal(true);
-            }
-        }
-    }
-
-    /* =====================================================
-       GLOBAL FUNCTIONS
-    ====================================================== */
-
-    window.__fibPageLifecycle.on(window, "fib-mdt:refresh-request", function (event) { if (document.getElementById("agentsPage") && !(event.detail && event.detail.source === "mutation")) loadAgents(); });
-
-    window.__fibPageLifecycle.on(window, "fib-mdt:data-changed", function (event) {
-        if (!document.getElementById("agentsPage")) return;
-        const method = String(event.detail && event.detail.method || "");
-        if (!/Personnel|Agent|Training|Note|Rank|User|Termination|Sanction/i.test(method)) return;
-        const modal = document.getElementById("fibGlobalModalOverlay");
-        if (modal && modal.classList.contains("open") && state.selectedAgent) {
-            refreshOpenPersonnelFile();
-        } else {
-            loadAgents();
-        }
+    window.__fibPageLifecycle.on(window,"fib-mdt:refresh-request",event=>{
+        if(mounted()&&!ownModal()&&event.detail?.source!=="mutation")loadAgents();
+    });
+    window.__fibPageLifecycle.on(window,"fib-mdt:data-changed",event=>{
+        if(!mounted())return;
+        const method=String(event.detail?.method||"");
+        if(!/Personnel|Agent|Training|Note|Rank|User|Termination|Sanction/i.test(method))return;
+        if(/Termination|User/i.test(method))state.terminatedLoaded=false;
+        // Local save handlers update the active form. Never replace a draft in response to a mutation event.
+        if(ownModal()){state.listDirty=true;state.historyLoaded=false;return;}
+        loadAgents();
     });
 
     window.openPersonnelFile =
@@ -5999,6 +5681,8 @@
 
 
 })();
+
+
 </script>
 
 <style>

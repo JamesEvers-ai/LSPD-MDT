@@ -260,69 +260,91 @@ async function uniformDispatch(method,args,env,token){
 }
 
 async function financeDispatch(method,args,env,token){
-  const supported=["getBonusData","saveBonusSubmission","saveBonusForEmployee","approveBonusSubmission","rejectBonusSubmission","payBonusSubmission","getAccountingData","createAccountingEntry","setOrgAccountBalance"];
+  const supported=["getFinanceAccess","getBonusData","saveBonusSubmission","saveBonusForEmployee","approveBonusSubmission","rejectBonusSubmission","payBonusSubmission","getAccountingData","createAccountingEntry","setOrgAccountBalance"];
   if(!supported.includes(method)) return undefined;
   const now=new Date().toISOString();
   const rates={event:15000,towing:5000,drugs:5000,entry_control:25000};
-  const calcTotal=d=>Number(d.eventCount||0)*rates.event+Number(d.towingCount||0)*rates.towing+Number(d.drugsCount||0)*rates.drugs+Number(d.entryControlCount||0)*rates.entry_control;
+  const permits=(au,key)=>au.master||((au.permissions.includes("*")||au.permissions.includes(key))&&(!au.departmentScopedPermissions.includes(key)||au.departmentPermissions.includes(key)));
+  const calcTotal=d=>{
+    const counts=[d.eventCount,d.towingCount,d.drugsCount,d.entryControlCount].map(x=>Number(x??0));
+    if(counts.some(x=>!Number.isSafeInteger(x)||x<0))throw Object.assign(new Error("Aktivitäten müssen als nichtnegative ganze Zahlen angegeben werden."),{status:400});
+    const total=counts.reduce((sum,n,i)=>sum+n*Object.values(rates)[i],0);
+    if(!Number.isSafeInteger(total)||total>9999999999)throw Object.assign(new Error("Bonusbetrag ist zu hoch."),{status:400});
+    return total;
+  };
+  const assertDate=v=>{if(!text(v)||!Number.isFinite(Date.parse(v)))throw Object.assign(new Error("Bitte ein gültiges Tätigkeitsdatum angeben."),{status:400});return new Date(v).toISOString();};
+  const eligibleRank=(u,ranks)=>ranks.find(r=>String(r.id)===String(u.rank)||String(r.name)===String(u.rank));
+  const checkEligible=async(uid)=>{
+    const [users,ranks]=await Promise.all([db(env,"users",{query:{select:"id,name,rank,active,approved",id:`eq.${uid}`,limit:"1"}}),rankRows(env)]);
+    const u=users?.[0],r=u&&eligibleRank(u,ranks);
+    if(!u||!u.active||!u.approved||Number(r?.level||0)<=1)throw Object.assign(new Error("Bonusauszahlungen sind nur für aktive, freigegebene Mitarbeiter über Rang-Level 1 vorgesehen."),{status:400});
+    return {u,r};
+  };
+  const patchOpen=async(rid,patch,allowed,owner,expectedUpdatedAt)=>{
+    const q={id:`eq.${rid}`,status:`in.(${allowed.join(",")})`,select:"*"};if(owner)q.employee_id=`eq.${owner}`;if(expectedUpdatedAt)q.updated_at=`eq.${expectedUpdatedAt}`;
+    const rows=await db(env,"fib_bonus_payouts",{method:"PATCH",query:q,body:patch,prefer:"return=representation"});
+    if(!rows?.length)throw Object.assign(new Error("Diese Einreichung wurde inzwischen bearbeitet. Bitte aktualisieren."),{status:409});return rows[0];
+  };
+  if(method==="getFinanceAccess"){
+    const au=await authz(env,token);return {bonuses:permits(au,"bonuses.view"),accounting:permits(au,"accounting.view")};
+  }
   if(method==="getBonusData"){
     const au=await authz(env,token,"bonuses.view");
-    const [users,people,ranks,rows]=await Promise.all([
-      db(env,"users",{query:{select:"id,name,rank,active,approved",active:"eq.true",approved:"eq.true",order:"name.asc"}}),
-      db(env,"personnel",{query:{select:"user_id,department,unit,call_sign"}}),rankRows(env),
-      db(env,"fib_bonus_payouts",{query:{select:"id,employee_id,employee_name,rank_id,rank_name,rank_level,event_count,towing_count,drugs_count,entry_control_count,total_amount,status,evidence,description,activity_date,submitted_at,reviewed_at,reviewed_by_name,paid_at,paid_by_name",order:"submitted_at.desc",limit:"500"}})
-    ]);
-    const peopleBy=new Map((people||[]).map(p=>[String(p.user_id),p]));
-    const rankBy=new Map((ranks||[]).map(r=>[String(r.id),r]));
-    const eligible=(users||[]).map(u=>{const r=rankBy.get(String(u.rank))||(ranks||[]).find(x=>String(x.name)===String(u.rank));const p=peopleBy.get(String(u.id))||{};return {...u,rankId:r?.id||u.rank,rankName:r?.name||u.rank||"Kein Rang",rankLevel:Number(r?.level||0),department:p.department||"",unit:p.unit||"",callSign:p.call_sign||""};}).filter(u=>u.rankLevel>1);
-    const canManage=au.master||au.permissions.includes("bonuses.manage"); const visibleRows=canManage?(rows||[]):(rows||[]).filter(r=>String(r.employee_id)===String(au.user.id)); const currentRank=(ranks||[]).find(r=>String(r.id)===String(au.user.rank))||(ranks||[]).find(r=>String(r.name)===String(au.user.rank));
-    return {rates,eligibleEmployees:eligible,submissions:visibleRows,canManage,currentUser:{id:au.user.id,name:au.user.name,rankLevel:Number(currentRank?.level||0)}};
+    const canManage=permits(au,"bonuses.manage");
+    const q={select:"id,employee_id,employee_name,rank_id,rank_name,rank_level,event_count,towing_count,drugs_count,entry_control_count,total_amount,status,evidence,description,activity_date,submitted_at,reviewed_at,reviewed_by_name,rejection_reason,paid_at,paid_by_name,updated_at",order:"submitted_at.desc,id.desc",limit:"501"};
+    if(!canManage)q.employee_id=`eq.${au.user.id}`;
+    const [ranks,rows,users,people]=await Promise.all([rankRows(env),db(env,"fib_bonus_payouts",{query:q}),canManage?db(env,"users",{query:{select:"id,name,rank,active,approved",active:"eq.true",approved:"eq.true",order:"name.asc"}}):[],canManage?db(env,"personnel",{query:{select:"user_id,department,unit,call_sign"}}):[]]);
+    const peopleBy=new Map(people.map(p=>[String(p.user_id),p]));
+    const rankBy=new Map(ranks.flatMap(r=>[[String(r.id),r],[String(r.name),r]]));
+    const eligible=users.map(u=>{const r=rankBy.get(String(u.rank)),p=peopleBy.get(String(u.id))||{};return {...u,rankId:r?.id||u.rank,rankName:r?.name||u.rank||"Kein Rang",rankLevel:Number(r?.level||0),department:p.department||"",unit:p.unit||"",callSign:p.call_sign||""};}).filter(u=>u.rankLevel>1);
+    const currentRank=rankBy.get(String(au.user.rank));
+    return {rates,eligibleEmployees:eligible,submissions:rows.slice(0,500),truncated:rows.length>500,canManage,currentUser:{id:au.user.id,name:au.user.name,rankLevel:Number(currentRank?.level||0)}};
   }
-  if(method==="saveBonusSubmission"){
-    const au=await authz(env,token,"bonuses.view");
-    const d=args[1]||{}; const total=calcTotal(d); if(total<=0)throw new Error("Bitte mindestens eine bonusfähige Aktivität angeben."); if(!text(d.description))throw new Error("Bitte beschreiben, was gemacht wurde."); if(!text(d.evidence)||!/^https:\/\//i.test(text(d.evidence)))throw new Error("Bitte einen HTTPS-Nachweislink mit dem Beweisbild angeben."); if(!text(d.activityDate))throw new Error("Bitte Datum und Uhrzeit der Tätigkeit angeben.");
-    const existingId=text(d.id); let target=au.user; let rankLevel=0,rankName=au.user.rank||"Kein Rang",rankId=au.user.rank||"";
-    const ranks=await rankRows(env);const r=ranks.find(x=>String(x.id)===String(au.user.rank))||ranks.find(x=>String(x.name)===String(au.user.rank));rankLevel=Number(r?.level||0);rankName=r?.name||rankName;rankId=r?.id||rankId;
+  if(method==="saveBonusSubmission"||method==="saveBonusForEmployee"){
+    const manual=method==="saveBonusForEmployee";
+    const au=await authz(env,token,manual?"bonuses.manage":"bonuses.view");
+    const d=args[1]||{},uid=manual?text(d.employeeId):String(au.user.id),existingId=text(d.id);
+    if(!uid)throw Object.assign(new Error("Mitarbeiter fehlt."),{status:400});
+    const total=calcTotal(d);if(total<=0)throw Object.assign(new Error("Bitte mindestens eine bonusfähige Aktivität angeben."),{status:400});
+    if(!text(d.description))throw Object.assign(new Error("Bitte eine Beschreibung angeben."),{status:400});
+    const evidence=text(d.evidence);
+    if((!manual||evidence)&&!/^https:\/\/[^\s]+$/i.test(evidence))throw Object.assign(new Error("Bitte einen HTTPS-Nachweislink mit dem Beweisbild angeben."),{status:400});
+    const activityDate=assertDate(d.activityDate);
+    const {u,r}=await checkEligible(uid);
+    const payload={employee_id:u.id,employee_name:u.name,rank_id:r.id,rank_name:r.name,rank_level:Number(r.level),event_count:Number(d.eventCount||0),towing_count:Number(d.towingCount||0),drugs_count:Number(d.drugsCount||0),entry_control_count:Number(d.entryControlCount||0),total_amount:total,status:"pending",evidence,description:text(d.description),activity_date:activityDate,updated_at:now};
     if(existingId){
-      const existing=(await db(env,"fib_bonus_payouts",{query:{select:"*",id:`eq.${existingId}`,limit:"1"}}))?.[0];
-      if(!existing)throw Object.assign(new Error("Bonus-Einreichung nicht gefunden."),{status:404});
-      if(!au.master&&!au.permissions.includes("bonuses.manage")&&String(existing.employee_id)!==String(au.user.id))throw Object.assign(new Error("Du darfst nur deine eigene Einreichung bearbeiten."),{status:403});
-      if(["paid","approved"].includes(String(existing.status).toLowerCase())&&!au.master&&!au.permissions.includes("bonuses.manage"))throw new Error("Diese Einreichung wurde bereits bearbeitet.");
-      const patch={event_count:Number(d.eventCount||0),towing_count:Number(d.towingCount||0),drugs_count:Number(d.drugsCount||0),entry_control_count:Number(d.entryControlCount||0),total_amount:total,evidence:text(d.evidence),description:text(d.description),activity_date:text(d.activityDate),status:au.permissions.includes("bonuses.manage")||au.master?text(d.status)||existing.status:"pending",updated_at:now};
-      const saved=await db(env,"fib_bonus_payouts",{method:"PATCH",query:{id:`eq.${existingId}`,select:"*"},body:patch,prefer:"return=representation"});return saved?.[0]||{...existing,...patch};
+      if(manual)throw Object.assign(new Error("Der Bonusrechner erstellt eine eigenständige Vormerkung. Bestehende Einreichungen bleiben unverändert."),{status:400});
+      return patchOpen(existingId,{...payload,reviewed_at:null,reviewed_by:null,reviewed_by_name:null,rejection_reason:null},["pending","rejected"],uid,text(d.expectedUpdatedAt));
     }
-    const row={id:id("BON"),employee_id:au.user.id,employee_name:au.user.name,rank_id:rankId,rank_name:rankName,rank_level:rankLevel,event_count:Number(d.eventCount||0),towing_count:Number(d.towingCount||0),drugs_count:Number(d.drugsCount||0),entry_control_count:Number(d.entryControlCount||0),total_amount:total,status:"pending",evidence:text(d.evidence),description:text(d.description),activity_date:text(d.activityDate),submitted_at:now,created_at:now,created_by:au.user.id,created_by_name:au.user.name};
+    const row={id:id("BON"),...payload,submitted_at:now,created_at:now,created_by:au.user.id,created_by_name:au.user.name};
     const saved=await db(env,"fib_bonus_payouts",{method:"POST",query:{select:"*"},body:row,prefer:"return=representation"});return saved?.[0]||row;
   }
-  if(method==="saveBonusForEmployee"){
-    const au=await authz(env,token,"bonuses.manage");
-    const d=args[1]||{}; const employeeId=text(d.employeeId); if(!employeeId)throw new Error("Mitarbeiter fehlt.");
-    const users=await db(env,"users",{query:{select:"id,name,rank,active,approved",id:`eq.${employeeId}`,limit:"1"}}); const target=users?.[0]; if(!target)throw new Error("Mitarbeiter nicht gefunden.");
-    const ranks=await rankRows(env); const rr=ranks.find(x=>String(x.id)===String(target.rank))||ranks.find(x=>String(x.name)===String(target.rank)); const rankLevel=Number(rr?.level||0);
-    if(rankLevel<=1)throw new Error("Bonusauszahlungen sind nur für Mitarbeiter über Rang-Level 1 vorgesehen.");
-    const total=calcTotal(d); if(total<=0)throw new Error("Bitte mindestens eine bonusfähige Aktivität angeben."); if(!text(d.description))throw new Error("Bitte einen Verwendungszweck bzw. eine Beschreibung angeben.");
-    const existing=(await db(env,"fib_bonus_payouts",{query:{select:"id,status",employee_id:`eq.${employeeId}`,status:"in.(pending,rejected)",order:"submitted_at.desc",limit:"1"}}))?.[0];
-    const payload={employee_id:target.id,employee_name:target.name,rank_id:rr?.id||target.rank,rank_name:rr?.name||target.rank||"Kein Rang",rank_level:rankLevel,event_count:Number(d.eventCount||0),towing_count:Number(d.towingCount||0),drugs_count:Number(d.drugsCount||0),entry_control_count:Number(d.entryControlCount||0),total_amount:total,status:"pending",evidence:text(d.evidence),description:text(d.description),activity_date:text(d.activityDate),updated_at:now};
-    if(existing){const saved=await db(env,"fib_bonus_payouts",{method:"PATCH",query:{id:`eq.${existing.id}`,select:"*"},body:payload,prefer:"return=representation"});return saved?.[0]||{...payload,id:existing.id};}
-    const row={id:id("BON"),...payload,submitted_at:now,created_at:now,created_by:au.user.id,created_by_name:au.user.name};
-    const saved=await db(env,"fib_bonus_payouts",{method:"POST",query:{select:"*"},body:row,prefer:"return=representation"}); return saved?.[0]||row;
-  }
   if(method==="approveBonusSubmission"||method==="rejectBonusSubmission"){
-    const au=await authz(env,token,"bonuses.manage");const rid=text(args[1]);const rows=await db(env,"fib_bonus_payouts",{query:{select:"*",id:`eq.${rid}`,limit:"1"}});const row=rows?.[0];if(!row)throw Object.assign(new Error("Bonus-Einreichung nicht gefunden."),{status:404});
-    const status=method==="approveBonusSubmission"?"approved":"rejected";const patch={status,reviewed_at:now,reviewed_by:au.user.id,reviewed_by_name:au.user.name,rejection_reason:method==="rejectBonusSubmission"?text(args[2]):""};const saved=await db(env,"fib_bonus_payouts",{method:"PATCH",query:{id:`eq.${rid}`,select:"*"},body:patch,prefer:"return=representation"});return saved?.[0]||{...row,...patch};
+    const au=await authz(env,token,"bonuses.manage"),rid=text(args[1]),reject=method==="rejectBonusSubmission",reason=reject?text(args[2]):"";
+    let expected=text(reject?args[3]:args[2]);
+    if(reject&&!reason)throw Object.assign(new Error("Bitte einen Ablehnungsgrund angeben."),{status:400});
+    if(!reject){
+      const row=(await db(env,"fib_bonus_payouts",{query:{select:"id,employee_id,status,total_amount,updated_at",id:`eq.${rid}`,limit:"1"}}))?.[0];
+      if(!row||row.status!=="pending"||!(Number(row.total_amount)>0))throw Object.assign(new Error("Nur offene Einreichungen mit positivem Betrag können genehmigt werden."),{status:400});
+      if(expected&&expected!==String(row.updated_at||""))throw Object.assign(new Error("Diese Einreichung wurde inzwischen geändert. Bitte erneut prüfen."),{status:409});
+      expected=expected||text(row.updated_at);
+      await checkEligible(row.employee_id);
+    }
+    return patchOpen(rid,{status:reject?"rejected":"approved",reviewed_at:now,reviewed_by:au.user.id,reviewed_by_name:au.user.name,rejection_reason:reject?reason:"",updated_at:now},["pending"],null,expected);
   }
   if(method==="payBonusSubmission"){
-    const au=await authz(env,token,"bonuses.manage");const rid=text(args[1]);const rows=await db(env,"fib_bonus_payouts",{query:{select:"*",id:`eq.${rid}`,limit:"1"}});const row=rows?.[0];if(!row)throw Object.assign(new Error("Bonus-Einreichung nicht gefunden."),{status:404});if(String(row.status)!=="approved")throw new Error("Nur genehmigte Bonusauszahlungen können ausgezahlt werden.");
+    const au=await authz(env,token,"bonuses.manage");const rid=text(args[1]);const rows=await db(env,"fib_bonus_payouts",{query:{select:"*",id:`eq.${rid}`,limit:"1"}});const row=rows?.[0];if(!row)throw Object.assign(new Error("Bonus-Einreichung nicht gefunden."),{status:404});if(String(row.status)!=="approved"||!(Number(row.total_amount)>0))throw Object.assign(new Error("Nur genehmigte Bonusauszahlungen mit positivem Betrag können ausgezahlt werden."),{status:400});await checkEligible(row.employee_id);
     const atomic=await rpc(env,"lspd_pay_bonus_payout",{p_bonus_id:rid,p_user_id:au.user.id,p_user_name:au.user.name}); const saved=(await db(env,"fib_bonus_payouts",{query:{select:"*",id:`eq.${rid}`,limit:"1"}}))?.[0]; return {success:true,item:saved||row,balance:Number(atomic?.balance||0)};
   }
   if(method==="getAccountingData"){
-    const au=await authz(env,token,"accounting.view");const [acct,entries]=await Promise.all([db(env,"fib_org_account",{query:{select:"id,balance,updated_at",id:"eq.MAIN",limit:"1"}}),db(env,"fib_accounting_entries",{query:{select:"id,entry_type,amount,purpose,description,reference_type,reference_id,created_by,created_by_name,created_at",order:"created_at.desc",limit:"500"}})]);return {balance:Number(acct?.[0]?.balance||0),updatedAt:acct?.[0]?.updated_at||null,entries:entries||[],canManage:au.master||au.permissions.includes("accounting.manage")};
+    const au=await authz(env,token,"accounting.view");const [acct,entries]=await Promise.all([db(env,"fib_org_account",{query:{select:"id,balance,updated_at",id:"eq.MAIN",limit:"1"}}),db(env,"fib_accounting_entries",{query:{select:"id,entry_type,amount,purpose,description,reference_type,reference_id,created_by,created_by_name,created_at",order:"created_at.desc",limit:"500"}})]);return {balance:Number(acct?.[0]?.balance||0),updatedAt:acct?.[0]?.updated_at||null,entries:entries||[],canManage:permits(au,"accounting.manage")};
   }
-  if(method==="createAccountingEntry"){
-    const au=await authz(env,token,"accounting.manage");const d=args[1]||{},type=text(d.entryType),amount=Number(d.amount);if(!["income","expense"].includes(type)||!Number.isFinite(amount)||amount<=0)throw new Error("Bitte eine gültige Einnahme oder Ausgabe angeben.");if(!text(d.purpose))throw new Error("Ein Verwendungszweck ist erforderlich.");const acct=(await db(env,"fib_org_account",{query:{select:"id,balance",id:"eq.MAIN",limit:"1"}}))?.[0]||{id:"MAIN",balance:0};const next=Number(acct.balance)+(type==="income"?amount:-amount);if(next<0)throw new Error("Das Organisationskonto kann nicht unter 0 € fallen.");await db(env,"fib_org_account",{method:"PATCH",query:{id:"eq.MAIN"},body:{balance:next,updated_at:now,updated_by:au.user.id},prefer:"return=minimal"});const row={id:id("ACC"),entry_type:type,amount,purpose:text(d.purpose),description:text(d.description),reference_type:"manual",reference_id:null,created_by:au.user.id,created_by_name:au.user.name,created_at:now};const saved=await db(env,"fib_accounting_entries",{method:"POST",query:{select:"*"},body:row,prefer:"return=representation"});return {success:true,entry:saved?.[0]||row,balance:next};
-  }
-  if(method==="setOrgAccountBalance"){
-    const au=await authz(env,token,"accounting.manage");const next=Number(args[1]);if(!Number.isFinite(next)||next<0)throw new Error("Bitte einen gültigen Kontostand ab 0 € eingeben.");const acct=(await db(env,"fib_org_account",{query:{select:"id,balance",id:"eq.MAIN",limit:"1"}}))?.[0]||{id:"MAIN",balance:0};const delta=next-Number(acct.balance||0);await db(env,"fib_org_account",{method:"PATCH",query:{id:"eq.MAIN"},body:{balance:next,updated_at:now,updated_by:au.user.id},prefer:"return=minimal"});if(delta!==0)await db(env,"fib_accounting_entries",{method:"POST",body:{id:id("ACC"),entry_type:"adjustment",amount:Math.abs(delta),purpose:"Manuelle Kontostandsanpassung",description:`Kontostand von ${Number(acct.balance||0).toFixed(2)} € auf ${next.toFixed(2)} € geändert.`,reference_type:"balance_adjustment",reference_id:null,created_by:au.user.id,created_by_name:au.user.name,created_at:now},prefer:"return=minimal"});return {success:true,balance:next};
+  if(method==="createAccountingEntry"||method==="setOrgAccountBalance"){
+    const au=await authz(env,token,"accounting.manage"),adjustment=method==="setOrgAccountBalance",d=args[1]||{};
+    const type=adjustment?"adjustment":text(d.entryType),amount=Number(adjustment?args[1]:d.amount);
+    if((!adjustment&&! ["income","expense"].includes(type))||!Number.isFinite(amount)||amount<0||(!adjustment&&amount===0)||amount>999999999999.99||Math.abs(amount*100-Math.round(amount*100))>0.0001)throw Object.assign(new Error("Bitte einen gültigen Dollarbetrag mit maximal zwei Nachkommastellen eingeben."),{status:400});
+    if(!adjustment&&!text(d.purpose))throw Object.assign(new Error("Ein Verwendungszweck ist erforderlich."),{status:400});
+    return rpc(env,"lspd_book_accounting_v49",{p_type:type,p_amount:amount,p_purpose:adjustment?"Manuelle Kontostandsanpassung":text(d.purpose),p_description:adjustment?"":text(d.description),p_user_id:au.user.id,p_user_name:au.user.name});
   }
 }
 
@@ -617,9 +639,11 @@ async function dispatchCore(method,args,env,token){
    db(env,"personnel",{query:{select:"user_id,service_number,department,unit,call_sign,phone,email,address,entry_date,personnel_status,note"}}),
    rankRows(env)
   ]);
+  const peopleBy=new Map((people||[]).map(p=>[String(p.user_id),p]));
+  const ranksBy=new Map((ranks||[]).flatMap(r=>[[String(r.id),r],[String(r.name),r]]));
   return (users||[]).map(u=>{
-   const p=normalizePersonnelRow((people||[]).find(x=>String(x.user_id)===String(u.id))||{});
-   const r=(ranks||[]).find(x=>String(x.id)===String(u.rank)||String(x.name)===String(u.rank));
+   const p=normalizePersonnelRow(peopleBy.get(String(u.id))||{});
+   const r=ranksBy.get(String(u.rank));
    return {...p,id:u.id,userId:u.id,username:u.username,name:u.name,rank:r?.name||u.rank||"Kein Rang",rankId:r?.id||u.rank||"",rankLevel:r?.level||0,active:u.active,approved:u.approved,profileImage:u.profile_image||p.profileImage||""};
   });
  }
@@ -632,11 +656,10 @@ async function dispatchCore(method,args,env,token){
  if(method==="getPersonnelFileBundle"||method==="getPersonnelFile"){
   const au=await authz(env,token,"officers.view");const uid=text(args[1]);if(!uid)throw new Error("Keine Benutzer-ID angegeben.");
   const us=await db(env,"users",{query:{select:"id,username,name,rank,active,approved,profile_image",id:`eq.${uid}`,limit:"1"}});if(!us?.length)throw Object.assign(new Error("Beamter nicht gefunden."),{status:404});
-  const [pp,tt,nn,ss,hh,tx,ranks]=await Promise.all([
-   db(env,"personnel",{query:{select:"*",user_id:`eq.${uid}`,limit:"1"}}),
-   db(env,"personnel_trainings",{query:{select:"*",user_id:`eq.${uid}`,order:"created_at.desc"}}),
-   db(env,"personnel_notes",{query:{select:"*",user_id:`eq.${uid}`,order:"created_at.desc"}}),
-   db(env,"fib_internal_fines",{query:{select:"id,title,description,status,event_date,metadata,created_at", "metadata->>personnel_id":`eq.${uid}`,"metadata->>record_type":"eq.internal_fine_case",order:"created_at.desc",limit:"300"}}),
+  const [pp,tt,nn,hh,tx,ranks]=await Promise.all([
+   db(env,"personnel",{query:{select:"user_id,service_number,phone,call_sign,department,unit,email,address,entry_date,personnel_status,note",user_id:`eq.${uid}`,limit:"1"}}),
+   db(env,"personnel_trainings",{query:{select:"id,user_id,name,category,date,instructor,status,expiry_date,notes,created_by,created_by_name,created_at",user_id:`eq.${uid}`,order:"created_at.desc"}}),
+   db(env,"personnel_notes",{query:{select:"id,user_id,type,title,content,created_by,created_by_name,created_at",user_id:`eq.${uid}`,order:"created_at.desc"}}),
    db(env,"personnel_history",{query:{select:"id,user_id,action,detail,actor_id,actor_name,created_at",user_id:`eq.${uid}`,order:"created_at.desc",limit:"300"}}).catch(()=>[]),
    db(env,"personnel_terminations",{query:{select:"id,user_id,document_number,payload,created_by_name,created_at",user_id:`eq.${uid}`,order:"created_at.desc",limit:"100"}}).catch(()=>[]),
    rankRows(env)
@@ -645,9 +668,32 @@ async function dispatchCore(method,args,env,token){
   const viewerRank=(ranks||[]).find(r=>String(r.id)===String(au.user.rank)||r.name===au.user.rank);
   const canViewSanctions=au.master===true||!!(viewerRank&&rank&&Number(rank.level)<Number(viewerRank.level));
   const agent={...u,...p,rank:rank?.name||u.rank||"Kein Rang",rankId:rank?.id||u.rank||"",rankName:rank?.name||u.rank||"Kein Rang",profileImage:u.profile_image||p.profileImage||""};
-  const sanctions=canViewSanctions?(ss||[]).filter(r=>r.metadata?.record_type==="internal_fine_case").map(normalizeModuleRow):[];
+  const sanctions=canViewSanctions?(await db(env,"fib_internal_fines",{query:{select:"id,title,description,status,event_date,metadata,created_at","metadata->>personnel_id":`eq.${uid}`,"metadata->>record_type":"eq.internal_fine_case",order:"created_at.desc",limit:"300"}})||[]).filter(r=>r.metadata?.record_type==="internal_fine_case").map(normalizeModuleRow):[];
   const terminations=(tx||[]).map(r=>({id:r.id,userId:r.user_id,documentNumber:r.document_number,publicToken:r.payload?.publicToken||"",payload:r.payload||{},createdByName:r.created_by_name||"System",createdAt:r.created_at||""}));
-  return {agent,personnel:p,trainings:(tt||[]).map(normalizeTrainingRow),notes:(nn||[]).map(normalizePersonnelNoteRow),sanctions,sanctionsVisible:canViewSanctions,history:hh||[],terminations,rankOptions:ranks||[]};
+  return {agent,personnel:p,trainings:(tt||[]).map(normalizeTrainingRow),notes:(nn||[]).map(normalizePersonnelNoteRow),sanctions,sanctionsVisible:canViewSanctions,history:(hh||[]).filter(row=>canViewSanctions||row.action!=="sanction_issued"),terminations,rankOptions:ranks||[]};
+ }
+ if(method==="getPersonnelHistory"){
+  const au=await authz(env,token,"officers.view");const uid=text(args[1]);if(!uid)throw new Error("Keine Benutzer-ID angegeben.");
+  const query={select:"id,user_id,action,detail,actor_id,actor_name,created_at",user_id:`eq.${uid}`,order:"created_at.desc",limit:"300"};
+  if(!au.master){
+   const [users,ranks]=await Promise.all([db(env,"users",{query:{select:"id,rank",id:`eq.${uid}`,limit:"1"}}),rankRows(env)]);
+   const lookup=value=>ranks.find(r=>String(r.id)===String(value)||String(r.name)===String(value));
+   const viewer=lookup(au.user.rank),target=lookup(users?.[0]?.rank);
+   if(!(viewer&&target&&Number(target.level)<Number(viewer.level)))query.action="neq.sanction_issued";
+  }
+  const rows=await db(env,"personnel_history",{query});
+  return (rows||[]).filter(r=>!query.action||r.action!=="sanction_issued");
+ }
+ if(method==="savePersonnelDepartment"){
+  const au=await authz(env,token,"officers.edit"),uid=text(args[1]),department=text(args[2]);
+  const user=await db(env,"users",{query:{select:"id",id:`eq.${uid}`,limit:"1"}});if(!user?.length)throw Object.assign(new Error("Beamter nicht gefunden."),{status:404});
+  const rows=await db(env,"personnel",{query:{select:"user_id,department",user_id:`eq.${uid}`,limit:"1"}});
+  if(text(rows?.[0]?.department)!==department){
+   if(rows?.length)await db(env,"personnel",{method:"PATCH",query:{user_id:`eq.${uid}`},body:{department},prefer:"return=minimal"});
+   else await db(env,"personnel",{method:"POST",body:{user_id:uid,department},prefer:"return=minimal"});
+   clearAuthCaches();await writePersonnelHistory(env,au,uid,"profile_updated","Geändert: Abteilung");
+  }
+  return {success:true,department};
  }
  if(method==="savePersonnelProfile"){
   const au=await authz(env,token,"officers.edit");const uid=text(args[1]),data=args[2]||{};if(!uid)throw new Error("Keine Benutzer-ID angegeben.");
@@ -660,9 +706,10 @@ async function dispatchCore(method,args,env,token){
   const beforeMap={serviceNumber:before.service_number,phone:before.phone,callSign:before.call_sign,department:before.department,unit:before.unit,email:before.email,address:before.address,entryDate:before.entry_date,personnelStatus:before.personnel_status,note:before.note};
   for(const [key,label] of Object.entries(labels)){ if(key==="rankId") continue; if(!compare(beforeMap[key],values[key])) changed.push(label); }
   if(rankId && String(rankId)!==oldRank) changed.push("Dienstgrad");
-  if(rankId)await db(env,"users",{method:"PATCH",query:{id:`eq.${uid}`},body:{rank:rankId},prefer:"return=minimal"});
+  if(rankId&&rankId!==oldRank)await db(env,"users",{method:"PATCH",query:{id:`eq.${uid}`},body:{rank:rankId},prefer:"return=minimal"});
   const payload={user_id:uid,service_number:values.serviceNumber,phone:values.phone,call_sign:values.callSign,department:values.department,unit:values.unit,email:values.email,address:values.address,entry_date:values.entryDate,personnel_status:values.personnelStatus,note:values.note};
-  if(existingRows?.length)await db(env,"personnel",{method:"PATCH",query:{user_id:`eq.${uid}`},body:payload,prefer:"return=minimal"});else await db(env,"personnel",{method:"POST",body:payload,prefer:"return=minimal"});
+  if(existingRows?.length){if(changed.some(label=>label!=="Dienstgrad"))await db(env,"personnel",{method:"PATCH",query:{user_id:`eq.${uid}`},body:payload,prefer:"return=minimal"});}else await db(env,"personnel",{method:"POST",body:payload,prefer:"return=minimal"});
+  if(changed.length){clearAuthCaches();}
   if(changed.length) await writePersonnelHistory(env,au,uid,rankId&&String(rankId)!==oldRank&&changed.length===1?"rank_changed":"profile_updated",`Geändert: ${changed.join(", ")}`);
   return {success:true,personnel:normalizePersonnelRow(payload)};
  }

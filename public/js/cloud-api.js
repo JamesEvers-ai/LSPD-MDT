@@ -14,14 +14,14 @@
   const dataCache = new Map();
   const DATA_TTL_MS = 8_000;
   const PREFETCH_DATA_TTL_MS = 2 * 60 * 1000;
-  const PREFETCHABLE_SHEET_READS = new Set(["getFines", "getLawyers", "getWarrants", "getPersonnelList", "getPersonnelRankOptions"]);
+  const PREFETCHABLE_SHEET_READS = new Set(["getFines", "getLawyers", "getWarrants"]);
   let cacheEpoch = 0;
   const inflightReads = new Map();
   const LIVE_OR_AUTH_READS = new Set([
     "getCurrentUser", "getSessionInfo", "getMyPermissions", "getPatrols", "getPatrolRevision", "getOwnDuty",
     "getDashboardStats", "getDashboardStatistics", "getActivePatrols",
     "getLivePatrols", "getCurrentSession", "getNotifications",
-    "getWarrantStatistics"
+    "getWarrantStatistics", "getFinanceAccess", "getBonusData", "getAccountingData", "getPersonnelFileBundle", "getPersonnelHistory"
   ]);
   let lastToken = null;
 
@@ -130,5 +130,6 @@
     refresh:async method=>{ if(method){for(const key of dataCache.keys()) if(key.includes(`\u0000${method}\u0000`)) dataCache.delete(key);} else clearDataCache(); }
   };
   // Warm every static page template immediately. First navigation can use this cache.
-  preloadPages().catch(error=>console.warn("[LSPD MDT] Vorladen der Seitentemplates fehlgeschlagen:",error));
+  const warm=()=>preloadPages().catch(error=>console.warn("[LSPD MDT] Vorladen der Seitentemplates fehlgeschlagen:",error));
+  if(typeof requestIdleCallback==="function")requestIdleCallback(warm,{timeout:2500});else setTimeout(warm,1200);
 })();
