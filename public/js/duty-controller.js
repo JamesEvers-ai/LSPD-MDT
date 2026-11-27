@@ -9,7 +9,7 @@
   const labels={tenCode:"Ten Code auswählen",location:"Einsatzort auswählen",activity:"Status auswählen",vehicle:"Fahrzeug auswählen"};
   const picker=document.getElementById('fibDutyPicker'); if(!picker)return;
   picker.innerHTML='<div class="fib-duty-picker-head"><strong id="fibDutyPickerTitle">Auswahl</strong><button type="button" id="fibDutyPickerClose" class="fib-duty-close" aria-label="Auswahl schließen">×</button></div><div class="fib-duty-picker-scroll"><div class="fib-duty-options" id="fibDutyOptions"></div></div>';
-  let state={location:'',activity:'',vehicle:'',tenCode:'10-1'}, activeKey='location', onDuty=false, saving=false, ready=false, session='', syncing=false, lastSync=0, generation=0, callSign='';
+  let state={location:'',activity:'',vehicle:'',tenCode:'10-1'}, activeKey='location', onDuty=false, saving=false, ready=false, session='', syncing=false, lastSync=0, generation=0, callSign='', patrolCallSign='';
   let options={tenCode:defaults.tenCodes.slice(),location:defaults.locations.slice(),activity:defaults.activities.slice(),vehicle:defaults.vehicles.slice()};
   let colorConfig={tenCodeColors:{},statusColors:{}};
 
@@ -52,11 +52,11 @@
   function report(error){const message=error?.message||String(error);if(window.MDT?.notify?.error)window.MDT.notify.error('Fehler',message);else console.error(message);}
   function success(message){if(window.MDT?.notify?.success)window.MDT.notify.success('Erfolgreich',message);}
   function adopt(patrol){
-    onDuty=!!patrol;
+    onDuty=!!patrol;patrolCallSign=String(patrol?.callsign||'');
     if(patrol)state={location:String(patrol.location||''),activity:String(patrol.activity||''),vehicle:String(patrol.vehicleType||patrol.vehicle_type||''),tenCode:String(patrol.tenCode||patrol.ten_code||patrol.status||'')};
     update();
   }
-  function reset(){onDuty=false;ready=false;callSign='';state={location:'',activity:'',vehicle:'',tenCode:options.tenCode[0]||'10-1'};update();}
+  function reset(){onDuty=false;ready=false;callSign='';patrolCallSign='';state={location:'',activity:'',vehicle:'',tenCode:options.tenCode[0]||'10-1'};update();}
   async function sync(force=false){
     const t=token();
     if(t!==session){session=t;generation++;configPromise=null;lastSync=0;syncing=false;saving=false;reset();if(t)loadConfig().catch(console.warn);}
@@ -84,7 +84,7 @@
     const values={fibTopPatrolUnit:state.location||'Einsatzort auswählen',fibTopDutyStatus:state.activity||'Status auswählen',fibTopVehicle:state.vehicle||'Fahrzeug auswählen',fibTopTenCode:state.tenCode||'Ten Code auswählen'};
     Object.keys(values).forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=values[id];});
     applyTopbarColors();
-    const call=document.getElementById('fibTopCallSign');if(call)call.textContent=callSign||'—';
+    const call=document.getElementById('fibTopCallSign');if(call)call.textContent=(onDuty?patrolCallSign:callSign)||callSign||'—';
     const b=document.getElementById('fibDutyStartButton'); const end=document.getElementById('fibDutyEndButton');
     if(b){b.hidden=onDuty;b.style.display=onDuty?'none':'';b.textContent=onDuty?'Im Dienst':'In Dienst gehen';b.disabled=saving||!ready;}
     if(end){end.hidden=!onDuty;end.style.display=onDuty?'inline-flex':'none';end.disabled=saving||!ready;}
