@@ -213,7 +213,7 @@
 
         const wanteds =
             String(
-                fine?.wanteds || ""
+                fine?.wanteds ?? ""
             ).trim();
 
 
@@ -388,7 +388,7 @@
 
                     wanteds:
                         String(
-                            fine?.wanteds || ""
+                            fine?.wanteds ?? ""
                         ).trim(),
 
                     info:
@@ -1257,7 +1257,7 @@
 
         const wanteds =
             String(
-                fine?.wanteds || ""
+                fine?.wanteds ?? ""
             ).trim();
 
 
@@ -1338,7 +1338,7 @@
 
                 <td class="fines-col-wanteds">
 
-                    <span class="fines-wanted">
+                    <span class="fines-wanted${/^(?:[★☆]\s*){1,6}$/u.test(wanteds) ? " is-stars" : ""}">
 
                         ${escapeFinesHtml(
                             wanteds ||
