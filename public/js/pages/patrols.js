@@ -1498,16 +1498,29 @@
     }
 
     window.initializePatrols = initializePatrols;
-    // Cross-client modular status sync: refresh the persisted patrol snapshot regularly.
-    // This makes changes saved by another Agent appear without a manual page reload.
+    // Cross-client live sync: only a tiny patrol revision is checked frequently.
+    // The full patrol payload (with users/ranks/members) is fetched only when the
+    // revision actually changed. This keeps the Leitstelle current without
+    // hammering Supabase with the expensive getPatrols join query.
     if (!window.fibPatrolLiveSyncTimer) {
+        let lastPatrolRevision = null;
         window.fibPatrolLiveSyncTimer = window.__fibPageLifecycle.interval(function () {
             const list = document.getElementById("patrolsList");
             const modal = document.getElementById("fibGlobalModalOverlay");
-            if (list && !state.saving && !(modal && modal.classList.contains("open"))) {
-                fetchPatrols(true).catch(function () {});
-            }
-        }, 15000);
+            if (!list || state.saving || (modal && modal.classList.contains("open")) || document.visibilityState !== "visible") return;
+            window.runServer("getPatrolRevision").then(function (snapshot) {
+                const revision = String(snapshot && snapshot.revision || "");
+                if (lastPatrolRevision === null) {
+                    lastPatrolRevision = revision;
+                    return;
+                }
+                if (revision !== lastPatrolRevision) {
+                    lastPatrolRevision = revision;
+                    clearPatrolsCache();
+                    fetchPatrols(true).catch(function () {});
+                }
+            }).catch(function () {});
+        }, 5000);
     }
     window.__fibPageLifecycle.on(window, "fib-mdt:refresh-request", function (event) { const modal=document.getElementById("fibGlobalModalOverlay"); if (document.getElementById("patrolsList") && !state.saving && !(modal && modal.classList.contains("open"))) refreshPatrolData(); });
     window.__fibPageLifecycle.on(window, "fib-mdt:data-changed", function (event) { const modal=document.getElementById("fibGlobalModalOverlay"); if (document.getElementById("patrolsList") && !(modal && modal.classList.contains("open")) && /Patrol|patrol|Member|member/.test(String(event.detail && event.detail.method || ""))) refreshPatrolData(); });

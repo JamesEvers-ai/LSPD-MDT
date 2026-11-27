@@ -721,6 +721,13 @@ async function dispatchCore(method,args,env,token){
   }
   return {success:true,patrol:{...row,tenCode:tenCode,vehicleType:vehicleType,members:[{id:au.user.id,name:au.user.name,username:au.user.username,rank:au.user.rank,callSign:callsign,position:"Lead"}]}};
  }
+ if(method==="getPatrolRevision"){
+  await authz(env,token,"patrols.view");
+  const rows=await db(env,"patrols",{query:{select:"id,updated_at,created_at",order:"id.asc"}});
+  const list=Array.isArray(rows)?rows:[];
+  const revision=list.map(r=>`${String(r.id)}:${String(r.updated_at||r.created_at||"")}`).join("|");
+  return {count:list.length,revision,latestUpdatedAt:list.reduce((max,r)=>{const v=String(r.updated_at||r.created_at||"");return v>max?v:max},"")};
+ }
  if(method==="getPatrols"){
   await authz(env,token,"patrols.view");const [ps,ms,us,rs,people]=await Promise.all([
    db(env,"patrols",{query:{select:"id,callsign,number,vehicle_type,status,ten_code,location,activity,created_at,created_by,updated_at,updated_by",order:"updated_at.desc,created_at.desc"}}),db(env,"patrol_members",{query:{select:"patrol_id,user_id,position"}}),
