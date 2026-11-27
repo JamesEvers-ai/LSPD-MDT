@@ -30,7 +30,7 @@
         delete: "patrols.delete"
     });
 
-    const VEHICLES = [
+    let VEHICLES = [
         "STR",
         "STR (UM)",
         "OFF",
@@ -42,13 +42,33 @@
 
     const DEFAULT_STATUSES = ["10-1", "10-3", "10-6", "10-23", "10-76"];
     let STATUSES = [...DEFAULT_STATUSES];
-    async function loadConfiguredTenCodes() {
-      try {
-        const result = await window.runServer("getPatrolTenCodes");
-        const values = Array.isArray(result?.codes) ? result.codes : [];
-        if (values.length) STATUSES = [...new Set(values.map(v => String(typeof v === "string" ? v : (v.code || v.value || v.name || "")).trim()).filter(Boolean))];
-        
-      } catch (e) { console.warn("Ten-Code-Konfiguration nicht verfügbar; Standardcodes werden verwendet.", e); }
+    let PATROL_DUTY_CONFIG = {tenCodes: [...DEFAULT_STATUSES], locations: [], activities: [], vehicles: [...VEHICLES], tenCodeColors: {}, statusColors: {}};
+    async function loadPatrolDutyConfig() {
+      if (!window.__fibPatrolDutyConfigPromise) {
+        window.__fibPatrolDutyConfigPromise = (async function () {
+          try {
+            return await window.runServer("getPatrolDutyConfig");
+          } catch (e) {
+            console.warn("Dienst-Konfiguration nicht verfügbar; Standardwerte werden verwendet.", e);
+            return null;
+          }
+        })();
+      }
+      const result = await window.__fibPatrolDutyConfigPromise;
+      if (result && result.success !== false) {
+        PATROL_DUTY_CONFIG = {
+          tenCodes: Array.isArray(result.tenCodes) && result.tenCodes.length ? result.tenCodes.map(String) : [...DEFAULT_STATUSES],
+          locations: Array.isArray(result.locations) ? result.locations.map(String) : [],
+          activities: Array.isArray(result.activities) ? result.activities.map(String) : [],
+          vehicles: Array.isArray(result.vehicles) && result.vehicles.length ? result.vehicles.map(String) : [...VEHICLES],
+          tenCodeColors: result.tenCodeColors && typeof result.tenCodeColors === "object" ? result.tenCodeColors : {},
+          statusColors: result.statusColors && typeof result.statusColors === "object" ? result.statusColors : {}
+        };
+        STATUSES = [...PATROL_DUTY_CONFIG.tenCodes];
+        VEHICLES = [...PATROL_DUTY_CONFIG.vehicles];
+        window.__FIB_PATROL_DUTY_CONFIG__ = PATROL_DUTY_CONFIG;
+      }
+      return PATROL_DUTY_CONFIG;
     }
 
     const PAGE_CACHE_MS = 30000;
@@ -436,9 +456,26 @@
         return state.patrolUsersPromise;
     }
 
-    // Patrol display colors are intentionally fixed.
-    // The former master-only color customization was removed so patrol rendering
-    // no longer depends on a persisted color configuration or optional globals.
+    function getPatrolColor(type, value) {
+        const map = type === "tenCode" ? PATROL_DUTY_CONFIG.tenCodeColors : PATROL_DUTY_CONFIG.statusColors;
+        const color = map && map[String(value || "")];
+        return typeof color === "string" ? color.trim() : "";
+    }
+
+    function applyConfiguredPatrolColors(card, tenCode, activity) {
+        const tenCodeColor = getPatrolColor("tenCode", tenCode);
+        const activityColor = getPatrolColor("status", activity);
+        const tenCodeEl = card.querySelector(".patrol-status");
+        const activityEl = card.querySelector(".patrol-activity-status");
+        if (tenCodeEl && tenCodeColor) {
+            tenCodeEl.style.setProperty("--patrol-db-color", tenCodeColor);
+            tenCodeEl.setAttribute("data-db-color", "true");
+        }
+        if (activityEl && activityColor) {
+            activityEl.style.setProperty("--patrol-db-color", activityColor);
+            activityEl.setAttribute("data-db-color", "true");
+        }
+    }
 
     function refreshPatrolData() {
         clearPatrolsCache();
@@ -628,6 +665,8 @@
                 </button>
             ` : `<div class="patrol-no-action" aria-hidden="true"></div>`}
         `;
+
+        applyConfiguredPatrolColors(card, statusValue, patrolActivity);
 
         const joinButton = card.querySelector("[data-patrol-join]");
         if (joinButton && !alreadyMember) {
@@ -1434,7 +1473,7 @@
         }
 
         applyPermissionUI();
-        loadConfiguredTenCodes().then(function(){ const select=document.getElementById("patrolModalStatus"); if(select){const selected=select.value;select.innerHTML=STATUSES.map(v=>`<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join("");if(STATUSES.includes(selected))select.value=selected;} });
+        loadPatrolDutyConfig().then(function(){ const select=document.getElementById("patrolModalStatus"); if(select){const selected=select.value;select.innerHTML=STATUSES.map(v=>`<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join("");if(STATUSES.includes(selected))select.value=selected;} const vehicle=document.getElementById("patrolModalVehicle"); if(vehicle){const selected=vehicle.value;vehicle.innerHTML=VEHICLES.map(v=>`<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join("");if(VEHICLES.includes(selected))vehicle.value=selected;} });
         bindStaticEvents();
 
         if (cacheValid(window.fibCache.patrols)) {

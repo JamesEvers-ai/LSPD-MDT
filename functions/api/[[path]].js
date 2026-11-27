@@ -645,6 +645,33 @@ async function dispatchCore(method,args,env,token){
  }
  if(method==="deletePersonnelTraining"||method==="deletePersonnelNote"){const au=await authz(env,token,"officers.edit");const uid=text(args[1]),entryId=text(args[2]),training=method==="deletePersonnelTraining",table=training?"personnel_trainings":"personnel_notes";const found=await db(env,table,{query:{select:training?"id,name":"id,title",id:`eq.${entryId}`,user_id:`eq.${uid}`,limit:"1"}});await db(env,table,{method:"DELETE",query:{id:`eq.${entryId}`,user_id:`eq.${uid}`},prefer:"return=minimal"});const label=found?.[0]?(training?found[0].name:found[0].title):entryId;await writePersonnelHistory(env,au,uid,training?"training_deleted":"note_deleted",training?`Schulung „${label}“ gelöscht.`:`Vermerk „${label}“ gelöscht.`);return {success:true};}
  // patrols
+ if(method==="getPatrolDutyConfig"){
+  await authz(env,token,"patrols.view");
+  const defaults={
+   tenCodes:["10-1","10-3","10-6","10-23","10-76"],
+   locations:["LS - City","LS - County","Roxwood County","Highway - East","Highway - West","Highway - City","Highway - Allgemein","Vespucci PD","Paleto SO","Sandy Shores SO","Roxwood SO","Border Station","City Hall","Staatsgefängnis","Police Academy","Krankenhaus","Air Support","Ermittlung","SWAT","Gang Unit","LS - City - Blitz"],
+   activities:["Streifenfahrt","Feierabend","Juwelier","Geiselnahme","Raubüberfall","Großschadenslage","Großevent","Beschäftigt","Beschäftigt AD","Ausbildung / Übung","Besprechung","Code-PEE","Transport","Tätigkeitsbearbeitung","Durchsuchung","OOV"],
+   vehicles:["STR","STR (UM)","OFF","OFF (UM)","HSP","HSP (UM)","OVW"],
+   tenCodeColors:{},
+   statusColors:{}
+  };
+  try{
+   const rows=await db(env,"patrol_duty_settings",{query:{select:"ten_codes,locations,activities,vehicles,ten_code_colors,status_colors",id:"eq.DEFAULT",limit:"1"}});
+   const row=rows?.[0]||{};
+   const cleanList=(value,fallback)=>{if(!Array.isArray(value))return fallback;const out=[...new Set(value.map(v=>String(v).trim()).filter(Boolean))];return out.length?out:fallback;};
+   return {success:true,
+    tenCodes:cleanList(row.ten_codes,defaults.tenCodes),
+    locations:cleanList(row.locations,defaults.locations),
+    activities:cleanList(row.activities,defaults.activities),
+    vehicles:cleanList(row.vehicles,defaults.vehicles),
+    tenCodeColors:row.ten_code_colors&&typeof row.ten_code_colors==="object"&&!Array.isArray(row.ten_code_colors)?row.ten_code_colors:defaults.tenCodeColors,
+    statusColors:row.status_colors&&typeof row.status_colors==="object"&&!Array.isArray(row.status_colors)?row.status_colors:defaults.statusColors
+   };
+  }catch(error){
+   // The optional configuration table is intentionally non-critical: duty remains usable with built-in defaults.
+   return {success:true,...defaults};
+  }
+ }
  if(method==="getPatrolTenCodes"){
   await authz(env,token,"patrols.view");
   const defaults=["10-1","10-3","10-6","10-23","10-76"];
@@ -893,7 +920,7 @@ const READ_ONLY_METHODS = new Set([
  "getVehicleCatalog","getDashboardStatistics","getMyPermissions","getAllAgents",
  "getInternalFineCases",
  "getInternalFineCatalog","getInternalFinePersonnel","getInternalSanctionsOverview",
- "getPatrolEligibleUsers","getPatrolTenCodes","getPatrols",
+ "getPatrolEligibleUsers","getPatrolTenCodes","getPatrolDutyConfig","getPatrols",
  "getPersonnelFile","getPersonnelFileBundle","getPersonnelHistory","getPersonnelList","getPersonnelNotes","getPersonnelTerminations",
  "getPersonnelRankOptions","getPersonnelTrainings","getRankById","getRecord",
  "getRecordShares","getRecords","getRecordsConfig","getWanted","getWantedConfig",
@@ -1033,7 +1060,7 @@ export async function onRequest({request,env}){
    config(env);
    const deep=url.searchParams.get("deep")==="1";
    const required=deep
-    ? ["users","ranks","permissions","rank_permissions","fib_mdt_sessions","fib_records","patrols","fib_wanted","patrol_members","personnel","personnel_notes","personnel_trainings","fib_record_shares","fib_announcements","fib_vacations","fib_internal_fines","fib_internal_fine_catalog","fib_vehicle_catalog","fib_calendar_events","fib_gang_profiles","fib_bonus_entries","fib_mdt_logs","department_permissions","academy_documents","academy_tests","academy_attempts","fib_uniform_catalog","fib_uniform_organization_rules","fib_bonus_payouts","fib_org_account","fib_accounting_entries","patrol_ten_code_settings"]
+    ? ["users","ranks","permissions","rank_permissions","fib_mdt_sessions","fib_records","patrols","fib_wanted","patrol_members","personnel","personnel_notes","personnel_trainings","fib_record_shares","fib_announcements","fib_vacations","fib_internal_fines","fib_internal_fine_catalog","fib_vehicle_catalog","fib_calendar_events","fib_gang_profiles","fib_bonus_entries","fib_mdt_logs","department_permissions","academy_documents","academy_tests","academy_attempts","fib_uniform_catalog","fib_uniform_organization_rules","fib_bonus_payouts","fib_org_account","fib_accounting_entries","patrol_ten_code_settings","patrol_duty_settings"]
     : ["users","fib_mdt_sessions"];
    const checks=await Promise.all(required.map(async table=>{
     try { await db(env,table,{query:{select:"*",limit:"0"}}); return {table,ok:true}; }
