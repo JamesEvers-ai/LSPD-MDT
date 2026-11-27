@@ -7,7 +7,7 @@
     Page_Patrols:"patrols.html", Page_Records:"records.html", "Page_Records(2)":"records.html",
     Page_Announcements:"announcements.html", Page_Academy:"academy.html", Page_AcademyDocuments:"academy-documents.html", Page_AcademyTests:"academy-tests.html", Page_AcademyResults:"academy-results.html", Page_Vacations:"vacations.html", Page_IFines:"ifines.html", Page_VehicleCatalog:"vehicle-catalog.html", Page_UniformCatalog:"uniform-catalog.html", Page_Armory:"armory.html",
     Page_Fines:"fines.html", Page_Lawyers:"lawyers.html", Page_Warrants:"warrants.html",
-    Page_Wanted:"wanted.html", Page_Calendar:"calendar.html", Page_Gangs:"gangs.html", Page_Bonuses:"bonuses.html", Page_Logs:"logs.html"
+    Page_Organization:"organization.html", Page_Wanted:"wanted.html", Page_Calendar:"calendar.html", Page_Gangs:"gangs.html", Page_Bonuses:"bonuses.html", Page_Logs:"logs.html"
   };
   const templateCache = new Map();
   const templateInflight = new Map();

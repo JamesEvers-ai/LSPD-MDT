@@ -2817,9 +2817,9 @@
     @media(max-width:650px) { .fib-duty-picker { right:8px; width:calc(100vw - 16px); max-height:68vh; } .fib-duty-options { grid-template-columns:repeat(2,minmax(0,1fr)); } }
   </style>
 
-  <script src="/js/cloud-api.js?v=52" defer></script>
+  <script src="/js/cloud-api.js?v=54" defer></script>
 <script src="/js/mdt-rich-text.js?v=3.73" defer></script>
-<link rel="stylesheet" href="/lspd-design.css?v=48">
+<link rel="stylesheet" href="/lspd-design.css?v=54">
 <link rel="stylesheet" href="/lspd-catalogs-v51.css?v=53">
   <link rel="stylesheet" href="/lspd-workspace.css?v=3.75">
 
@@ -3333,6 +3333,7 @@
           </div>
           <button type="button" class="fib-duty-start-button" id="fibDutyStartButton">In Dienst gehen</button>
           <button type="button" class="fib-duty-end-button" id="fibDutyEndButton" hidden>Außer Dienst</button>
+          <button type="button" id="fibNotificationButton" class="fib-notification-button" aria-label="Benachrichtigungen" aria-expanded="false"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg><span id="fibNotificationCount" hidden>0</span></button>
           <div class="page-status">
             <span class="status-dot"></span>
             System verbunden
@@ -3775,6 +3776,13 @@ const NAVIGATION = [
       },
 
       {
+        id: "organization",
+        title: "Organigramm",
+        icon: "▦",
+        permission: "",
+        file: "Page_Organization"
+      },
+      {
         id: "announcements",
         title: "Bekanntmachungen",
         icon: "ⓘ",
@@ -3906,7 +3914,7 @@ const NAVIGATION = [
 
       {
         id: "wanted",
-        title: "Fahndung",
+        title: "BOLO",
         icon: "⌕",
         permission: "wanted.view",
         file: "Page_Wanted"
@@ -5078,25 +5086,7 @@ const NAVIGATION = [
       currentPage =
         pageId;
 
-      /* Beim Seitenwechsel die Hover-Sidebar bewusst wieder einklappen.
-       * Sobald die Maus die Sidebar verlässt, darf sie wieder normal aufklappen. */
-      const navigationSidebar = document.querySelector('.sidebar');
-      if (navigationSidebar) {
-        navigationSidebar.classList.add('nav-navigation-lock');
-        if (navigationSidebar._navigationUnlockHandler) {
-          document.removeEventListener('pointermove', navigationSidebar._navigationUnlockHandler, true);
-        }
-        const unlockSidebar = function(event){
-          const target = event.target;
-          if (target && target.closest && target.closest('.sidebar')) return;
-          navigationSidebar.classList.remove('nav-navigation-lock');
-          document.removeEventListener('pointermove', unlockSidebar, true);
-          navigationSidebar._navigationUnlockHandler = null;
-        };
-        navigationSidebar._navigationUnlockHandler = unlockSidebar;
-        document.addEventListener('pointermove', unlockSidebar, true);
-      }
-
+      window.fibCollapseSidebar?.();
 
       /*
        * Navigation aktualisieren.
@@ -8420,26 +8410,25 @@ const NAVIGATION = [
 
 
 <script>
-/* Phase 3.77: collapsed sidebar expands on hover; no toggle button. */
+/* Sidebar stays compact at rest. Keyboard navigation remains possible. */
 (function(){
-  function initLspdSidebar(){
-    const sidebar=document.querySelector('.sidebar');
-    if(!sidebar || sidebar.dataset.hoverCollapseReady==='1') return;
-    sidebar.dataset.hoverCollapseReady='1';
-    const collapsed=localStorage.getItem('lspd_sidebar_collapsed')==='1';
-    sidebar.classList.toggle('is-collapsed',collapsed);
-    sidebar.querySelectorAll('.sidebar-collapse-toggle').forEach(el=>el.remove());
-    // Hover expansion is CSS-driven so the main content moves in sync without changing the saved preference.
-    sidebar.addEventListener('keydown',event=>{
-      if(event.key==='Escape' && sidebar.classList.contains('is-collapsed')) sidebar.blur();
-    });
-  }
-  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',initLspdSidebar);
-  else initLspdSidebar();
-  const observer=new MutationObserver(initLspdSidebar);
-  observer.observe(document.documentElement,{childList:true,subtree:true});
+ const side=document.querySelector('.sidebar');if(!side)return;
+ side.classList.add('is-collapsed');
+ let locked=false;
+ function close(){side.classList.remove('is-hover-open');}
+ function open(){if(!locked)side.classList.add('is-hover-open');}
+ window.fibCollapseSidebar=()=>{locked=side.matches(':hover');close();};
+ side.addEventListener('pointerenter',()=>{locked=false;open();});
+ side.addEventListener('pointerleave',()=>{locked=false;close();});
+ side.addEventListener('focusin',e=>{if(e.target.matches(':focus-visible')&&!locked)open();});
+ side.addEventListener('focusout',e=>{if(!side.contains(e.relatedTarget)&&!side.matches(':hover'))close();});
+ side.addEventListener('keydown',e=>{if(e.key==='Escape'){locked=true;close();}});
+ side.addEventListener('click',e=>{if(e.target.closest('.nav-item'))window.fibCollapseSidebar();});
+ window.addEventListener('blur',()=>{locked=false;close();});
 })();</script>
 
+<aside id="fibNotificationPanel" hidden aria-label="Benachrichtigungen"><header><strong>Benachrichtigungen</strong><button type="button" id="fibNotificationClose" aria-label="Schließen">×</button></header><div class="fib-notice-tools"><span id="fibNotificationSummary">Wird geladen …</span><button type="button" id="fibNotificationReadAll">Alle als gelesen</button></div><div id="fibNotificationList" aria-live="polite"></div></aside>
+<script src="/js/notification-center.js?v=54" defer></script>
 </body>
 
 </html>

@@ -2,7 +2,7 @@
 (function () {
   "use strict";
 
-  const state = window.wantedPageState = window.wantedPageState || {
+  const state = window.wantedPageState = {
     initialized: false,
     data: [],
     filtered: [],
@@ -63,7 +63,7 @@
 
     m.open({
       title: title || "Fehler",
-      subtitle: "Fahndungsregister",
+      subtitle: "BOLO-Register",
       body: '<div class="wanted-modal-error">' + escapeHtml(message || "Ein unbekannter Fehler ist aufgetreten.") + '</div>',
       saveVisible: false,
       focus: false
@@ -107,7 +107,7 @@
     const values = {
       wanted: { label: "Gesucht", cls: "active" },
       observation: { label: "Beobachtung", cls: "watch" },
-      captured: { label: "Gefasst", cls: "captured" }
+      captured: { label: "Geschlossen", cls: "captured" }
     };
     return values[key] || { label: "Unbekannt", cls: "unknown" };
   }
@@ -171,19 +171,21 @@
       captured_at: text(r.captured_at),
       description: text(r.description),
       notes: text(r.notes),
-      status: normalize(r.status) || "wanted",
+      status: ({active:"wanted",closed:"captured",resolved:"captured",archived:"captured",inactive:"captured",cancelled:"captured"}[normalize(r.status)] || normalize(r.status) || "wanted"),
+      expires_on: text(r.expires_on), image_url: text(r.image_url),
       created_at: text(r.created_at),
       created_by_user_id: text(r.created_by_user_id),
-      created_by_name: text(r.created_by_name),
+      created_by_name: text(r.created_by_name || r.created_by),
       updated_at: text(r.updated_at),
       updated_by_user_id: text(r.updated_by_user_id),
-      updated_by_name: text(r.updated_by_name)
+      updated_by_name: text(r.updated_by_name || r.updated_by)
     };
   }
 
+  function expired(row){return row.status!=="captured" && !!row.expires_on && row.expires_on.slice(0,10)<new Date().toISOString().slice(0,10);}
   function matches(row) {
     if (state.typeFilter !== "all" && row.type !== state.typeFilter) return false;
-    if (state.statusFilter !== "all" && row.status !== state.statusFilter) return false;
+    if (state.statusFilter !== "all" && (expired(row)?"expired":row.status) !== state.statusFilter) return false;
 
     const q = normalize(state.search);
     if (!q) return true;
@@ -203,7 +205,7 @@
     return '<tr><td colspan="' + colspan + '" class="wanted-state loading">' +
       '<div class="wanted-loading-content">' +
         '<span class="wanted-loading-spinner" aria-hidden="true"></span>' +
-        '<span class="wanted-loading-text">Fahndungsregister wird geladen …</span>' +
+        '<span class="wanted-loading-text">BOLO-Register wird geladen …</span>' +
       '</div>' +
     '</td></tr>';
   }
@@ -222,8 +224,8 @@
     }
 
     state.filtered = state.data.filter(matches);
-    state.active = state.filtered.filter(row => row.status !== "captured");
-    state.captured = state.filtered.filter(row => row.status === "captured");
+    state.active = state.filtered.filter(row => row.status !== "captured" && !expired(row));
+    state.captured = state.filtered.filter(row => row.status === "captured" || expired(row));
 
     renderActive();
     renderCaptured();
@@ -251,7 +253,7 @@
     if (!body) return;
 
     if (!state.active.length) {
-      body.innerHTML = emptyRow("Keine aktiven Fahndungen gefunden", 11);
+      body.innerHTML = emptyRow("Keine aktiven BOLO-Einträge gefunden", 11);
       return;
     }
 
@@ -260,7 +262,7 @@
       const danger = dangerConfig(row.danger_level);
       const sub = secondary(row);
       const id = identifier(row);
-      const actions = [];
+      const actions = ['<button type="button" class="wanted-btn" data-action="detail" data-id="'+escapeHtml(row.id)+'">Details</button>'];
 
       if (state.permissions.edit) {
         actions.push('<button type="button" class="wanted-icon-btn" data-action="edit" data-id="' + escapeHtml(row.id) + '" title="Bearbeiten">✎</button>');
@@ -278,7 +280,7 @@
         '<td>' + formatBoolean(row.armed) + '</td>' +
         '<td><span class="wanted-danger ' + danger.cls + '">' + escapeHtml(danger.label) + '</span></td>' +
         '<td>' + (row.last_seen ? escapeHtml(row.last_seen) : '<span class="muted">—</span>') + '</td>' +
-        '<td>' + formatDate(row.wanted_since) + '</td>' +
+        '<td>' + formatDate(row.wanted_since) + (row.expires_on ? '<div class="wanted-secondary-text">Bis '+formatDate(row.expires_on)+'</div>' : '') + '</td>' +
         '<td>' + (row.created_by_name ? escapeHtml(row.created_by_name) : '<span class="muted">—</span>') + '</td>' +
         '<td><div class="wanted-row-actions">' + actions.join("") + '</div></td>' +
       '</tr>';
@@ -292,14 +294,14 @@
     if (!body) return;
 
     if (!state.captured.length) {
-      body.innerHTML = emptyRow("Keine gefassten Personen oder Fahrzeuge gefunden", 7);
+      body.innerHTML = emptyRow("Keine geschlossenen oder abgelaufenen BOLO-Einträge gefunden", 7);
       return;
     }
 
     body.innerHTML = state.captured.map(function(row) {
       const sub = secondary(row);
       const id = identifier(row);
-      const actions = [];
+      const actions = ['<button type="button" class="wanted-btn" data-action="detail" data-id="'+escapeHtml(row.id)+'">Details</button>'];
 
       if (state.permissions.edit) {
         actions.push('<button type="button" class="wanted-icon-btn" data-action="edit" data-id="' + escapeHtml(row.id) + '" title="Bearbeiten">✎</button>');
@@ -313,7 +315,7 @@
         '<td><div class="wanted-primary-text">' + escapeHtml(row.name || "—") + '</div>' + (sub ? '<div class="wanted-secondary-text">' + escapeHtml(sub) + '</div>' : '') + '</td>' +
         '<td>' + (id ? escapeHtml(id) : '<span class="muted">—</span>') + '</td>' +
         '<td>' + (row.reason ? escapeHtml(row.reason) : '<span class="muted">—</span>') + '</td>' +
-        '<td>' + formatDate(row.captured_at) + '</td>' +
+        '<td>' + (expired(row)?'Abgelaufen · '+formatDate(row.expires_on):'Geschlossen · '+formatDate(row.captured_at)) + '</td>' +
         '<td>' + (row.created_by_name ? escapeHtml(row.created_by_name) : '<span class="muted">—</span>') + '</td>' +
         '<td><div class="wanted-row-actions">' + actions.join("") + '</div></td>' +
       '</tr>';
@@ -327,6 +329,7 @@
       btn.addEventListener("click", function() {
         const action = btn.getAttribute("data-action");
         const id = btn.getAttribute("data-id");
+        if (action === "detail") openDetail(id);
         if (action === "edit") openEditModal(id);
         if (action === "delete") openDeleteModal(id);
       });
@@ -334,7 +337,8 @@
   }
 
   function loadWanted(showLoader) {
-    if (state.loading) return;
+    if (state.loading) { state.pendingReload=true; return; }
+    const mount=$("wantedActiveBody"); if(!mount)return;
     const t = token();
     if (!t) {
       showTableError("Keine gültige Sitzung vorhanden.");
@@ -342,7 +346,7 @@
     }
 
     state.loading = true;
-    state.loaded = false;
+    if (showLoader) state.loaded = false;
     if (showLoader) {
       showLoadingState();
     }
@@ -350,12 +354,15 @@
     CloudApi.run
       .withSuccessHandler(function(result) {
         state.loading = false;
+        if($("wantedActiveBody")!==mount)return;
         state.loaded = true;
         state.data = Array.isArray(result) ? result.map(cleanRow) : [];
         render();
+        if(state.pendingReload){state.pendingReload=false;loadWanted(false);}
       })
       .withFailureHandler(function(error) {
         state.loading = false;
+        if($("wantedActiveBody")!==mount)return;
         state.loaded = false;
         showTableError(error && error.message ? error.message : "Die Daten konnten nicht geladen werden.");
       })
@@ -371,6 +378,7 @@
   }
 
   function loadConfig() {
+    const mount=$("wantedActiveBody");
     const t = token();
     if (!t) {
       showTableError("Keine gültige Sitzung vorhanden.");
@@ -379,6 +387,7 @@
 
     CloudApi.run
       .withSuccessHandler(function(config) {
+        if($("wantedActiveBody")!==mount)return;
         state.config = config || {};
         state.permissions = (config && config.permissions) || state.permissions;
         const createButton = $("wantedNewButton");
@@ -386,17 +395,23 @@
         loadWanted(true);
       })
       .withFailureHandler(function(error) {
-        showTableError(error && error.message ? error.message : "Die Fahndungsberechtigungen konnten nicht geladen werden.");
+        showTableError(error && error.message ? error.message : "Die BOLO-Berechtigungen konnten nicht geladen werden.");
       })
       .getWantedConfig(t);
   }
 
+  function openDetail(id){
+    const row=state.data.find(x=>x.id===id);if(!row)return;
+    const fields=[["Art",typeLabel(row.type)],["Kennung",identifier(row)],["Alias / Fahrzeug",secondary(row)],["Status",expired(row)?"Abgelaufen":statusConfig(row.status).label],["Gefährlichkeit",dangerConfig(row.danger_level).label],["Bewaffnet",row.armed?"Ja":"Nein"],["Zuletzt gesehen",row.last_seen],["Gültig bis",row.expires_on],["Grund",row.reason],["Beschreibung",row.description],["Interne Anmerkungen",row.notes]];
+    let link="";try{const u=new URL(row.image_url);if(u.protocol==="https:")link='<a target="_blank" rel="noopener noreferrer" href="'+escapeHtml(u.href)+'">Bild öffnen (extern)</a>';}catch{}
+    modal().open({title:row.name,subtitle:"BOLO · Detailansicht",body:'<div class="bolo-detail">'+fields.filter(x=>x[1]).map(([k,v])=>'<section><strong>'+escapeHtml(k)+'</strong><div>'+escapeHtml(v)+'</div></section>').join('')+link+'</div>',saveVisible:false,modalClass:"agents"});
+  }
   function formHtml(row) {
     const current = row || {};
     const type = normalize(current.type) === "vehicle" ? "vehicle" : "person";
 
-    return '<div id="wantedModalFormRoot" class="wanted-modal-surface">' +
-      '<div class="wanted-modal-info">Pflichtfelder sind mit <span class="required-mark">*</span> gekennzeichnet. Die Fahndung wird mit dem angemeldeten Benutzer als Ersteller gespeichert.</div>' +
+    return '<div id="wantedModalFormRoot" class="wanted-modal-surface"><div id="boloFormError" role="alert" hidden></div>' +
+      '<div class="wanted-modal-info">Pflichtfelder sind mit <span class="required-mark">*</span> gekennzeichnet. Die BOLO wird mit dem angemeldeten Benutzer als Ersteller gespeichert.</div>' +
       '<div class="wanted-modal-form">' +
         '<div class="wanted-modal-group">' +
           '<label class="wanted-modal-label" for="wantedFieldType">Art <span class="required">*</span></label>' +
@@ -434,7 +449,7 @@
           '<select id="wantedFieldStatus" class="wanted-modal-input">' +
             '<option value="wanted"' + (normalize(current.status) === "wanted" || !current.status ? ' selected' : '') + '>Gesucht</option>' +
             '<option value="observation"' + (normalize(current.status) === "observation" ? ' selected' : '') + '>Beobachtung</option>' +
-            '<option value="captured"' + (normalize(current.status) === "captured" ? ' selected' : '') + '>Gefasst</option>' +
+            '<option value="captured"' + (normalize(current.status) === "captured" ? ' selected' : '') + '>Geschlossen</option>' +
           '</select>' +
         '</div>' +
         '<div class="wanted-modal-group">' +
@@ -447,24 +462,26 @@
           '</select>' +
         '</div>' +
         '<div class="wanted-modal-group">' +
-          '<label class="wanted-modal-label" for="wantedFieldWantedSince">Gesucht seit</label>' +
+          '<label class="wanted-modal-label" for="wantedFieldWantedSince">Gültig seit</label>' +
           '<input id="wantedFieldWantedSince" class="wanted-modal-input" type="date" value="' + escapeHtml((current.wanted_since || "").slice(0,10)) + '">' +
         '</div>' +
         '<div class="wanted-modal-group">' +
-          '<label class="wanted-modal-label" for="wantedFieldCapturedAt">Gefasst am</label>' +
+          '<label class="wanted-modal-label" for="wantedFieldCapturedAt">Geschlossen am</label>' +
           '<input id="wantedFieldCapturedAt" class="wanted-modal-input" type="date" value="' + escapeHtml((current.captured_at || "").slice(0,10)) + '">' +
         '</div>' +
         '<div class="wanted-modal-group">' +
           '<label class="wanted-modal-label" for="wantedFieldLastSeen">Zuletzt gesehen</label>' +
           '<input id="wantedFieldLastSeen" class="wanted-modal-input" type="text" value="' + escapeHtml(current.last_seen || "") + '">' +
         '</div>' +
+         '<div class="wanted-modal-group"><label class="wanted-modal-label" for="boloExpiry">Gültig bis (optional)</label><input id="boloExpiry" class="wanted-modal-input" type="date" value="'+escapeHtml(current.expires_on||"")+'"></div>' +
+        '<div class="wanted-modal-group"><label class="wanted-modal-label" for="boloImage">Bildlink (HTTPS, optional)</label><input id="boloImage" class="wanted-modal-input" type="url" value="'+escapeHtml(current.image_url||"")+'"></div>' +
         '<div class="wanted-modal-group wanted-modal-group-checkbox">' +
           '<label class="wanted-modal-checkbox"><input id="wantedFieldArmed" type="checkbox"' + (current.armed ? ' checked' : '') + '> Bewaffnet</label>' +
         '</div>' +
         '<div class="wanted-modal-group full">' +
           '<label class="wanted-modal-label" for="wantedFieldReason">Straftat / Grund <span class="required">*</span></label>' +
           '<textarea id="wantedFieldReason" class="wanted-modal-input" rows="3">' + escapeHtml(current.reason || "") + '</textarea>' +
-          '<div class="wanted-modal-help">Der konkrete Fahndungsgrund bzw. die zugrunde liegende Straftat.</div>' +
+          '<div class="wanted-modal-help">Der konkrete BOLO-Grund bzw. die zugrunde liegende Straftat.</div>' +
         '</div>' +
         '<div class="wanted-modal-group full">' +
           '<label class="wanted-modal-label" for="wantedFieldDescription">Beschreibung</label>' +
@@ -509,6 +526,7 @@
       captured_at: valueOf("wantedFieldCapturedAt"),
       last_seen: valueOf("wantedFieldLastSeen"),
       armed: checkedOf("wantedFieldArmed"),
+      expires_on:valueOf("boloExpiry"),image_url:valueOf("boloImage"),
       reason: valueOf("wantedFieldReason"),
       description: valueOf("wantedFieldDescription"),
       notes: valueOf("wantedFieldNotes")
@@ -517,16 +535,17 @@
 
   function validateForm(data) {
     if (!data.name) return "Name bzw. Fahrzeugbezeichnung ist ein Pflichtfeld.";
-    if (!data.reason) return "Bitte eine Straftat bzw. einen Fahndungsgrund angeben.";
+    if (!data.reason) return "Bitte eine Straftat bzw. einen BOLO-Grund angeben.";
+    if (data.expires_on && data.wanted_since && data.expires_on<data.wanted_since) return "Das Ablaufdatum muss nach dem Startdatum liegen.";
     if (data.type === "person" && data.plate) return "Bei Personen bitte kein Kennzeichen angeben.";
     if (data.type === "vehicle" && data.person_id) return "Bei Fahrzeugen bitte keine Reisepassnummer angeben.";
-    if (data.status === "captured" && !data.captured_at) return "Bei einer gefassten Fahndung ist das Erfassungsdatum erforderlich.";
+    if (data.status === "captured" && !data.captured_at) return "Bei einem geschlossenen BOLO-Eintrag ist das Abschlussdatum erforderlich.";
     return null;
   }
 
   function openCreateModal() {
     if (!state.permissions.create) {
-      showModalError("Keine Berechtigung", "Du besitzt keine Berechtigung, Fahndungen zu erstellen.");
+      showModalError("Keine Berechtigung", "Du besitzt keine Berechtigung, BOLO-Einträge zu erstellen.");
       return;
     }
 
@@ -540,12 +559,13 @@
     state.modalId = null;
 
     m.open({
-      title: "Neue Fahndung",
-      subtitle: "Fahndungsregister",
+      title: "Neuer BOLO-Eintrag",
+      subtitle: "BOLO-Register",
+      modalClass: "agents",
       body: formHtml({ type: "person", status: "wanted", danger_level: "medium" }),
       buttons: [
         { label: "Abbrechen", variant: "secondary", onClick: function() { closeModal(); } },
-        { label: "Fahndung erstellen", variant: "primary", onClick: saveModal }
+        { label: "BOLO erstellen", variant: "primary", onClick: saveModal }
       ],
       keepCancelButton: false,
       focus: false
@@ -566,8 +586,9 @@
     state.modalId = row.id;
 
     m.open({
-      title: "Fahndung bearbeiten",
+      title: "BOLO bearbeiten",
       subtitle: typeLabel(row.type) + " · " + (row.name || row.id),
+      modalClass: "agents",
       body: formHtml(row),
       buttons: [
         { label: "Abbrechen", variant: "secondary", onClick: function() { closeModal(); } },
@@ -598,11 +619,13 @@
     return buttons.length ? buttons[buttons.length - 1] : null;
   }
 
+  function formError(message){const el=$("boloFormError");if(el){el.textContent=message;el.hidden=!message;}}
   function saveModal(button) {
+    formError("");
     const data = collectFormData();
     const error = validateForm(data);
     if (error) {
-      showModalError("Eingabe prüfen", error);
+      formError(error);
       return false;
     }
 
@@ -626,9 +649,9 @@
 
     const failure = function(errorObj) {
       if (busyButton && modal() && modal().setButtonLoading) {
-        modal().setButtonLoading(busyButton, false, state.modalMode === "create" ? "Fahndung erstellen" : "Speichern");
+        modal().setButtonLoading(busyButton, false, state.modalMode === "create" ? "BOLO erstellen" : "Speichern");
       }
-      showModalError("Speichern fehlgeschlagen", errorObj && errorObj.message ? errorObj.message : "Die Fahndung konnte nicht gespeichert werden.");
+      formError(errorObj?.message || "BOLO konnte nicht gespeichert werden.");
     };
 
     if (state.modalMode === "create") {
@@ -652,9 +675,10 @@
     if (!m) return;
 
     m.open({
-      title: "Fahndung löschen",
+      title: "BOLO löschen",
       subtitle: typeLabel(row.type) + " · " + (row.name || row.id),
-      body: '<div class="wanted-modal-error" style="margin-top:0;background:rgba(188,72,72,.08)">Diese Fahndung wird endgültig aus dem Fahndungsregister gelöscht. Dieser Vorgang kann nicht rückgängig gemacht werden.</div>' +
+      modalClass: "agents",
+      body: '<div class="wanted-modal-error" style="margin-top:0;background:rgba(188,72,72,.08)">Diese BOLO wird endgültig aus dem BOLO-Register gelöscht. Dieser Vorgang kann nicht rückgängig gemacht werden.</div>' +
         '<div class="wanted-detail-grid" style="margin-top:12px">' +
           '<div class="wanted-detail-card"><div class="wanted-detail-label">Eintrag</div><div class="wanted-detail-value">' + escapeHtml(row.name || "—") + '</div></div>' +
           '<div class="wanted-detail-card"><div class="wanted-detail-label">Grund</div><div class="wanted-detail-value">' + escapeHtml(row.reason || "—") + '</div></div>' +
@@ -690,7 +714,7 @@
         if (busyButton && modal() && modal().setButtonLoading) {
           modal().setButtonLoading(busyButton, false, "Endgültig löschen");
         }
-        showModalError("Löschen fehlgeschlagen", errorObj && errorObj.message ? errorObj.message : "Die Fahndung konnte nicht gelöscht werden.");
+        showModalError("Löschen fehlgeschlagen", errorObj && errorObj.message ? errorObj.message : "Die BOLO konnte nicht gelöscht werden.");
       })
       .deleteWanted(t, id);
 
@@ -725,7 +749,8 @@
   }
 
   function initializeWantedPage() {
-    if (state.initialized) return;
+    if (!$("wantedActiveBody") || $("wantedActiveBody").dataset.boloReady) return;
+    $("wantedActiveBody").dataset.boloReady="1";
     state.initialized = true;
     setup();
   }

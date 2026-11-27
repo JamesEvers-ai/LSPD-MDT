@@ -700,7 +700,7 @@ async function dashboardStatistics(env,au,token,force=false){
  const task=(async()=>{
   const [openWarrants,activeWanted,openRecords,activeUsers,activePatrols,announcements,profileDepartment]=await Promise.all([
    safe(access.warrants,async()=>{const r=await googleSheetsCall(env,"getWarrantStatistics",[token],{timeoutMs:6500});const n=r?.open??r?.openWarrants??r?.activeWarrants;return n!=null&&Number.isFinite(Number(n))?Number(n):null;}),
-   safe(access.wanted,()=>shared("wanted",()=>dbCount(env,"fib_wanted",{status:"not.in.(closed,Closed,resolved,Resolved,cancelled,Cancelled,inactive,Inactive,captured,Captured,archived,Archived)"}))),
+   safe(access.wanted,()=>shared("wanted",()=>dbCount(env,"fib_wanted",{status:"not.in.(closed,Closed,resolved,Resolved,cancelled,Cancelled,inactive,Inactive,captured,Captured,archived,Archived)",or:`(expires_on.is.null,expires_on.gte.${new Date().toISOString().slice(0,10)})`}))),
    safe(access.records,()=>shared(["records",types],()=>dbCount(env,"fib_records",{type:`in.(${types.join(",")})`,status:"in.(open,in_progress)"}))),
    safe(access.users,()=>shared("users",()=>dbCount(env,"users",{active:"eq.true",approved:"eq.true"}))),
    safe(access.patrols,()=>shared("patrols",()=>dbCount(env,"patrols"))),
@@ -713,7 +713,46 @@ async function dashboardStatistics(env,au,token,force=false){
  if(epoch===dashboardStatsEpoch)dashboardStatsCache.set(key,{at:Date.now(),task});
  return task;
 }
+// Notifications: visibility is computed on the server, including department permissions.
+async function notificationFeed(env,au){
+ const categories=Object.entries({vacations:"vacations.view",bonuses:"bonuses.view",training:"officers.view",announcements:"announcements.view"}).filter(([,perm])=>effectivePermission(au,perm)).map(([key])=>key);
+ if(!categories.length)return [];
+ const uid=String(au.user.id), select="id,recipient_id,category,title,message,page,created_at", order="created_at.desc,id.desc";
+ const privateCategories=categories.filter(c=>c!=="announcements");
+ const [own,shared]=await Promise.all([
+  privateCategories.length?db(env,"fib_notifications",{query:{select,recipient_id:`eq.${uid}`,category:`in.(${privateCategories.join(",")})`,order,limit:"100"}}):[],
+  categories.includes("announcements")?db(env,"fib_notifications",{query:{select,recipient_id:"is.null",category:"eq.announcements",order,limit:"100"}}):[]
+ ]);
+ return [...(own||[]),...(shared||[])].sort((a,b)=>String(b.created_at).localeCompare(String(a.created_at))||String(b.id).localeCompare(String(a.id))).slice(0,100);
+}
+async function notificationDispatch(method,args,env,token){
+ if(!["getNotifications","markNotificationsRead"].includes(method))return undefined;
+ const au=await authz(env,token), uid=String(au.user.id), rows=await notificationFeed(env,au);
+ if(method==="markNotificationsRead"){
+  const requested=Array.isArray(args[1])?new Set(args[1].map(String)):new Set();
+  const ids=rows.filter(r=>requested.has(String(r.id))).map(r=>r.id);
+  if(ids.length)await db(env,"fib_notification_reads",{method:"POST",body:ids.map(notification_id=>({user_id:uid,notification_id})),prefer:"resolution=ignore-duplicates,return=minimal"});
+  return {success:true};
+ }
+ const receipts=rows.length?await db(env,"fib_notification_reads",{query:{select:"notification_id",user_id:`eq.${uid}`,notification_id:`in.(${rows.map(r=>r.id).join(",")})`}}):[];
+ const seen=new Set((receipts||[]).map(r=>String(r.notification_id)));
+ const items=rows.map(({recipient_id,...r})=>({...r,read:seen.has(String(r.id))}));
+ return {items,unread:items.filter(r=>!r.read).length};
+}
+function boloFields(d){
+ const result={};for(const k of ["type","name","alias","person_id","plate","vehicle_model","vehicle_color","reason","danger_level","last_seen","description","notes","status"])if(d[k]!==undefined)result[k]=text(d[k]);
+ for(const k of ["wanted_since","captured_at","expires_on"])if(d[k]!==undefined){const v=text(d[k]);if(v&&(!/^\d{4}-\d{2}-\d{2}$/.test(v)||!Number.isFinite(Date.parse(v))||new Date(v).toISOString().slice(0,10)!==v))throw recordError("Ungültiges Datum.",400);result[k]=v||null;}
+ if(d.armed!==undefined)result.armed=d.armed===true;
+ if(d.image_url!==undefined){const v=text(d.image_url);if(v){try{if(new URL(v).protocol!=="https:")throw Error();}catch{throw recordError("Nur HTTPS-Bildlinks sind zulässig.",400);}}result.image_url=v||null;}
+ if(result.name!==undefined&&!result.name)throw recordError("Name ist erforderlich.",400);
+ if(result.expires_on&&result.wanted_since&&result.expires_on<result.wanted_since)throw recordError("Ablaufdatum liegt vor dem Startdatum.",400);
+ if(result.type&&!['person','vehicle'].includes(result.type))throw recordError("Ungültige BOLO-Art.",400);
+ if(result.status&&!['wanted','observation','captured'].includes(result.status.toLowerCase()))throw recordError("Ungültiger BOLO-Status.",400);
+ if(result.danger_level&&!['low','medium','high','extreme'].includes(result.danger_level))throw recordError("Ungültige Gefahrenstufe.",400);
+ return result;
+}
 async function dispatchCore(method,args,env,token){
+ const notice=await notificationDispatch(method,args,env,token);if(notice!==undefined)return notice;
  // These legacy reference modules remain live in their original Google Sheets.
  if(SHEET_BACKED_METHODS.has(method)){
   if(method==="getFines") await authz(env,token,"fines.view");
@@ -1143,11 +1182,11 @@ async function dispatchCore(method,args,env,token){
   const rows=await db(env,"fib_records",{method:"PATCH",query,body:patch,prefer:"return=representation"});if(!rows?.length)throw recordError("Die Akte wurde zwischenzeitlich geändert. Bitte erneut öffnen.",409);return normalizedRecord(rows[0]);
  }
  // Wanted records (Supabase table: wanted)
- if(method==="getWantedConfig"){const au=await authz(env,token,"wanted.view");return {master:au.master,permissions:{view:await has(env,au,"wanted.view"),create:await has(env,au,"wanted.create"),edit:await has(env,au,"wanted.edit"),delete:await has(env,au,"wanted.delete")},types:[{id:"person",label:"Person"},{id:"vehicle",label:"Fahrzeug"}],statuses:[{id:"wanted",label:"Gesucht",className:"active"},{id:"observation",label:"Beobachtung",className:"watch"},{id:"captured",label:"Gefasst",className:"captured"}],dangerLevels:[{id:"low",label:"Niedrig"},{id:"medium",label:"Mittel"},{id:"high",label:"Hoch"},{id:"extreme",label:"Sehr hoch"}]};}
- if(method==="getWanted"||method==="getWantedEntries"){await authz(env,token,"wanted.view");const search=text(args[1]);const q={select:"id,type,name,alias,person_id,plate,vehicle_model,vehicle_color,reason,danger_level,last_seen,wanted_since,captured_at,description,notes,status,created_by_id,created_by,created_at,updated_by,updated_at",order:"created_at.desc",limit:String(Math.min(200,Math.max(1,Number(args[2])||100)))};if(search)q.or=`(name.ilike.*${search}*,plate.ilike.*${search}*,reason.ilike.*${search}*,description.ilike.*${search}*)`;return await db(env,"fib_wanted",{query:q});}
- if(method==="getWantedEntry"){await authz(env,token,"wanted.view");const r=await db(env,"fib_wanted",{query:{select:"id,type,name,alias,person_id,plate,vehicle_model,vehicle_color,reason,danger_level,last_seen,wanted_since,captured_at,description,notes,status,created_by_id,created_by,created_at,updated_by,updated_at",id:`eq.${text(args[1])}`,limit:"1"}});if(!r?.length)throw new Error("Fahndung nicht gefunden.");return r[0];}
- if(method==="createWanted"){const au=await authz(env,token,"wanted.create");const d=args[1]||{};if(!text(d.name))throw new Error("Name ist erforderlich.");const row={...d,id:id("W"),created_by_id:au.user.id,created_by:au.user.name,created_at:new Date().toISOString(),status:d.status||"Active"};const r=await db(env,"fib_wanted",{method:"POST",query:{select:"id,type,name,alias,person_id,plate,vehicle_model,vehicle_color,reason,danger_level,last_seen,wanted_since,captured_at,description,notes,status,created_by_id,created_by,created_at,updated_by,updated_at"},body:row,prefer:"return=representation"});return r?.[0]||row;}
- if(method==="updateWanted"){const au=await authz(env,token,"wanted.edit");const d=args[2]||{};const r=await db(env,"fib_wanted",{method:"PATCH",query:{id:`eq.${text(args[1])}`,select:"id,type,name,alias,person_id,plate,vehicle_model,vehicle_color,reason,danger_level,last_seen,wanted_since,captured_at,description,notes,status,created_by_id,created_by,created_at,updated_by,updated_at"},body:{...d,updated_at:new Date().toISOString(),updated_by:au.user.name},prefer:"return=representation"});return r?.[0]||{success:true};}
+ if(method==="getWantedConfig"){const au=await authz(env,token,"wanted.view");return {master:au.master,permissions:{view:effectivePermission(au,"wanted.view"),create:effectivePermission(au,"wanted.create"),edit:effectivePermission(au,"wanted.edit"),delete:effectivePermission(au,"wanted.delete")},types:[{id:"person",label:"Person"},{id:"vehicle",label:"Fahrzeug"}],statuses:[{id:"wanted",label:"Gesucht",className:"active"},{id:"observation",label:"Beobachtung",className:"watch"},{id:"captured",label:"Geschlossen",className:"captured"}],dangerLevels:[{id:"low",label:"Niedrig"},{id:"medium",label:"Mittel"},{id:"high",label:"Hoch"},{id:"extreme",label:"Sehr hoch"}]};}
+ if(method==="getWanted"||method==="getWantedEntries"){await authz(env,token,"wanted.view");const search=text(args[1]);const q={select:"id,type,name,alias,person_id,plate,vehicle_model,vehicle_color,reason,danger_level,last_seen,wanted_since,captured_at,description,notes,status,created_by_id,created_by,created_at,updated_by,updated_at,armed,expires_on,image_url",order:"created_at.desc",limit:String(Math.min(200,Math.max(1,Number(args[2])||100)))};if(search)q.or=`(name.ilike.*${search}*,plate.ilike.*${search}*,reason.ilike.*${search}*,description.ilike.*${search}*)`;return await db(env,"fib_wanted",{query:q});}
+ if(method==="getWantedEntry"){await authz(env,token,"wanted.view");const r=await db(env,"fib_wanted",{query:{select:"id,type,name,alias,person_id,plate,vehicle_model,vehicle_color,reason,danger_level,last_seen,wanted_since,captured_at,description,notes,status,created_by_id,created_by,created_at,updated_by,updated_at,armed,expires_on,image_url",id:`eq.${text(args[1])}`,limit:"1"}});if(!r?.length)throw new Error("Fahndung nicht gefunden.");return r[0];}
+ if(method==="createWanted"){const au=await authz(env,token,"wanted.create");const d=args[1]||{};if(!text(d.name))throw new Error("Name ist erforderlich.");const row={...boloFields(d),id:id("W"),created_by_id:au.user.id,created_by:au.user.name,created_at:new Date().toISOString(),status:d.status||"wanted"};const r=await db(env,"fib_wanted",{method:"POST",query:{select:"id,type,name,alias,person_id,plate,vehicle_model,vehicle_color,reason,danger_level,last_seen,wanted_since,captured_at,description,notes,status,created_by_id,created_by,created_at,updated_by,updated_at,armed,expires_on,image_url"},body:row,prefer:"return=representation"});return r?.[0]||row;}
+ if(method==="updateWanted"){const au=await authz(env,token,"wanted.edit");const d=args[2]||{};const r=await db(env,"fib_wanted",{method:"PATCH",query:{id:`eq.${text(args[1])}`,select:"id,type,name,alias,person_id,plate,vehicle_model,vehicle_color,reason,danger_level,last_seen,wanted_since,captured_at,description,notes,status,created_by_id,created_by,created_at,updated_by,updated_at,armed,expires_on,image_url"},body:{...boloFields(d),updated_at:new Date().toISOString(),updated_by:au.user.name},prefer:"return=representation"});if(!r?.length)throw recordError("BOLO nicht gefunden.",404);return r[0];}
  if(method==="deleteWanted"){await authz(env,token,"wanted.delete");await db(env,"fib_wanted",{method:"DELETE",query:{id:`eq.${text(args[1])}`},prefer:"return=minimal"});return {success:true};}
  // External record sharing. Tokens are only stored as SHA-256 hashes.
  if(method==="createRecordShare"){
@@ -1298,7 +1337,7 @@ function auditAction(method){
 async function dispatch(method,args,env,token){
  const result = await dispatchCore(method,args,env,token);
  if(/^(createRecord|updateRecord|archiveRecord|deleteRecord|createWanted|updateWanted|deleteWanted|startDuty|leavePatrol|joinPatrol|createPatrol|deletePatrol|system(?:Create|Update|Set|Approve|Deactivate).*|savePersonnelDepartment|refreshWarrantsCache)$/.test(method)||(/ModuleItem$/.test(method)&&method!=="getModuleItems"&&args[1]==="announcements")){dashboardStatsEpoch++;dashboardStatsCache.clear();dashboardQueryCache.clear();}
- if(!READ_ONLY_METHODS.has(method) && !/^(get|list|search|check|has|validate|preview|load)/i.test(method)){
+ if(method!=="markNotificationsRead" && !READ_ONLY_METHODS.has(method) && !/^(get|list|search|check|has|validate|preview|load)/i.test(method)){
   try{
    const actor = await authz(env,token);
    const moduleName = auditModule(method,args);

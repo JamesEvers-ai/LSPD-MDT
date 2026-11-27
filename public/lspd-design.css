@@ -592,39 +592,39 @@ html body #pageContainer .lawyers-page .lawyers-title{line-height:1.2!important}
 html body #pageContainer .lawyers-page .lawyers-subtitle{line-height:1.45!important}
 
 /* Sidebar preference: collapsed at rest, automatically expanded while hovered/focused. */
-.sidebar.is-collapsed,.sidebar.is-collapsed:hover{
+.sidebar.is-collapsed,.sidebar.is-collapsed.is-hover-open{
   width:72px!important;min-width:72px!important;overflow-x:hidden!important;
   transition:width .18s ease,min-width .18s ease!important;
 }
-.sidebar.is-collapsed:hover,.sidebar.is-collapsed:focus-within{
+.sidebar.is-collapsed.is-hover-open{
   width:252px!important;min-width:252px!important;overflow:visible!important;
 }
-.sidebar.is-collapsed:hover + .main,.sidebar.is-collapsed:focus-within + .main{
+.sidebar.is-collapsed.is-hover-open + .main,.sidebar.is-collapsed.is-hover-open + .main{
   padding-left:252px!important;
 }
 .sidebar.is-collapsed + .main{padding-left:72px!important}
-.sidebar.is-collapsed:hover .brand-text,.sidebar.is-collapsed:focus-within .brand-text,
-.sidebar.is-collapsed:hover .nav-label,.sidebar.is-collapsed:focus-within .nav-label,
-.sidebar.is-collapsed:hover .nav-section-title,.sidebar.is-collapsed:focus-within .nav-section-title,
-.sidebar.is-collapsed:hover .user-info,.sidebar.is-collapsed:focus-within .user-info{
+.sidebar.is-collapsed.is-hover-open .brand-text,.sidebar.is-collapsed.is-hover-open .brand-text,
+.sidebar.is-collapsed.is-hover-open .nav-label,.sidebar.is-collapsed.is-hover-open .nav-label,
+.sidebar.is-collapsed.is-hover-open .nav-section-title,.sidebar.is-collapsed.is-hover-open .nav-section-title,
+.sidebar.is-collapsed.is-hover-open .user-info,.sidebar.is-collapsed.is-hover-open .user-info{
   display:block!important;opacity:1!important;visibility:visible!important;
 }
-.sidebar.is-collapsed:hover .sidebar-header,.sidebar.is-collapsed:focus-within .sidebar-header{
+.sidebar.is-collapsed.is-hover-open .sidebar-header,.sidebar.is-collapsed.is-hover-open .sidebar-header{
   justify-content:flex-start!important;padding:14px 18px!important;
 }
-.sidebar.is-collapsed:hover .sidebar-nav,.sidebar.is-collapsed:focus-within .sidebar-nav{
+.sidebar.is-collapsed.is-hover-open .sidebar-nav,.sidebar.is-collapsed.is-hover-open .sidebar-nav{
   padding:17px 11px!important;
 }
-.sidebar.is-collapsed:hover .nav-item,.sidebar.is-collapsed:focus-within .nav-item{
+.sidebar.is-collapsed.is-hover-open .nav-item,.sidebar.is-collapsed.is-hover-open .nav-item{
   justify-content:flex-start!important;padding:0 12px!important;
 }
-.sidebar.is-collapsed:hover .nav-icon,.sidebar.is-collapsed:focus-within .nav-icon{
+.sidebar.is-collapsed.is-hover-open .nav-icon,.sidebar.is-collapsed.is-hover-open .nav-icon{
   width:auto!important;min-width:20px!important;
 }
-.sidebar.is-collapsed:hover .user-card,.sidebar.is-collapsed:focus-within .user-card{
+.sidebar.is-collapsed.is-hover-open .user-card,.sidebar.is-collapsed.is-hover-open .user-card{
   justify-content:flex-start!important;padding:0 8px!important;
 }
-.sidebar.is-collapsed:hover .user-avatar,.sidebar.is-collapsed:focus-within .user-avatar{
+.sidebar.is-collapsed.is-hover-open .user-avatar,.sidebar.is-collapsed.is-hover-open .user-avatar{
   width:38px!important;height:38px!important;min-width:38px!important;
 }
 .sidebar .sidebar-collapse-toggle{display:none!important}
@@ -1086,3 +1086,38 @@ html body #pageContainer .patrols-page #patrolsList {display:block!important;bac
 #fibGlobalModalOverlay .patrol-remove-member {height:34px;width:34px;border:1px solid #dfbfc0;border-radius:6px;color:#9e3b40;background:#fff;cursor:pointer;font-size:20px;}
 #fibGlobalModalOverlay .patrol-modal-empty,#fibGlobalModalOverlay .patrol-modal-error {font-size:13px;padding:8px;color:#63788d;}
 @media(max-width:620px){#fibGlobalModalOverlay .patrol-form-grid{grid-template-columns:1fr;}#fibGlobalModalOverlay .patrol-members-header{flex-wrap:wrap;}}
+
+/* v54 notification centre — fixed outside the horizontally scrolling duty strip. */
+#fibNotificationButton{position:relative;display:inline-flex!important;align-items:center;justify-content:center;flex:0 0 36px;width:36px;height:36px;border:1px solid #cbd9e7;border-radius:8px;background:#fff;color:#173b60;cursor:pointer}
+#fibNotificationCount{position:absolute;top:-5px;right:-5px;min-width:17px;padding:2px 4px;border-radius:10px;background:#b43e3e;color:white;font-size:10px;font-weight:800;line-height:13px}
+#fibNotificationPanel[hidden],#fibNotificationCount[hidden]{display:none!important}
+#fibNotificationPanel{position:fixed;top:66px;right:16px;width:min(410px,calc(100vw - 32px));z-index:5000;background:#fff;color:#18324e;border:1px solid #d5e0ec;border-radius:12px;box-shadow:0 16px 48px #102b5030;overflow:hidden;font:14px/1.45 Inter,Segoe UI,sans-serif}
+#fibNotificationPanel header{background:#173b60;color:#fff;display:flex;align-items:center;justify-content:space-between;padding:15px 18px;font-size:16px}
+#fibNotificationPanel button{font:inherit;cursor:pointer;border:1px solid #d5e0ec;background:#fff;color:#173b60;border-radius:6px;padding:5px 10px}
+#fibNotificationPanel .fib-notice-tools{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 14px;border-bottom:1px solid #e1e9f1;font-size:12px}
+#fibNotificationList{max-height:min(65vh,540px);overflow:auto;padding:8px}
+#fibNotificationList .fib-notice{display:block;width:100%;text-align:left;padding:12px;margin:4px 0;color:#18324e;background:#fff;border:1px solid #e0e8f0;border-radius:8px}
+#fibNotificationList .fib-notice.unread{background:#edf5fe;border-left:3px solid #d7ad27}
+#fibNotificationList .fib-notice strong,#fibNotificationList .fib-notice span,#fibNotificationList .fib-notice small{display:block;color:inherit;white-space:normal}
+#fibNotificationList .fib-notice small{color:#64758b;margin-top:5px}
+#fibNotificationList .fib-notice-empty{padding:18px;color:#64758b}
+
+/* v54 BOLO controls and readable status chips. */
+html body #pageContainer .wanted-page #wantedRefreshButton{background:#fff!important;color:#173b60!important;border:1px solid #cbd9e7!important;font-size:13px!important}
+html body #pageContainer .wanted-page #wantedNewButton{font-size:13px!important}
+html body #pageContainer .wanted-page .wanted-filter{min-width:135px!important;font-size:13px!important}
+html body #pageContainer .wanted-page .wanted-icon-btn{display:inline-flex!important;align-items:center!important;justify-content:center!important;min-width:34px!important;min-height:34px!important;border:1px solid #cbd9e7!important;border-radius:7px!important;background:#f3f7fb!important;color:#173b60!important;cursor:pointer}
+html body #pageContainer .wanted-page .wanted-icon-btn.delete{background:#fff4f4!important;border-color:#e4c5c5!important;color:#a33c3c!important}
+html body #pageContainer .wanted-page .wanted-primary-text{font-size:14px!important;font-weight:750!important}
+html body #pageContainer .wanted-page :is(.wanted-type,.wanted-status,.wanted-danger,.wanted-bool){display:inline-flex!important;align-items:center!important;justify-content:center!important;padding:4px 8px!important;border-radius:6px!important;background:#edf3fa!important;color:#24496e!important;font-size:12px!important;font-weight:700!important;white-space:nowrap!important}
+html body #pageContainer .wanted-page :is(.wanted-danger.high,.wanted-danger.extreme){background:#fce8e7!important;color:#973a38!important}
+html body #pageContainer .wanted-page .wanted-bool.yes{background:#e8f4ec!important;color:#247345!important}
+#fibGlobalModalOverlay #boloFormError:not([hidden]){padding:10px 12px;margin-bottom:12px;background:#fff0f0;color:#982e2e;border:1px solid #e8c1c1;border-radius:7px;font-size:13px}
+#fibGlobalModalOverlay .wanted-modal-surface{color:#18324e;background:#f4f7fa;padding:4px;font-size:14px}
+#fibGlobalModalOverlay .wanted-modal-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 16px}
+#fibGlobalModalOverlay .wanted-modal-group.full{grid-column:1/-1}
+#fibGlobalModalOverlay .wanted-modal-label{display:block;color:#284767;font-size:13px;font-weight:700;margin-bottom:5px}
+#fibGlobalModalOverlay .wanted-modal-input{width:100%;min-height:36px;border:1px solid #ccd9e6;border-radius:7px;background:#fff;color:#18324e;font:inherit;padding:8px 10px}
+#fibGlobalModalOverlay .wanted-modal-info,#fibGlobalModalOverlay .wanted-modal-help{color:#526a80;font-size:12px;margin-bottom:10px}
+#fibNotificationPanel button:disabled{opacity:.5;cursor:default}
+@media(max-width:650px){#fibGlobalModalOverlay .wanted-modal-form{grid-template-columns:1fr}}
