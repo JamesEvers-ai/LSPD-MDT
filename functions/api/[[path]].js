@@ -173,7 +173,7 @@ async function uniformDispatch(method,args,env,token){
 }
 
 async function financeDispatch(method,args,env,token){
-  const supported=["getBonusData","saveBonusSubmission","approveBonusSubmission","rejectBonusSubmission","payBonusSubmission","getAccountingData","createAccountingEntry","setOrgAccountBalance"];
+  const supported=["getBonusData","saveBonusSubmission","saveBonusForEmployee","approveBonusSubmission","rejectBonusSubmission","payBonusSubmission","getAccountingData","createAccountingEntry","setOrgAccountBalance"];
   if(!supported.includes(method)) return undefined;
   const now=new Date().toISOString();
   const rates={event:15000,towing:5000,drugs:5000,entry_control:25000};
@@ -206,6 +206,19 @@ async function financeDispatch(method,args,env,token){
     }
     const row={id:id("BON"),employee_id:au.user.id,employee_name:au.user.name,rank_id:rankId,rank_name:rankName,rank_level:rankLevel,event_count:Number(d.eventCount||0),towing_count:Number(d.towingCount||0),drugs_count:Number(d.drugsCount||0),entry_control_count:Number(d.entryControlCount||0),total_amount:total,status:"pending",evidence:text(d.evidence),description:text(d.description),activity_date:text(d.activityDate),submitted_at:now,created_at:now,created_by:au.user.id,created_by_name:au.user.name};
     const saved=await db(env,"fib_bonus_payouts",{method:"POST",query:{select:"*"},body:row,prefer:"return=representation"});return saved?.[0]||row;
+  }
+  if(method==="saveBonusForEmployee"){
+    const au=await authz(env,token,"bonuses.manage");
+    const d=args[1]||{}; const employeeId=text(d.employeeId); if(!employeeId)throw new Error("Mitarbeiter fehlt.");
+    const users=await db(env,"users",{query:{select:"id,name,rank,active,approved",id:`eq.${employeeId}`,limit:"1"}}); const target=users?.[0]; if(!target)throw new Error("Mitarbeiter nicht gefunden.");
+    const ranks=await rankRows(env); const rr=ranks.find(x=>String(x.id)===String(target.rank))||ranks.find(x=>String(x.name)===String(target.rank)); const rankLevel=Number(rr?.level||0);
+    if(rankLevel<=1)throw new Error("Bonusauszahlungen sind nur für Mitarbeiter über Rang-Level 1 vorgesehen.");
+    const total=calcTotal(d); if(total<=0)throw new Error("Bitte mindestens eine bonusfähige Aktivität angeben."); if(!text(d.description))throw new Error("Bitte einen Verwendungszweck bzw. eine Beschreibung angeben.");
+    const existing=(await db(env,"fib_bonus_payouts",{query:{select:"id,status",employee_id:`eq.${employeeId}`,status:"in.(pending,rejected)",order:"submitted_at.desc",limit:"1"}}))?.[0];
+    const payload={employee_id:target.id,employee_name:target.name,rank_id:rr?.id||target.rank,rank_name:rr?.name||target.rank||"Kein Rang",rank_level:rankLevel,event_count:Number(d.eventCount||0),towing_count:Number(d.towingCount||0),drugs_count:Number(d.drugsCount||0),entry_control_count:Number(d.entryControlCount||0),total_amount:total,status:"pending",evidence:text(d.evidence),description:text(d.description),activity_date:text(d.activityDate),updated_at:now};
+    if(existing){const saved=await db(env,"fib_bonus_payouts",{method:"PATCH",query:{id:`eq.${existing.id}`,select:"*"},body:payload,prefer:"return=representation"});return saved?.[0]||{...payload,id:existing.id};}
+    const row={id:id("BON"),...payload,submitted_at:now,created_at:now,created_by:au.user.id,created_by_name:au.user.name};
+    const saved=await db(env,"fib_bonus_payouts",{method:"POST",query:{select:"*"},body:row,prefer:"return=representation"}); return saved?.[0]||row;
   }
   if(method==="approveBonusSubmission"||method==="rejectBonusSubmission"){
     const au=await authz(env,token,"bonuses.manage");const rid=text(args[1]);const rows=await db(env,"fib_bonus_payouts",{query:{select:"*",id:`eq.${rid}`,limit:"1"}});const row=rows?.[0];if(!row)throw Object.assign(new Error("Bonus-Einreichung nicht gefunden."),{status:404});

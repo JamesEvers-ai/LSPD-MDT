@@ -5074,10 +5074,18 @@ const NAVIGATION = [
       const navigationSidebar = document.querySelector('.sidebar');
       if (navigationSidebar) {
         navigationSidebar.classList.add('nav-navigation-lock');
-        navigationSidebar.addEventListener('mouseleave', function unlockSidebar(){
+        if (navigationSidebar._navigationUnlockHandler) {
+          document.removeEventListener('pointermove', navigationSidebar._navigationUnlockHandler, true);
+        }
+        const unlockSidebar = function(event){
+          const target = event.target;
+          if (target && target.closest && target.closest('.sidebar')) return;
           navigationSidebar.classList.remove('nav-navigation-lock');
-          navigationSidebar.removeEventListener('mouseleave', unlockSidebar);
-        }, {once:true});
+          document.removeEventListener('pointermove', unlockSidebar, true);
+          navigationSidebar._navigationUnlockHandler = null;
+        };
+        navigationSidebar._navigationUnlockHandler = unlockSidebar;
+        document.addEventListener('pointermove', unlockSidebar, true);
       }
 
 
