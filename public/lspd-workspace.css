@@ -20,18 +20,18 @@
 #pageContainer table tbody td{background:#fff;color:#2b3c50;border-bottom:1px solid #e7edf3}
 #pageContainer table tbody tr:last-child td{border-bottom:0}
 #pageContainer table tbody tr:hover td{background:#f5f8fb}
-#pageContainer :is(.system-page,.agents-page,.fines-page,.lawyers-page,.vehicle-catalog-page,.ifines-page,.records-page,.warrants-page,.wanted-page,.classifications-page,.patrols-page){
+#pageContainer :is(.system-page,.agents-page,.fines-page,.lawyers-page,.vehicle-catalog-page,.ifines-page,.records-page,.warrants-page,.wanted-page,.patrols-page){
  color:var(--lspd-ink)!important
 }
 #pageContainer .system-page{background:transparent!important}
-#pageContainer :is(.system-tabs,.agents-tabs,.records-tabs,.classification-tabs,.ifines-tabs){
+#pageContainer :is(.system-tabs,.agents-tabs,.records-tabs,.ifines-tabs){
  background:#edf2f7!important;border:1px solid #d8e1eb!important;border-radius:10px!important
 }
-#pageContainer :is(.system-tab,.agents-tab,.records-tab,.classification-tab,.ifines-tab){color:#52657a!important}
-#pageContainer :is(.system-tab.active,.agents-tab.active,.records-tab.active,.classification-tab.active,.ifines-tab.active){
+#pageContainer :is(.system-tab,.agents-tab,.records-tab,.ifines-tab){color:#52657a!important}
+#pageContainer :is(.system-tab.active,.agents-tab.active,.records-tab.active,.ifines-tab.active){
  background:#fff!important;color:#15365c!important;box-shadow:0 1px 4px rgba(20,48,79,.12)!important
 }
-#pageContainer :is(.system-card,.agents-card,.records-card,.warrants-card,.wanted-card,.classification-card,.ifines-card,.lawyers-card,.vehicle-card){
+#pageContainer :is(.system-card,.agents-card,.records-card,.warrants-card,.wanted-card,.ifines-card,.lawyers-card,.vehicle-card){
  background:#fff!important;color:var(--lspd-ink)!important;border-color:var(--lspd-line)!important;box-shadow:var(--lspd-shadow)
 }
 #pageContainer :is(.system-page,.agents-page,.fines-page,.lawyers-page,.vehicle-catalog-page,.ifines-page) :is(label,.field-label,.form-label){color:#40566e}

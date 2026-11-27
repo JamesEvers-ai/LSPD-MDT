@@ -1,3 +1,4 @@
+import { isLspdPermission } from "./lspd-permission-boundary.js";
 import { db } from "./supabase.js";
 
 const SESSION_HOURS = 8;
@@ -174,7 +175,7 @@ async function getDepartmentPermissionScope(env) {
     db(env, "department_permissions", { query: { select: "department,permission_id", limit: "5000" } }),
     db(env, "permissions", { query: { select: "id,key", limit: "5000" } })
   ]);
-  const keyById = new Map((permissions || []).map(p => [String(p.id), String(p.key || "")]).filter(([,key]) => key));
+  const keyById = new Map((permissions || []).filter(isLspdPermission).map(p => [String(p.id), String(p.key || "")]).filter(([,key]) => key));
   const scoped = new Set();
   const byDepartment = new Map();
   for (const link of Array.isArray(links) ? links : []) {
@@ -205,14 +206,14 @@ export async function getPermissions(env, user) {
     rank = Array.isArray(byId) ? byId[0] : null;
   }
   const ids = rank?.id ? (await db(env, "rank_permissions", { query: { select: "permission_id", rank_id: `eq.${rank.id}` } }) || []).map(x => x.permission_id).filter(Boolean) : [];
-  const permissions = ids.length ? await db(env, "permissions", { query: { select: "key", id: `in.(${ids.join(",")})` } }) : [];
+  const permissions = ids.length ? await db(env, "permissions", { query: { select: "id,key", id: `in.(${ids.join(",")})` } }) : [];
   const department = await getUserDepartment(env, user.id);
   const scope = await getDepartmentPermissionScope(env);
   const byDepartment = new Map(scope.byDepartment || []);
   const departmentPermissions = department ? (byDepartment.get(department) || []) : [];
   return cacheSet(permissionCache, cacheKey, {
     master: false,
-    permissions: (Array.isArray(permissions) ? permissions : []).map(p => String(p.key || "")).filter(Boolean),
+    permissions: (Array.isArray(permissions) ? permissions : []).filter(isLspdPermission).map(p => String(p.key || "")).filter(Boolean),
     department,
     departmentPermissions,
     departmentScopedPermissions: scope.scopedPermissions || []

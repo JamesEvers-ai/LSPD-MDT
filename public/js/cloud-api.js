@@ -7,7 +7,7 @@
     Page_Patrols:"patrols.html", Page_Records:"records.html", "Page_Records(2)":"records.html",
     Page_Announcements:"announcements.html", Page_Academy:"academy.html", Page_AcademyDocuments:"academy-documents.html", Page_AcademyTests:"academy-tests.html", Page_AcademyResults:"academy-results.html", Page_Vacations:"vacations.html", Page_IFines:"ifines.html", Page_VehicleCatalog:"vehicle-catalog.html", Page_UniformCatalog:"uniform-catalog.html", Page_Armory:"armory.html",
     Page_Fines:"fines.html", Page_Lawyers:"lawyers.html", Page_Warrants:"warrants.html",
-    Page_Organization:"organization.html", Page_Wanted:"wanted.html", Page_Calendar:"calendar.html", Page_Gangs:"gangs.html", Page_Bonuses:"bonuses.html", Page_Logs:"logs.html"
+    Page_Regulations:"regulations.html", Page_Organization:"organization.html", Page_Wanted:"wanted.html", Page_Calendar:"calendar.html", Page_Gangs:"gangs.html", Page_Bonuses:"bonuses.html", Page_Logs:"logs.html"
   };
   const templateCache = new Map();
   const templateInflight = new Map();
@@ -20,7 +20,7 @@
   const LIVE_OR_AUTH_READS = new Set([
     "getCurrentUser", "getSessionInfo", "getMyPermissions", "getPatrols", "getPatrolRevision", "getOwnDuty",
     "getDashboardStats", "getDashboardStatistics", "getActivePatrols",
-    "getLivePatrols", "getCurrentSession", "getNotifications",
+    "getLivePatrols", "getCurrentSession", "getNotifications", "getRegulations", "getRegulation", "getRegulationHistory", "getRegulationVersion",
     "getWarrantStatistics", "getRecords", "getRecord", "getRecordShares", "getEquipmentCatalog", "getVacationRequests", "getFinanceAccess", "getBonusData", "getAccountingData", "getPersonnelFileBundle", "getPersonnelHistory"
   ]);
   let lastToken = null;
@@ -52,7 +52,7 @@
     try { return await task; } finally { templateInflight.delete(filename); }
   }
   async function preloadPages(){
-    const filenames=[...new Set(Object.values(pages))];
+    const filenames=[...new Set(Object.values(pages))].filter(name=>name!=="regulations.html");
     const results=await Promise.allSettled(filenames.map(fetchTemplate));
     const failed=results.filter(x=>x.status==="rejected");
     if(failed.length) console.warn(`[LSPD MDT] ${failed.length} Seitentemplate(s) konnten nicht vorab geladen werden. Sie werden beim Öffnen erneut versucht.`,failed.map(x=>x.reason));

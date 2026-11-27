@@ -3783,6 +3783,13 @@ const NAVIGATION = [
         file: "Page_Organization"
       },
       {
+        id: "regulations",
+        title: "Dienstvorschriften",
+        icon: "▤",
+        permission: "regulations.view",
+        file: "Page_Regulations"
+      },
+      {
         id: "announcements",
         title: "Bekanntmachungen",
         icon: "ⓘ",
@@ -7781,7 +7788,7 @@ const NAVIGATION = [
             <div class="record-share-public-meta">
               <div class="record-share-public-meta-card"><div class="record-share-public-meta-label">Betreff</div><div class="record-share-public-meta-value">${escape(record.subject || "—")}</div></div>
               <div class="record-share-public-meta-card"><div class="record-share-public-meta-label">Status</div><div class="record-share-public-meta-value"><span class="record-share-public-status">${escape(record.statusLabel || "—")}</span></div></div>
-              <div class="record-share-public-meta-card"><div class="record-share-public-meta-label">Klassifizierung</div><div class="record-share-public-meta-value">${escape(record.classification || "—")}</div></div>
+              <div class="record-share-public-meta-card"><div class="record-share-public-meta-label">Schutzstufe</div><div class="record-share-public-meta-value">${escape(record.classification || "—")}</div></div>
               <div class="record-share-public-meta-card"><div class="record-share-public-meta-label">Erstellt durch</div><div class="record-share-public-meta-value">${escape(record.createdBy || "—")}</div></div>
             </div>
             <div class="record-share-public-section">

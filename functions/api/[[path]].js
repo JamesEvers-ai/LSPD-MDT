@@ -1,3 +1,5 @@
+import { regulationDispatch } from "../_lib/regulations.js";
+import { isLspdPermission, isFIBClassificationKey } from "../_lib/lspd-permission-boundary.js";
 import { config, db, dbCount, json, readJson, rpc } from "../_lib/supabase.js";
 import { SHEET_BACKED_METHODS, googleSheetsCall } from "../_lib/google-sheets.js";
 import { bearer, clearAuthCaches, createSession, getPermissions, publicUser, requireSession, sha256, verifyPassword } from "../_lib/auth.js";
@@ -460,6 +462,7 @@ async function moduleDispatch(method,args,env,token){
  if(action==="list"){
   const query={select:moduleKey==="logs"?"id,action,module_name,item_id,detail,actor_id,actor_name,created_at":"id,title,description,status,event_date,metadata,created_by,created_by_name,created_at,updated_at",order:"created_at.desc",limit:moduleKey==="logs"?"300":"200"};
   if(moduleKey==="announcements"&&!effectivePermission(auth,cfg.manage)) query.status="eq.active";
+  if(moduleKey==="logs")query.module_name="not.in.(classification,classifications,fib_classification)";
   if(moduleKey==="logs"&&!auth.master&&!auth.permissions.includes("*"))await authz(env,token,"logs.view");
   const rows=moduleKey==="calendar"&&!effectivePermission(auth,cfg.view)?[]:await db(env,cfg.table,{query});
   if(moduleKey!=="calendar")return (rows||[]).map(normalizeModuleRow);
@@ -752,6 +755,8 @@ function boloFields(d){
  return result;
 }
 async function dispatchCore(method,args,env,token){
+ if(/classif(?:ication|ied)/i.test(method))throw Object.assign(new Error("Diese Funktion gehört nicht zum LSPD MDT."),{status:404});
+ const regulation=await regulationDispatch(method,args,env,token,authz);if(regulation!==undefined)return regulation;
  const notice=await notificationDispatch(method,args,env,token);if(notice!==undefined)return notice;
  // These legacy reference modules remain live in their original Google Sheets.
  if(SHEET_BACKED_METHODS.has(method)){
@@ -1214,19 +1219,29 @@ async function dispatchCore(method,args,env,token){
  // System administration
  if(method==="systemGetUsers"){await authz(env,token,"system.users.view");const [us,rs]=await Promise.all([db(env,"users",{query:{select:"id,username,name,rank,active,approved,master,profile_image",order:"name.asc"}}),rankRows(env)]);return (us||[]).map(u=>({...u,rank_name:(rs||[]).find(r=>String(r.id)===String(u.rank)||r.name===u.rank)?.name||u.rank||"Kein Rang"}));}
  if(method==="systemGetUserRanks"||method==="systemGetAllRanks"){await authz(env,token,"system.ranks.view");return await rankRows(env);}
- if(method==="systemGetPermissions"){await authz(env,token,"system.permissions.view");return await db(env,"permissions",{query:{select:"*",order:"key.asc"}});}
- if(method==="systemGetRankPermissions"){await authz(env,token,"system.permissions.view");const links=await db(env,"rank_permissions",{query:{select:"permission_id",rank_id:`eq.${text(args[1])}`}});return (links||[]).map(x=>x.permission_id);}
- if(method==="systemSetRankPermissions"){await authz(env,token,"system.permissions.manage");const rid=text(args[1]),selected=Array.isArray(args[2])?args[2]:[];await db(env,"rank_permissions",{method:"DELETE",query:{rank_id:`eq.${rid}`},prefer:"return=minimal"});if(selected.length)await db(env,"rank_permissions",{method:"POST",body:selected.map(pid=>({rank_id:rid,permission_id:text(pid)})),prefer:"return=minimal"});clearAuthCaches();return {success:true};}
+ if(method==="systemGetPermissions"){await authz(env,token,"system.permissions.view");return (await db(env,"permissions",{query:{select:"*",order:"key.asc"}})||[]).filter(isLspdPermission);}
+ if(method==="systemGetRankPermissions"){
+  await authz(env,token,"system.permissions.view");const [links,perms]=await Promise.all([db(env,"rank_permissions",{query:{select:"permission_id",rank_id:`eq.${text(args[1])}`}}),db(env,"permissions",{query:{select:"id,key",limit:"5000"}})]);const visible=new Set((perms||[]).filter(isLspdPermission).map(p=>String(p.id)));return (links||[]).map(x=>x.permission_id).filter(pid=>visible.has(String(pid)));
+ }
+ if(method==="systemSetRankPermissions"){
+  await authz(env,token,"system.permissions.manage");const rid=text(args[1]),selected=new Set((Array.isArray(args[2])?args[2]:[]).map(String));
+  const [links,perms]=await Promise.all([db(env,"rank_permissions",{query:{select:"permission_id",rank_id:`eq.${rid}`}}),db(env,"permissions",{query:{select:"id,key",limit:"5000"}})]);const visible=new Set((perms||[]).filter(isLspdPermission).map(p=>String(p.id)));const existing=new Set((links||[]).map(x=>String(x.permission_id)));
+  if([...selected].some(pid=>!visible.has(pid)))throw Object.assign(new Error("Ungültige oder nicht freigegebene Berechtigung."),{status:400});
+  const remove=[...existing].filter(pid=>visible.has(pid)&&!selected.has(pid));const add=[...selected].filter(pid=>!existing.has(pid));
+  if(remove.length)await db(env,"rank_permissions",{method:"DELETE",query:{rank_id:`eq.${rid}`,permission_id:`in.(${remove.join(",")})`},prefer:"return=minimal"});
+  if(add.length)await db(env,"rank_permissions",{method:"POST",body:add.map(pid=>({rank_id:rid,permission_id:pid})),prefer:"return=minimal"});clearAuthCaches();return {success:true};
+ }
  if(method==="systemCreateRank"){await authz(env,token,"system.ranks.manage");const d=args[1]||{};const row={id:text(d.id)||id("R"),name:text(d.name||d.Name),short_name:text(d.shortName||d.short_name||d.ShortName),level:Number(d.level||d.Level||0),active:d.active!==false&&d.Active!==false};const r=await db(env,"ranks",{method:"POST",query:{select:"*"},body:row,prefer:"return=representation"});return r?.[0]||row;}
  if(method==="systemUpdateRank"){await authz(env,token,"system.ranks.manage");const rid=text(args[1]),d=args[2]||{};const patch={};for(const [k,keys] of Object.entries({name:["name","Name"],short_name:["shortName","short_name","ShortName"],level:["level","Level"],active:["active","Active"]})){const found=keys.find(x=>d[x]!==undefined);if(found)patch[k]=k==="level"?Number(d[found]):k==="active"?(d[found]===true||String(d[found]).toLowerCase()==="true"):text(d[found]);}const r=await db(env,"ranks",{method:"PATCH",query:{id:`eq.${rid}`,select:"*"},body:patch,prefer:"return=representation"});return r?.[0]||{success:true};}
  if(method==="systemCreatePermission"){
   await authz(env,token,"system.permissions.manage");const d=args[1]||{};const key=text(d.key||d.permission||d.name),name=text(d.name||d.label||key),label=text(d.label||d.name||key);
-  if(!key)throw new Error("Berechtigungsschlüssel fehlt.");if(!name)throw new Error("Name der Berechtigung fehlt.");
+  if(isFIBClassificationKey(key)||!isLspdPermission({id:d.id,key}))throw Object.assign(new Error("Diese Berechtigung gehört nicht zum LSPD."),{status:403});if(!key)throw new Error("Berechtigungsschlüssel fehlt.");if(!name)throw new Error("Name der Berechtigung fehlt.");
   const row={id:text(d.id)||id("PERM"),key,name,label,description:text(d.description),category:text(d.category)};
   const r=await db(env,"permissions",{method:"POST",query:{select:"*"},body:row,prefer:"return=representation"});return r?.[0]||row;
  }
  if(method==="systemUpdatePermission"){
   await authz(env,token,"system.permissions.manage");const d=args[2]||{};const patch={};for(const k of ["key","name","label","description","category"])if(d[k]!==undefined)patch[k]=text(d[k]);
+  const existing=await db(env,"permissions",{query:{select:"id,key",id:`eq.${text(args[1])}`,limit:"1"}});if(!existing?.length||!isLspdPermission(existing[0])||isFIBClassificationKey(patch.key))throw Object.assign(new Error("Diese Berechtigung gehört nicht zum LSPD."),{status:403});
   const r=await db(env,"permissions",{method:"PATCH",query:{id:`eq.${text(args[1])}`,select:"*"},body:patch,prefer:"return=representation"});return r?.[0]||{success:true};
  }
  if(method==="getApiDiagnostics"){
@@ -1241,6 +1256,8 @@ async function dispatchCore(method,args,env,token){
    ["personnel_notes","id,user_id,type,title,content,created_by,created_by_name,created_at"],
    ["personnel_history","id,user_id,action,detail,actor_id,actor_name,created_at"],
    ["personnel_terminations","id,user_id,document_number,public_token_hash,payload,created_by,created_by_name,created_at"],
+   ["lspd_service_regulations","id,title,category,content,status,version,updated_at,updated_by,updated_by_name"],
+   ["lspd_service_regulation_versions","regulation_id,version,title,category,content,status,updated_at,updated_by,updated_by_name"],
    ["fib_records","id,case_number,type,title,subject,status,classification,summary,content,created_at"],
    ["fib_wanted","id,status"],
    ["fib_record_shares","id,record_id,token_hash,expires_at,revoked_at"],
@@ -1269,18 +1286,18 @@ async function dispatchCore(method,args,env,token){
   const departments=["Internal Affairs Division","Central Division","Northern Division","Patrol Division","Investigative Division","Metropolitan Division","Support Division","Internal Affairs","Patrol Unit","Detective Bureau","Special Weapons and Tactics","Gang Enforcement Detail","Canine (K9)","Police Academy","Public Relations Office","Air Support Division","High Command"];
   const perms=await db(env,"permissions",{query:{select:"id,key,name,label,description,category",order:"category.asc,key.asc",limit:"5000"}});
   const links=await db(env,"department_permissions",{query:{select:"department,permission_id",order:"department.asc",limit:"5000"}});
-  return {departments,permissions:(perms||[]).filter(p=>!String(p.key||"").startsWith("system.")),links:links||[]};
+  const visible=(perms||[]).filter(p=>isLspdPermission(p)&&!String(p.key||"").startsWith("system."));const ids=new Set(visible.map(p=>String(p.id)));return {departments,permissions:visible,links:(links||[]).filter(l=>ids.has(String(l.permission_id)))};
  }
  if(method==="systemSetDepartmentPermissions"){
   const au=await authz(env,token,"system.permissions.manage");
   const department=text(args[1]),selected=Array.isArray(args[2])?args[2].map(text).filter(Boolean):[];
   if(!department)throw new Error("Abteilung fehlt.");
-  const valid=selected.length
-    ? await db(env,"permissions",{query:{select:"id,key",id:`in.(${selected.map(v=>v.replace(/[^A-Za-z0-9_-]/g,"")).join(",")})`,limit:"5000"}})
-    : [];
-  const allowedIds=(valid||[]).filter(p=>!String(p.key||"").startsWith("system.")).map(p=>String(p.id));
-  await db(env,"department_permissions",{method:"DELETE",query:{department:`eq.${department}`},prefer:"return=minimal"});
-  if(allowedIds.length)await db(env,"department_permissions",{method:"POST",body:allowedIds.map(permission_id=>({id:id("DP"),department,permission_id,created_at:new Date().toISOString(),created_by:au.user.id})),prefer:"return=minimal"});
+  const [perms,links]=await Promise.all([db(env,"permissions",{query:{select:"id,key",limit:"5000"}}),db(env,"department_permissions",{query:{select:"permission_id",department:`eq.${department}`,limit:"5000"}})]);
+  const visible=new Set((perms||[]).filter(p=>isLspdPermission(p)&&!String(p.key||"").startsWith("system.")).map(p=>String(p.id)));const chosen=new Set(selected);const existing=new Set((links||[]).map(l=>String(l.permission_id)));
+  if([...chosen].some(pid=>!visible.has(pid)))throw Object.assign(new Error("Ungültige oder nicht freigegebene Berechtigung."),{status:400});
+  const remove=[...existing].filter(pid=>visible.has(pid)&&!chosen.has(pid)),add=[...chosen].filter(pid=>!existing.has(pid));
+  if(remove.length)await db(env,"department_permissions",{method:"DELETE",query:{department:`eq.${department}`,permission_id:`in.(${remove.join(",")})`},prefer:"return=minimal"});
+  if(add.length)await db(env,"department_permissions",{method:"POST",body:add.map(permission_id=>({id:id("DP"),department,permission_id,created_at:new Date().toISOString(),created_by:au.user.id})),prefer:"return=minimal"});
   clearAuthCaches();return {success:true};
  }
  if(method==="systemCreateUser"){await authz(env,token,"system.users.manage");const d=args[1]||{};const username=text(d.username||d.Username),name=text(d.name||d.Name),password=String(d.password||d.Password||"");if(!username||!name||!password)throw new Error("Benutzername, Name und Passwort sind erforderlich.");const salt=[...crypto.getRandomValues(new Uint8Array(16))].map(b=>b.toString(16).padStart(2,"0")).join("");const row={id:id("U"),username,name,rank:text(d.rankId||d.rank)||null,password_salt:salt,password_hash:await sha256(salt+password),active:d.active!==false,approved:d.approved!==false,master:d.master===true,created_at:new Date().toISOString()};const r=await db(env,"users",{method:"POST",query:{select:"id,username,name,rank,active,approved,master"},body:row,prefer:"return=representation"});return r?.[0]||{success:true};}
@@ -1306,6 +1323,7 @@ function auditModule(method,args){
  const first=String(args?.[0]??"");
  if(["announcements","vacations","ifines","calendar","gangs","bonuses","logs"].includes(first) &&
     /ModuleItem/.test(method)) return first;
+ if(/Regulation/i.test(method)) return "regulations";
  if(/Equipment/i.test(method)) return "armory";
  if(/Patrol/i.test(method)) return "patrols";
  if(/Personnel|Agent/i.test(method)) return "personnel";
@@ -1436,7 +1454,7 @@ export async function onRequest({request,env}){
    config(env);
    const deep=url.searchParams.get("deep")==="1";
    const required=deep
-    ? ["users","ranks","permissions","rank_permissions","fib_mdt_sessions","fib_records","patrols","fib_wanted","patrol_members","personnel","personnel_notes","personnel_trainings","fib_record_shares","fib_announcements","fib_vacations","fib_internal_fines","fib_internal_fine_catalog","fib_vehicle_catalog","fib_calendar_events","fib_gang_profiles","fib_bonus_entries","fib_mdt_logs","department_permissions","academy_documents","academy_tests","academy_attempts","fib_uniform_catalog","fib_uniform_organization_rules","fib_bonus_payouts","fib_org_account","fib_accounting_entries","patrol_ten_code_settings","patrol_duty_settings"]
+    ? ["users","ranks","permissions","rank_permissions","fib_mdt_sessions","fib_records","patrols","fib_wanted","patrol_members","personnel","personnel_notes","personnel_trainings","fib_record_shares","fib_announcements","fib_vacations","fib_internal_fines","fib_internal_fine_catalog","fib_vehicle_catalog","fib_calendar_events","fib_gang_profiles","fib_bonus_entries","fib_mdt_logs","department_permissions","academy_documents","academy_tests","academy_attempts","fib_uniform_catalog","fib_uniform_organization_rules","fib_bonus_payouts","fib_org_account","fib_accounting_entries","patrol_ten_code_settings","patrol_duty_settings","lspd_service_regulations","lspd_service_regulation_versions"]
     : ["users","fib_mdt_sessions"];
    const checks=await Promise.all(required.map(async table=>{
     try { await db(env,table,{query:{select:"*",limit:"0"}}); return {table,ok:true}; }
