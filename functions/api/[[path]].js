@@ -796,6 +796,7 @@ async function dispatchCore(method,args,env,token){
   const users=await db(env,"users",{query:{select:"id,active,approved",id:`eq.${au.user.id}`,active:"eq.true",approved:"eq.true",limit:"1"}});
   if(!users?.length)throw new Error("Dein Benutzerkonto ist nicht aktiv oder nicht freigegeben.");
   await db(env,"patrol_members",{method:"POST",body:{patrol_id:pid,user_id:au.user.id,position:"Member"},prefer:"return=minimal"});
+  await db(env,"patrols",{method:"PATCH",query:{id:`eq.${pid}`},body:{updated_at:new Date().toISOString(),updated_by:au.user.id},prefer:"return=minimal"});
   return {success:true,patrolId:pid,callSign:text(profile?.[0]?.call_sign)};
  }
  if(method==="leavePatrol"){
@@ -803,6 +804,7 @@ async function dispatchCore(method,args,env,token){
   if(!mine?.length)return {success:true,alreadyOffDuty:true};
   const pid=text(mine[0].patrol_id);
   await db(env,"patrol_members",{method:"DELETE",query:{patrol_id:`eq.${pid}`,user_id:`eq.${au.user.id}`},prefer:"return=minimal"});
+  await db(env,"patrols",{method:"PATCH",query:{id:`eq.${pid}`},body:{updated_at:new Date().toISOString(),updated_by:au.user.id},prefer:"return=minimal"}).catch(()=>{});
   const remaining=await db(env,"patrol_members",{query:{select:"user_id",patrol_id:`eq.${pid}`}});
   if(!remaining?.length)await db(env,"patrols",{method:"DELETE",query:{id:`eq.${pid}`},prefer:"return=minimal"});
   return {success:true,patrolId:pid,patrolClosed:!remaining?.length};
