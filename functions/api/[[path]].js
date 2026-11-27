@@ -645,6 +645,63 @@ async function dispatchCore(method,args,env,token){
  }
  if(method==="deletePersonnelTraining"||method==="deletePersonnelNote"){const au=await authz(env,token,"officers.edit");const uid=text(args[1]),entryId=text(args[2]),training=method==="deletePersonnelTraining",table=training?"personnel_trainings":"personnel_notes";const found=await db(env,table,{query:{select:training?"id,name":"id,title",id:`eq.${entryId}`,user_id:`eq.${uid}`,limit:"1"}});await db(env,table,{method:"DELETE",query:{id:`eq.${entryId}`,user_id:`eq.${uid}`},prefer:"return=minimal"});const label=found?.[0]?(training?found[0].name:found[0].title):entryId;await writePersonnelHistory(env,au,uid,training?"training_deleted":"note_deleted",training?`Schulung „${label}“ gelöscht.`:`Vermerk „${label}“ gelöscht.`);return {success:true};}
  // patrols
+ if(method==="getPatrolTenCodes"){
+  await authz(env,token,"patrols.view");
+  const defaults=["10-1","10-3","10-6","10-23","10-76"];
+  try{
+   const rows=await db(env,"patrol_ten_code_settings",{query:{select:"codes",id:"eq.DEFAULT",limit:"1"}});
+   const codes=Array.isArray(rows?.[0]?.codes)?rows[0].codes.map(v=>String(v).trim()).filter(Boolean):[];
+   return {success:true,codes:[...new Set(codes.length?codes:defaults)]};
+  }catch(error){
+   // Older installations may not have the optional settings table yet.
+   // Duty operation must still work with the built-in defaults.
+   return {success:true,codes:defaults};
+  }
+ }
+ if(method==="savePatrolTenCodes"){
+  const au=await authz(env,token,"patrols.edit");
+  if(!au.master)throw Object.assign(new Error("Nur ein Master darf die globalen Ten Codes konfigurieren."),{status:403});
+  const raw=Array.isArray(args[1])?args[1]:(Array.isArray(args[0])?args[0]:[]);
+  const codes=[...new Set(raw.map(v=>String(v).trim()).filter(Boolean))].slice(0,100);
+  if(!codes.length)throw new Error("Mindestens ein Ten Code muss vorhanden sein.");
+  const now=new Date().toISOString();
+  try{
+   await db(env,"patrol_ten_code_settings",{method:"POST",body:{id:"DEFAULT",codes,updated_at:now,updated_by:au.user.id},prefer:"resolution=merge-duplicates,return=minimal"});
+  }catch(error){
+   throw Object.assign(new Error("Die globalen Ten Codes konnten nicht gespeichert werden. Bitte führe zuerst die Migration migration_patrol_ten_code_settings_v34.sql aus."),{status:500,code:"TEN_CODE_SETTINGS_MIGRATION_REQUIRED"});
+  }
+  return {success:true,codes};
+ }
+ if(method==="startDuty"){
+  const au=await authz(env,token,"patrols.view");
+  const d=args[1]||{};
+  const location=text(d.location),activity=text(d.activity),vehicleType=text(d.vehicleType),tenCode=text(d.tenCode||d.ten_code||"10-1")||"10-1";
+  if(!location||!activity||!vehicleType)throw new Error("Einsatzort, Status und Fahrzeug sind erforderlich.");
+  const existingMembers=await db(env,"patrol_members",{query:{select:"patrol_id,position",user_id:`eq.${au.user.id}`}});
+  if(existingMembers?.length){
+   const existingId=String(existingMembers[0].patrol_id);
+   const existing=await db(env,"patrols",{query:{select:"id,callsign,number,vehicle_type,status,ten_code,location,activity,created_at,created_by,updated_at,updated_by",id:`eq.${existingId}`,limit:"1"}});
+   if(existing?.length){
+    const row=existing[0];
+    await db(env,"patrols",{method:"PATCH",query:{id:`eq.${existingId}`},body:{vehicle_type:vehicleType,ten_code:tenCode,location,activity,status:"10-1",updated_at:new Date().toISOString(),updated_by:au.user.id},prefer:"return=minimal"});
+    const refreshed={...row,vehicle_type:vehicleType,vehicleType,ten_code:tenCode,tenCode,location,activity,status:"10-1",updated_at:new Date().toISOString(),updated_by:au.user.id};
+    return {success:true,patrol:refreshed,alreadyOnDuty:true};
+   }
+  }
+  const people=await db(env,"personnel",{query:{select:"user_id,call_sign",user_id:`eq.${au.user.id}`,limit:"1"}});
+  const callsign=text(people?.[0]?.call_sign);
+  if(!callsign)throw new Error("Bitte hinterlege zuerst dein Callsign in deiner Personalakte.");
+  const now=new Date().toISOString(),pid=id("P");
+  const row={id:pid,callsign,number:callsign,vehicle_type:vehicleType,status:"10-1",ten_code:tenCode,location,activity,created_at:now,created_by:au.user.id,updated_at:now,updated_by:au.user.id};
+  await db(env,"patrols",{method:"POST",body:row,prefer:"return=minimal"});
+  try{
+   await db(env,"patrol_members",{method:"POST",body:{patrol_id:pid,user_id:au.user.id,position:"Lead"},prefer:"return=minimal"});
+  }catch(error){
+   await db(env,"patrols",{method:"DELETE",query:{id:`eq.${pid}`},prefer:"return=minimal"}).catch(()=>{});
+   throw error;
+  }
+  return {success:true,patrol:{...row,tenCode:tenCode,vehicleType:vehicleType,members:[{id:au.user.id,name:au.user.name,username:au.user.username,rank:au.user.rank,callSign:callsign,position:"Lead"}]}};
+ }
  if(method==="getPatrols"){
   await authz(env,token,"patrols.view");const [ps,ms,us,rs,people]=await Promise.all([
    db(env,"patrols",{query:{select:"id,callsign,number,vehicle_type,status,ten_code,location,activity,created_at,created_by,updated_at,updated_by",order:"updated_at.desc,created_at.desc"}}),db(env,"patrol_members",{query:{select:"patrol_id,user_id,position"}}),
@@ -677,44 +734,6 @@ async function dispatchCore(method,args,env,token){
   if(!au.master&&!au.permissions.includes("patrols.edit")&&!mine.some(m=>String(m.user_id)===String(au.user.id)))throw Object.assign(new Error("Du darfst den Ten Code dieser Streife nicht ändern."),{status:403});
   await db(env,"patrols",{method:"PATCH",query:{id:`eq.${pid}`},body:{ten_code:code,updated_at:new Date().toISOString()},prefer:"return=minimal"});
   return {success:true,id:pid,tenCode:code};
- }
- if(method==="startDuty") {
-  const au=await authz(env,token,"patrols.view");
-  const d=(args[0]&&typeof args[0]==="object"?args[0]:args[1])||{};
-  const existing=await db(env,"patrol_members",{query:{select:"patrol_id",user_id:`eq.${au.user.id}`,limit:"1"}});
-  if(existing?.length) throw new Error("Du bist bereits im Dienst eingetragen.");
-  const [userRows,personRows]=await Promise.all([
-    db(env,"users",{query:{select:"id,active,approved",id:`eq.${au.user.id}`,active:"eq.true",approved:"eq.true",limit:"1"}}),
-    db(env,"personnel",{query:{select:"user_id,call_sign",user_id:`eq.${au.user.id}`,limit:"1"}})
-  ]);
-  if(!userRows?.length) throw new Error("Dein Benutzerkonto ist nicht aktiv oder nicht freigegeben.");
-  const callsign=text(personRows?.[0]?.call_sign);
-  if(!callsign) throw new Error("Bitte hinterlege zuerst dein Callsign in deiner Personalakte.");
-  const pid=id("P"),now=new Date().toISOString();
-  const tenCode=text(d.tenCode||d.ten_code||d.status)||"10-1";
-  const row={id:pid,callsign,number:callsign,vehicle_type:text(d.vehicleType||d.vehicle_type),status:"10-1",ten_code:tenCode,location:text(d.location),activity:text(d.activity),created_at:now,created_by:au.user.id,updated_at:now,updated_by:au.user.id};
-  if(!row.vehicle_type||!row.location||!row.activity) throw new Error("Einsatzort, Status und Fahrzeug sind erforderlich.");
-
-  // Persist the patrol first and ask Supabase to return the inserted row.
-  // This makes the successful database write explicit instead of relying on
-  // a best-effort client-side assumption that the POST was accepted.
-  const inserted=await db(env,"patrols",{method:"POST",body:row,prefer:"return=representation"});
-  const savedRow=Array.isArray(inserted)&&inserted[0]?{...row,...inserted[0]}:row;
-  if(!savedRow.id) throw new Error("Die Streife konnte nicht in der Leitstelle gespeichert werden.");
-
-  try {
-   await db(env,"patrol_members",{method:"POST",body:{patrol_id:savedRow.id,user_id:au.user.id,position:"Lead"},prefer:"return=minimal"});
-   const membership=await db(env,"patrol_members",{query:{select:"patrol_id,user_id,position",patrol_id:`eq.${savedRow.id}`,user_id:`eq.${au.user.id}`,limit:"1"}});
-   if(!membership?.length) throw new Error("Die Streife wurde gespeichert, aber der Dienst konnte nicht als Besatzung eingetragen werden.");
-  } catch(error) {
-   // Never leave an invisible/orphaned patrol behind when membership creation
-   // or verification fails.
-   await db(env,"patrol_members",{method:"DELETE",query:{patrol_id:`eq.${savedRow.id}`},prefer:"return=minimal"}).catch(()=>{});
-   await db(env,"patrols",{method:"DELETE",query:{id:`eq.${savedRow.id}`},prefer:"return=minimal"}).catch(()=>{});
-   throw error;
-  }
-
-  return {success:true,patrol:{...savedRow,tenCode:savedRow.ten_code,vehicleType:savedRow.vehicle_type,members:[{id:au.user.id,name:au.user.name,callSign:callsign,position:"Lead"}]}};
  }
  if(["createPatrol","updatePatrol"].includes(method)){
   const au=await authz(env,token,method==="createPatrol"?"patrols.create":"patrols.edit");const d=args[1]||{},pid=text(d.id)||id("P"),now=new Date().toISOString();
@@ -1014,7 +1033,7 @@ export async function onRequest({request,env}){
    config(env);
    const deep=url.searchParams.get("deep")==="1";
    const required=deep
-    ? ["users","ranks","permissions","rank_permissions","fib_mdt_sessions","fib_records","patrols","fib_wanted","patrol_members","personnel","personnel_notes","personnel_trainings","fib_record_shares","fib_announcements","fib_vacations","fib_internal_fines","fib_internal_fine_catalog","fib_vehicle_catalog","fib_calendar_events","fib_gang_profiles","fib_bonus_entries","fib_mdt_logs","department_permissions","academy_documents","academy_tests","academy_attempts","fib_uniform_catalog","fib_uniform_organization_rules","fib_bonus_payouts","fib_org_account","fib_accounting_entries"]
+    ? ["users","ranks","permissions","rank_permissions","fib_mdt_sessions","fib_records","patrols","fib_wanted","patrol_members","personnel","personnel_notes","personnel_trainings","fib_record_shares","fib_announcements","fib_vacations","fib_internal_fines","fib_internal_fine_catalog","fib_vehicle_catalog","fib_calendar_events","fib_gang_profiles","fib_bonus_entries","fib_mdt_logs","department_permissions","academy_documents","academy_tests","academy_attempts","fib_uniform_catalog","fib_uniform_organization_rules","fib_bonus_payouts","fib_org_account","fib_accounting_entries","patrol_ten_code_settings"]
     : ["users","fib_mdt_sessions"];
    const checks=await Promise.all(required.map(async table=>{
     try { await db(env,table,{query:{select:"*",limit:"0"}}); return {table,ok:true}; }

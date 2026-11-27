@@ -1426,7 +1426,19 @@
 
                 Aktualisieren
             </button>
-</div>
+
+
+            <button
+                type="button"
+                class="patrol-header-button patrol-header-duty-end"
+                id="patrolEndDutyButton"
+                hidden
+            >
+                <i class="fa-solid fa-right-from-bracket"></i>
+                Außer Dienst
+            </button>
+
+        </div>
 
     </div>
 
@@ -2649,41 +2661,52 @@
             .deletePatrol(getToken(), patrol.id);
     }
 
-    window.addEventListener("fib-mdt:duty-started", function (event) {
-        const detail = event && event.detail ? event.detail : {};
-        const patrol = detail.patrol;
-        if (patrol && document.getElementById("patrolsList")) {
-            const normalized = {
-                ...patrol,
-                callsign: patrol.callsign || detail.callSign || "Unbekannt",
-                number: patrol.number || detail.callSign || "",
-                vehicleType: patrol.vehicleType || patrol.vehicle_type || detail.vehicleType || "",
-                tenCode: patrol.tenCode || patrol.ten_code || detail.tenCode || patrol.status || "10-1",
-                location: patrol.location || detail.location || "",
-                activity: patrol.activity || detail.activity || "",
-                members: Array.isArray(patrol.members) ? patrol.members : [{
-                    id: String(window.currentUser?.id || window.currentUser?.userId || ""),
-                    name: String(window.currentUser?.name || "Du"),
-                    callSign: detail.callSign || patrol.callsign || "",
-                    position: "Lead"
-                }]
-            };
-            state.patrolData = [normalized, ...(state.patrolData || []).filter(function(item){ return String(item.id) !== String(normalized.id); })];
-            state.patrolDataLoaded = true;
-            window.fibCache.patrols.data = state.patrolData;
-            window.fibCache.patrols.timestamp = Date.now();
-            renderPatrols();
-        }
-        if (typeof refreshPatrolData === "function") refreshPatrolData();
-    });
-    window.addEventListener("fib-mdt:duty-data-changed", function () {
-        if (typeof refreshPatrolData === "function") refreshPatrolData();
-    });
-    window.addEventListener("fib-mdt:duty-ended", function () {
-        if (typeof refreshPatrolData === "function") refreshPatrolData();
-    });
-
     function bindStaticEvents() {
+        const createButton = document.getElementById("patrolEndDutyButton");
+        if (createButton) createButton.style.display = "none";
+        const pageDutyEndButton = document.getElementById("patrolEndDutyButton");
+        if (pageDutyEndButton && !pageDutyEndButton.dataset.bound) {
+            pageDutyEndButton.dataset.bound = "true";
+            pageDutyEndButton.addEventListener("click", function () {
+                const topbarEndButton = document.getElementById("fibDutyEndButton");
+                if (topbarEndButton && !topbarEndButton.hidden) {
+                    topbarEndButton.click();
+                    return;
+                }
+                pageDutyEndButton.disabled = true;
+                CloudApi.run.withSuccessHandler(function () {
+                    clearPatrolsCache();
+                    refreshPatrolData();
+                    pageDutyEndButton.hidden = true;
+                    pageDutyEndButton.style.display = "none";
+                    if (typeof window.showSuccess === "function") window.showSuccess("Du hast deinen Dienst beendet.");
+                    window.dispatchEvent(new CustomEvent("fib-mdt:duty-ended"));
+                }).withFailureHandler(function (error) {
+                    pageDutyEndButton.disabled = false;
+                    if (typeof window.showError === "function") window.showError(error?.message || String(error));
+                }).leavePatrol(getToken());
+            });
+        }
+        if (!window.fibPatrolDutyButtonSyncBound) {
+            window.fibPatrolDutyButtonSyncBound = true;
+            window.addEventListener("fib-mdt:duty-started", function () {
+                const button = document.getElementById("patrolEndDutyButton");
+                if (button) { button.hidden = false; button.style.display = "inline-flex"; button.disabled = false; }
+            });
+            window.addEventListener("fib-mdt:duty-state-restored", function (event) {
+                const button = document.getElementById("patrolEndDutyButton");
+                if (!button) return;
+                const active = !!event.detail?.inDuty;
+                button.hidden = !active;
+                button.style.display = active ? "inline-flex" : "none";
+                button.disabled = false;
+            });
+            window.addEventListener("fib-mdt:duty-ended", function () {
+                const button = document.getElementById("patrolEndDutyButton");
+                if (button) { button.hidden = true; button.style.display = "none"; button.disabled = false; }
+            });
+        }
+
         const refreshButton =
             document.getElementById("patrolRefreshButton");
 
@@ -2691,6 +2714,7 @@
             refreshButton.dataset.bound = "true";
             refreshButton.addEventListener("click", refreshPatrolData);
         }
+
         document
             .querySelectorAll(".patrol-group-button")
             .forEach(function (button) {
@@ -2714,6 +2738,11 @@
     }
 
     function applyPermissionUI() {
+        const createButton =
+            document.getElementById("patrolEndDutyButton");
+
+        if (createButton) createButton.style.display = "none";
+
         const description =
             document.getElementById("patrolPermissionHint");
 
@@ -3031,14 +3060,14 @@
 .patrols-header-actions {
   align-items: center !important;
 }
-. {
+.patrol-header-duty-end {
   display: none !important;
   background: #fff !important;
   border-color: #e2b9b9 !important;
   color: #a33d3d !important;
 }
-.:not([hidden]) { display: inline-flex !important; }
-.:hover {
+.patrol-header-duty-end:not([hidden]) { display: inline-flex !important; }
+.patrol-header-duty-end:hover {
   background: #fff3f3 !important;
   border-color: #d99898 !important;
   color: #913737 !important;
@@ -3400,3 +3429,323 @@
 }
 </style>
 
+<style>
+/* v29 Leitstelle: kompakte aktive Streifen statt Vollbreiten-Karten */
+.patrols-page .patrol-group-list{display:flex;flex-direction:column;align-items:flex-start;gap:5px}
+.patrols-page .patrol-card{width:fit-content;max-width:100%;min-width:min(720px,100%);margin-bottom:0;padding:4px 6px;gap:5px;min-height:38px;border-radius:9px;overflow:hidden}
+.patrols-page .patrol-location{flex:0 1 135px;min-width:70px;padding:5px 8px;font-size:10px}
+.patrols-page .patrol-vehicle{padding:5px 8px;font-size:10px}
+.patrols-page .patrol-status{min-height:27px;padding:0 8px;font-size:10px}
+.patrols-page .patrol-callsign-type,.patrols-page .patrol-callsign-number{padding:5px 8px;font-size:10px}
+.patrols-page .patrol-activity-status{min-height:27px;padding:0 8px;font-size:10px;max-width:125px;overflow:hidden;text-overflow:ellipsis}
+.patrols-page .patrol-members{flex:0 1 auto;max-width:360px;overflow:hidden}
+.patrols-page .patrol-member{max-width:180px}
+.patrols-page .patrol-member-rank,.patrols-page .patrol-member-name{padding:4px 6px;font-size:10px}
+.patrols-page .patrol-action-button{width:28px;height:28px;min-height:28px;flex-basis:28px}
+@media(max-width:900px){.patrols-page .patrol-card{width:100%;min-width:0;overflow-x:auto}.patrols-page .patrol-group-list{align-items:stretch}}
+</style>
+
+<style>
+/* =========================================================
+   LEITSTELLE – REFERENZLAYOUT / HELLES LSPD-DESIGN
+   Bewusst kompakt wie die bereitgestellte Leitstellen-Ansicht.
+   ========================================================= */
+.patrols-page {
+    padding: 10px 10px 70px !important;
+}
+
+.patrols-header {
+    margin-bottom: 10px !important;
+}
+
+.patrols-title {
+    font-size: 22px !important;
+}
+
+.patrols-subtitle {
+    margin-top: 3px !important;
+    font-size: 11px !important;
+}
+
+/* Kleine, flache Gruppenkopfzeile wie in der Referenz */
+.patrol-group {
+    margin: 0 0 9px !important;
+}
+
+.patrol-group-title {
+    min-height: 28px !important;
+    box-sizing: border-box !important;
+    margin: 0 0 4px !important;
+    padding: 0 10px !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 7px !important;
+    border: 1px solid #b7cde2 !important;
+    border-radius: 4px !important;
+    background: linear-gradient(180deg, #0d76b8 0%, #075b95 100%) !important;
+    color: #ffffff !important;
+    font-size: 11px !important;
+    font-weight: 800 !important;
+    letter-spacing: .02em !important;
+    text-transform: none !important;
+    box-shadow: 0 1px 3px rgba(24, 69, 108, .10) !important;
+}
+
+.patrol-group-count {
+    min-width: 18px !important;
+    height: 18px !important;
+    margin-left: auto !important;
+    padding: 0 5px !important;
+    background: rgba(255,255,255,.18) !important;
+    border: 1px solid rgba(255,255,255,.24) !important;
+    color: #ffffff !important;
+    font-size: 8px !important;
+}
+
+/* Eine flache Zeile pro Streife – keine großen Karten */
+.patrol-card {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    align-items: stretch !important;
+    gap: 2px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 30px !important;
+    height: 30px !important;
+    margin: 0 0 3px !important;
+    padding: 2px !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+    border: 1px solid #c8d7e5 !important;
+    border-radius: 4px !important;
+    background: #dce8f4 !important;
+    box-shadow: 0 1px 2px rgba(30,55,80,.08) !important;
+    transform: none !important;
+}
+
+.patrol-card:hover {
+    background: #d6e5f3 !important;
+    border-color: #9dbbd5 !important;
+    transform: none !important;
+}
+
+/* Callsign: zwei direkt angrenzende Segmente */
+.patrol-callsign {
+    flex: 0 0 auto !important;
+    height: 25px !important;
+    min-width: 0 !important;
+    border: 1px solid #b8cddd !important;
+    border-radius: 3px !important;
+    background: #0c78b8 !important;
+}
+
+.patrol-callsign-type {
+    height: 23px !important;
+    padding: 0 8px !important;
+    background: #0d78b8 !important;
+    color: #ffffff !important;
+    font-size: 9px !important;
+    font-weight: 800 !important;
+    letter-spacing: .01em !important;
+}
+
+.patrol-callsign-number {
+    height: 23px !important;
+    padding: 0 8px !important;
+    background: #075b95 !important;
+    color: #ffffff !important;
+    border-left: 1px solid rgba(255,255,255,.20) !important;
+    font-size: 9px !important;
+    font-weight: 800 !important;
+}
+
+/* Ten-Code */
+.patrol-status {
+    flex: 0 0 48px !important;
+    min-width: 48px !important;
+    max-width: 48px !important;
+    height: 25px !important;
+    min-height: 25px !important;
+    padding: 0 6px !important;
+    box-sizing: border-box !important;
+    border-radius: 3px !important;
+    border: 1px solid #c7d1dc !important;
+    background: #eef2f6 !important;
+    color: #25394e !important;
+    font-size: 9px !important;
+    font-weight: 800 !important;
+    justify-content: center !important;
+}
+
+.patrol-status.status-10-1,
+.patrol-status.status-10-23 {
+    background: #fff3a6 !important;
+    border-color: #d7c95e !important;
+    color: #5f5a18 !important;
+}
+
+.patrol-status.status-10-3 {
+    background: #ffdede !important;
+    border-color: #e2aaaa !important;
+    color: #8d2929 !important;
+}
+
+.patrol-status.status-10-6 {
+    background: #ffe8ad !important;
+    border-color: #e0c779 !important;
+    color: #735313 !important;
+}
+
+.patrol-status.status-10-19,
+.patrol-status.status-10-76 {
+    background: #dff0ff !important;
+    border-color: #a7cbe5 !important;
+    color: #1e527b !important;
+}
+
+/* Einsatzort / Einheit */
+.patrol-location {
+    flex: 0 1 150px !important;
+    min-width: 85px !important;
+    height: 25px !important;
+    box-sizing: border-box !important;
+    padding: 0 8px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    border: 1px solid #bccfba !important;
+    border-radius: 3px !important;
+    background: #e6f0dc !important;
+    color: #425f31 !important;
+    font-size: 9px !important;
+    font-weight: 800 !important;
+}
+
+/* Fahrzeug */
+.patrol-vehicle {
+    flex: 0 0 auto !important;
+    height: 25px !important;
+    min-width: 43px !important;
+    box-sizing: border-box !important;
+    padding: 0 8px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border: 1px solid #9dc5d1 !important;
+    border-radius: 3px !important;
+    background: #d9eef4 !important;
+    color: #15566a !important;
+    font-size: 9px !important;
+    font-weight: 800 !important;
+}
+
+/* Tätigkeit / Einsatzart */
+.patrol-activity-status {
+    flex: 0 0 auto !important;
+    height: 25px !important;
+    min-width: 46px !important;
+    box-sizing: border-box !important;
+    padding: 0 8px !important;
+    border: 1px solid #b7cde2 !important;
+    border-radius: 3px !important;
+    background: #e1edf8 !important;
+    color: #24577f !important;
+    font-size: 9px !important;
+    font-weight: 800 !important;
+    white-space: nowrap !important;
+}
+
+/* Besatzung: kompakte Segmente wie Name/Rank in der Referenz */
+.patrol-members {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    height: 25px !important;
+    gap: 2px !important;
+    overflow: hidden !important;
+}
+
+.patrol-member {
+    flex: 0 1 auto !important;
+    max-width: 260px !important;
+    height: 25px !important;
+    min-width: 0 !important;
+    border: 1px solid #b8cddd !important;
+    border-radius: 3px !important;
+    background: #e8f0f7 !important;
+}
+
+.patrol-member-rank {
+    height: 23px !important;
+    max-width: 74px !important;
+    padding: 0 7px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    background: #d8e8f7 !important;
+    color: #24577f !important;
+    font-size: 8px !important;
+    font-weight: 800 !important;
+}
+
+.patrol-member-name {
+    height: 23px !important;
+    padding: 0 7px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    background: #edf3f8 !important;
+    color: #304b63 !important;
+    border-left: 1px solid #c9d8e5 !important;
+    font-size: 9px !important;
+    font-weight: 700 !important;
+}
+
+.patrol-member-callsign {
+    display: none !important;
+}
+
+/* Aktionen bleiben klein und stehen ganz rechts */
+.patrol-action-button,
+.patrol-join-button {
+    flex: 0 0 25px !important;
+    width: 25px !important;
+    height: 25px !important;
+    min-width: 25px !important;
+    min-height: 25px !important;
+    padding: 0 !important;
+    border-radius: 3px !important;
+    border: 1px solid #b8cddd !important;
+    background: #e6f1fb !important;
+    color: #17649a !important;
+    font-size: 14px !important;
+}
+
+.patrol-join-button:hover,
+.patrol-action-button:hover {
+    background: #d6e9f8 !important;
+    border-color: #91b9d8 !important;
+    color: #0f5483 !important;
+}
+
+.patrol-no-action {
+    flex: 0 0 25px !important;
+    width: 25px !important;
+    height: 25px !important;
+}
+
+/* Keine Telefon-/Telefonbutton-Darstellung in der Leitstelle */
+.patrol-card .fa-phone,
+.patrol-card [data-phone],
+.patrol-card .patrol-phone-button {
+    display: none !important;
+}
+
+@media (max-width: 900px) {
+    .patrol-location { flex-basis: 110px !important; }
+    .patrol-member { max-width: 190px !important; }
+}
+
+@media (max-width: 700px) {
+    .patrols-page { padding: 8px 7px 60px !important; }
+    .patrol-card { overflow-x: auto !important; }
+    .patrol-card > * { flex-shrink: 0 !important; }
+    .patrol-members { flex: 0 0 auto !important; }
+}
+</style>

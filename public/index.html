@@ -2803,10 +2803,6 @@
     .fib-own-status-strip .fib-status-chip[data-duty-picker-trigger]:focus-visible { border-color: #278fc2; background: rgba(13,111,157,.24); outline: none; }
     .fib-duty-start-button{border:1px solid #287cb5;background:#12649b;color:#fff;border-radius:5px;padding:9px 12px;font-family:inherit;font-weight:700;font-size:12px;cursor:pointer;white-space:nowrap}.fib-duty-start-button:hover{background:#197bb8}.fib-duty-picker-footer{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px;border-top:1px solid rgba(255,255,255,.08);font-family:inherit;font-size:11px;color:#8da8c3}.fib-duty-apply{background:#16865f;color:#fff;border:0;border-radius:4px;padding:9px 12px;font-weight:700;cursor:pointer}.fib-duty-apply:disabled{opacity:.45;cursor:not-allowed}.fib-duty-picker { position: absolute; z-index: 12000; top: calc(100% + 6px); right: 18px; width: min(540px, calc(100vw - 36px)); max-height: min(72vh, 620px); overflow: hidden; background: #061426; border: 1px solid rgba(67,151,204,.48); border-radius: 7px; box-shadow: 0 16px 38px rgba(0,0,0,.52); color: #dce8f5; }
     .fib-duty-picker[hidden] { display: none !important; }
-    .fib-duty-picker-actions{display:flex;align-items:center;gap:7px;flex-shrink:0}
-    .fib-duty-picker-footer{position:relative;z-index:1}
-    .fib-duty-picker,.fib-duty-picker *{pointer-events:auto}
-    .fib-duty-picker[data-open="1"]{display:block!important}
     .fib-duty-picker-head { display:flex; align-items:center; justify-content:space-between; padding: 10px 12px; background:#0b2038; border-bottom:1px solid rgba(255,255,255,.08); font-family:inherit; font-size:13px; }
     .fib-duty-close { border:0; background:transparent; color:#9fb4cb; font:inherit; font-size:20px; line-height:1; cursor:pointer; padding:0 4px; }
     .fib-duty-picker-scroll { max-height: calc(min(72vh, 620px) - 42px); overflow-y:auto; overscroll-behavior:contain; padding:9px; }
@@ -2891,9 +2887,6 @@
 }
 .fib-duty-option:hover,.fib-duty-option:focus-visible{filter:none!important;background:#e2effa!important;border-color:#9ebfdf!important;outline:2px solid rgba(67,136,207,.12)!important}
 .fib-duty-option[aria-pressed="true"]{box-shadow:inset 0 0 0 2px #8fb8d8!important;background:#dcecf9!important}
-.fib-duty-option.is-selected{box-shadow:inset 0 0 0 2px #5f93bd!important;background:#dcecf9!important;font-weight:800!important;}
-.fib-duty-picker{pointer-events:auto!important;}
-.fib-duty-picker-scroll{overscroll-behavior:contain;}
 .fib-duty-options-warm .fib-duty-option,.fib-duty-options-warm .fib-duty-option:nth-child(4n),.fib-duty-options-warm .fib-duty-option:nth-child(4n + 1){background:#fff6dd!important;border-color:#ead49b!important;color:#7a5c14!important}
 .fib-duty-options-warm .fib-duty-option:hover,.fib-duty-options-warm .fib-duty-option:focus-visible{background:#fff0c8!important;border-color:#d9bd69!important}
 .fib-duty-picker-footer{padding:10px!important;border-top:1px solid #e3e9ef!important;color:#718399!important}
@@ -3371,7 +3364,7 @@
           <div class="fib-duty-picker-label">Fahrzeug</div>
           <div class="fib-duty-options" id="fibDutyVehicles"></div>
         </div>
-        <div class="fib-duty-picker-footer"><span id="fibDutySelectionHint">Einsatzort, Status und Fahrzeug auswählen. Dienstantritt erfolgt ausschließlich über die obere Statusleiste.</span></div>
+        <div class="fib-duty-picker-footer"><span id="fibDutySelectionHint">Einsatzort, Tätigkeit und Fahrzeug auswählen.</span><button type="button" id="fibDutyApply" class="fib-duty-apply">Status übernehmen</button></div>
       </div>
 
       <div
@@ -8430,7 +8423,7 @@ const NAVIGATION = [
   const options=(()=>{try{const x=JSON.parse(localStorage.getItem('fib_mdt_duty_options_v1')||'{}');return Object.fromEntries(Object.keys(defaults).map(k=>[k,Array.isArray(x[k])&&x[k].length?x[k]:defaults[k].slice()]));}catch(_){return Object.fromEntries(Object.entries(defaults).map(([k,v])=>[k,v.slice()]));}})();
   const labels={tenCode:"Ten Code auswählen",location:"Einsatzort auswählen",activity:"Status auswählen",vehicle:"Fahrzeug auswählen"};
   const picker=document.getElementById('fibDutyPicker'); if(!picker)return;
-  picker.innerHTML='<div class="fib-duty-picker-head"><strong id="fibDutyPickerTitle">Auswahl</strong><button type="button" id="fibDutyPickerConfig" class="fib-duty-close" title="Auswahllisten konfigurieren">⚙</button><button type="button" id="fibDutyPickerClose" class="fib-duty-close" aria-label="Auswahl schließen">×</button></div><div class="fib-duty-picker-scroll"><div class="fib-duty-options" id="fibDutyOptions"></div></div><div class="fib-duty-picker-footer"><span id="fibDutySelectionHint">Einsatzort, Status und Fahrzeug auswählen. Dienstantritt erfolgt ausschließlich über die obere Statusleiste.</span></div>';
+  picker.innerHTML='<div class="fib-duty-picker-head"><strong id="fibDutyPickerTitle">Auswahl</strong><button type="button" id="fibDutyPickerConfig" class="fib-duty-close" title="Auswahllisten konfigurieren">⚙</button><button type="button" id="fibDutyPickerClose" class="fib-duty-close" aria-label="Auswahl schließen">×</button></div><div class="fib-duty-picker-scroll"><div class="fib-duty-options" id="fibDutyOptions"></div></div>';
   let state={location:'',activity:'',vehicle:'',tenCode:'10-1'}, activeKey='location', onDuty=false, saving=false, suppressPersist=false;
   try{const stored=JSON.parse(localStorage.getItem('fib_mdt_duty_picker_v1')||'{}');if(stored&&typeof stored==='object')state=Object.assign(state,stored);}catch(_){}
   // Load the shared Ten-Code list only after local selections have been restored.
@@ -8445,19 +8438,74 @@ const NAVIGATION = [
     if(b){b.hidden=onDuty;b.style.display=onDuty?'none':'';b.textContent=onDuty?'Im Dienst':'In Dienst gehen';b.disabled=saving;}
     if(end){end.hidden=!onDuty;end.style.display=onDuty?'inline-flex':'none';end.disabled=saving;}
     const hint=document.getElementById('fibDutySelectionHint');
-    if(hint)hint.textContent=onDuty?'Dienststatus aktiv – Änderungen werden automatisch gespeichert.':'Einsatzort, Status und Fahrzeug auswählen. Dienstantritt erfolgt ausschließlich über die obere Statusleiste.';
+    if(hint)hint.textContent=onDuty?'Dienststatus aktiv – Änderungen werden in die bestehende Streife übernommen.':'Einsatzort, Status und Fahrzeug auswählen.';
   }
   function dispatchSelection(){if(onDuty&&state.location&&state.activity&&state.vehicle)window.dispatchEvent(new CustomEvent('fib-mdt:duty-selection-changed',{detail:{location:state.location,activity:state.activity,vehicleType:state.vehicle,tenCode:state.tenCode}}));}
-  function render(key){activeKey=key;picker.querySelector('#fibDutyPickerTitle').textContent=labels[key];const root=picker.querySelector('#fibDutyOptions');root.className='fib-duty-options'+(key==='activity'?' fib-duty-options-warm':'');root.innerHTML='';options[key].forEach(item=>{const b=document.createElement('button');b.type='button';b.className='fib-duty-option'+(state[key]===item?' is-selected':'');b.textContent=item;b.setAttribute('aria-pressed',String(state[key]===item));b.addEventListener('click',()=>{state[key]=item;update();render(key);if(key==='tenCode'){if(onDuty)window.dispatchEvent(new CustomEvent('fib-mdt:ten-code-changed',{detail:{tenCode:item}}));}else dispatchSelection();});root.appendChild(b);});}
+  function render(key){activeKey=key;picker.querySelector('#fibDutyPickerTitle').textContent=labels[key];const root=picker.querySelector('#fibDutyOptions');root.className='fib-duty-options'+(key==='activity'?' fib-duty-options-warm':'');root.innerHTML='';options[key].forEach(item=>{const b=document.createElement('button');b.type='button';b.className='fib-duty-option';b.textContent=item;b.setAttribute('aria-pressed',String(state[key]===item));b.addEventListener('click',()=>{state[key]=item;update();close();if(key==='tenCode'){if(onDuty)window.dispatchEvent(new CustomEvent('fib-mdt:ten-code-changed',{detail:{tenCode:item}}));}else dispatchSelection();});root.appendChild(b);});}
   function onPatrolsPage(){const t=(document.getElementById('pageTitle')||{}).textContent||'';return /leitstelle|patrols/i.test(t)||!!document.querySelector('#pageContainer .patrols-page');}
-  function dutyPickerAvailable(){return true;}
-  function open(key,trigger){if(!dutyPickerAvailable())return;render(key);const cfg=picker.querySelector('#fibDutyPickerConfig');if(cfg)cfg.hidden=false;picker.hidden=false;picker.dataset.open='1';picker.style.position='fixed';const r=trigger&&trigger.getBoundingClientRect();const w=Math.min(400,innerWidth-16);picker.style.width=w+'px';if(r){picker.style.left=Math.max(8,Math.min(r.left,innerWidth-w-8))+'px';let top=r.bottom+6;const h=Math.min(innerHeight*.65,500);if(top+h>innerHeight-8)top=Math.max(8,r.top-h-6);picker.style.top=top+'px';picker.style.maxHeight=h+'px';}}
-  function close(){picker.hidden=true;picker.dataset.open='0';document.querySelectorAll('[data-duty-picker-trigger]').forEach(e=>e.setAttribute('aria-expanded','false'));}
+  function open(key,trigger){render(key);picker.hidden=false;picker.style.position='fixed';const r=trigger&&trigger.getBoundingClientRect();const w=Math.min(400,innerWidth-16);picker.style.width=w+'px';if(r){picker.style.left=Math.max(8,Math.min(r.left,innerWidth-w-8))+'px';let top=r.bottom+6;const h=Math.min(innerHeight*.65,500);if(top+h>innerHeight-8)top=Math.max(8,r.top-h-6);picker.style.top=top+'px';picker.style.maxHeight=h+'px';}}
+  function close(){picker.hidden=true;document.querySelectorAll('[data-duty-picker-trigger]').forEach(e=>e.setAttribute('aria-expanded','false'));}
   function configModal(){const old=document.getElementById('fibDutyConfigOverlay');if(old)old.remove();const overlay=document.createElement('div');overlay.id='fibDutyConfigOverlay';overlay.style.cssText='position:fixed;inset:0;z-index:10050;background:rgba(3,8,16,.78);display:flex;align-items:center;justify-content:center;padding:16px;';const panel=document.createElement('div');panel.style.cssText='width:min(680px,100%);max-height:85vh;overflow:auto;background:#111b2a;color:#e8eef7;border:1px solid #34445b;border-radius:12px;padding:20px;font:inherit;box-shadow:0 20px 60px #0008;';panel.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px"><div><strong style="font-size:17px">Dienst-Auswahllisten</strong><div style="color:#9eafc4;font-size:12px;margin-top:4px">Einträge hinzufügen, umbenennen oder entfernen.</div></div><button type="button" data-close style="background:#26364b;color:white;border:0;border-radius:7px;padding:8px 12px;cursor:pointer">Schließen</button></div><div id="fibDutyConfigFields"></div><button type="button" data-add style="margin-top:10px;background:#243d5b;color:white;border:1px solid #42658d;border-radius:7px;padding:9px 12px;cursor:pointer">+ Eintrag hinzufügen</button><div style="display:flex;justify-content:flex-end;gap:8px;margin-top:18px"><button type="button" data-cancel style="background:#26364b;color:white;border:0;border-radius:7px;padding:10px 14px;cursor:pointer">Abbrechen</button><button type="button" data-save style="background:#2474c6;color:white;border:0;border-radius:7px;padding:10px 14px;cursor:pointer">Speichern</button></div>';overlay.appendChild(panel);document.body.appendChild(overlay);let draft=options[activeKey].slice();const fields=panel.querySelector('#fibDutyConfigFields');function draw(){fields.innerHTML='';draft.forEach((v,i)=>{const row=document.createElement('div');row.style.cssText='display:flex;gap:8px;margin:7px 0';const input=document.createElement('input');input.value=v;input.setAttribute('aria-label','Eintrag '+(i+1));input.style.cssText='flex:1;min-width:0;background:#0b1320;color:#edf4ff;border:1px solid #3b4d64;border-radius:6px;padding:9px';input.addEventListener('input',()=>draft[i]=input.value);const del=document.createElement('button');del.type='button';del.textContent='Entfernen';del.style.cssText='background:#482b34;color:#ffdce1;border:1px solid #70414b;border-radius:6px;padding:7px 10px;cursor:pointer';del.addEventListener('click',()=>{draft.splice(i,1);draw();});row.append(input,del);fields.appendChild(row);});}draw();panel.querySelector('[data-add]').onclick=()=>{draft.push('');draw();fields.lastElementChild?.querySelector('input')?.focus();};function done(){overlay.remove();}panel.querySelector('[data-close]').onclick=done;panel.querySelector('[data-cancel]').onclick=done;overlay.addEventListener('click',e=>{if(e.target===overlay)done();});panel.querySelector('[data-save]').onclick=async()=>{const clean=[...new Set(draft.map(v=>String(v).trim()).filter(Boolean))];if(!clean.length){if(window.showError)window.showError('Mindestens ein Eintrag muss erhalten bleiben.');return;}const previous=options[activeKey];options[activeKey]=clean;const saveButton=panel.querySelector('[data-save]');saveButton.disabled=true;try{if(activeKey==='tenCode'){const result=await window.runServer('savePatrolTenCodes',sessionStorage.getItem('fib_mdt_session')||sessionStorage.getItem('lspd_mdt_session')||'',clean);if(!result||result.success!==true)throw new Error(result?.message||'Ten-Code-Liste konnte nicht global gespeichert werden.');}try{localStorage.setItem('fib_mdt_duty_options_v1',JSON.stringify(options));}catch(_){}if(!options[activeKey].includes(state[activeKey]))state[activeKey]='';update();render(activeKey);done();if(window.showSuccess)window.showSuccess('Auswahlliste gespeichert.');}catch(error){options[activeKey]=previous;saveButton.disabled=false;if(window.showError)window.showError(error?.message||'Auswahlliste konnte nicht gespeichert werden.');}};}
   update();
-  document.addEventListener('click',e=>{const trigger=e.target.closest('[data-duty-picker-trigger]');if(trigger){const key=trigger.dataset.dutyPickerTrigger;open(key,trigger);trigger.setAttribute('aria-expanded','true');return;}if(e.target.closest('#fibDutyStartButton')){if(!(state.location&&state.activity&&state.vehicle&&state.tenCode)){if(window.showError)window.showError('Bitte Einsatzort, Status, Fahrzeug und Ten Code auswählen.');return;}window.dispatchEvent(new CustomEvent('fib-mdt:duty-start-request',{detail:{location:state.location,activity:state.activity,vehicleType:state.vehicle,tenCode:state.tenCode}}));return;}if(e.target.closest('#fibDutyEndButton')){window.dispatchEvent(new CustomEvent('fib-mdt:duty-end-request'));return;}if(!picker.hidden&&!picker.contains(e.target))close();});
+  document.addEventListener('click',e=>{const trigger=e.target.closest('[data-duty-picker-trigger]');if(trigger){const key=trigger.dataset.dutyPickerTrigger;open(key,trigger);trigger.setAttribute('aria-expanded','true');return;}if(e.target.closest('#fibDutyStartButton')){if(!(state.location&&state.activity&&state.vehicle&&state.tenCode)){if(window.showError)window.showError('Bitte Einsatzort, Status und Fahrzeug jeweils über die obere Leiste auswählen.');return;}window.dispatchEvent(new CustomEvent('fib-mdt:duty-start-request',{detail:{location:state.location,activity:state.activity,vehicleType:state.vehicle,tenCode:state.tenCode}}));return;}if(!picker.hidden&&!picker.contains(e.target))close();});
   picker.querySelector('#fibDutyPickerClose').addEventListener('click',close);picker.querySelector('#fibDutyPickerConfig').addEventListener('click',configModal);
   document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!picker.hidden)close();if((e.key==='Enter'||e.key===' ')&&e.target.matches('[data-duty-picker-trigger]')){e.preventDefault();open(e.target.dataset.dutyPickerTrigger,e.target);}});
+  // Globaler Dienstantritt: Der Button gehört zur MDT-Topbar und darf daher
+  // nicht davon abhängig sein, ob gerade die Leitstelle geladen ist.
+  if (!window.__fibGlobalDutyStartBound) {
+    window.__fibGlobalDutyStartBound = true;
+    window.addEventListener('fib-mdt:duty-start-request', async (event) => {
+      const detail = event.detail || {};
+      if (!detail.location || !detail.activity || !detail.vehicleType) {
+        if (window.showError) window.showError('Bitte Einsatzort, Status und Fahrzeug auswählen.');
+        return;
+      }
+      const button = document.getElementById('fibDutyStartButton');
+      if (button) button.disabled = true;
+      try {
+        const result = await window.runServer(
+          'startDuty',
+          sessionStorage.getItem('fib_mdt_session') || sessionStorage.getItem('lspd_mdt_session') || '',
+          {
+            location: String(detail.location),
+            activity: String(detail.activity),
+            vehicleType: String(detail.vehicleType),
+            tenCode: String(detail.tenCode || '10-1')
+          }
+        );
+        const saved = result?.patrol || result;
+        if (!saved?.id) throw new Error('Der Dienst konnte nicht in der Leitstelle angelegt werden.');
+        window.dispatchEvent(new CustomEvent('fib-mdt:duty-started', {detail: saved}));
+        if (window.showSuccess) window.showSuccess('Du bist jetzt im Dienst.');
+      } catch (error) {
+        console.error('[LSPD MDT] Dienstantritt konnte nicht gespeichert werden:', error);
+        if (window.showError) window.showError(error?.message || 'Der Dienst konnte nicht gespeichert werden.');
+      } finally {
+        if (button) button.disabled = false;
+      }
+    });
+  }
+
+  if (!window.__fibGlobalDutyEndBound) {
+    window.__fibGlobalDutyEndBound = true;
+    window.addEventListener('click', async (event) => {
+      const button = event.target.closest('#fibDutyEndButton');
+      if (!button || button.dataset.globalHandled === 'true') return;
+      button.dataset.globalHandled = 'true';
+      button.disabled = true;
+      try {
+        await window.runServer('leavePatrol',
+          sessionStorage.getItem('fib_mdt_session') || sessionStorage.getItem('lspd_mdt_session') || '');
+        window.dispatchEvent(new CustomEvent('fib-mdt:duty-ended'));
+        if (window.showSuccess) window.showSuccess('Du hast deinen Dienst beendet.');
+      } catch (error) {
+        button.disabled = false;
+        button.dataset.globalHandled = 'false';
+        if (window.showError) window.showError(error?.message || 'Der Dienst konnte nicht beendet werden.');
+      }
+    });
+  }
+
   window.addEventListener('fib-mdt:duty-started',e=>{const d=e.detail||{};if(d.location)state.location=d.location;if(d.activity)state.activity=d.activity;if(d.vehicleType||d.vehicle_type)state.vehicle=d.vehicleType||d.vehicle_type;if(d.tenCode||d.ten_code)state.tenCode=d.tenCode||d.ten_code;onDuty=true;update();});
   window.addEventListener('fib-mdt:duty-state-restored',e=>{
     const d=e.detail||{};
@@ -8472,165 +8520,10 @@ const NAVIGATION = [
   });
   window.addEventListener('fib-mdt:duty-ended',()=>{onDuty=false;state={location:'',activity:'',vehicle:'',tenCode:options.tenCode.includes('10-1')?'10-1':(options.tenCode[0]||'')};update();});
   window.addEventListener('storage',e=>{suppressPersist=true;try{if(e.key==='fib_mdt_duty_picker_v1'&&e.newValue){try{const next=JSON.parse(e.newValue);if(next&&typeof next==='object'){state=Object.assign(state,next);update();}}catch(_){}}if(e.key==='fib_mdt_duty_options_v1'&&e.newValue){try{const next=JSON.parse(e.newValue);Object.keys(defaults).forEach(k=>{if(Array.isArray(next?.[k])&&next[k].length)options[k]=next[k];});if(!options[activeKey].includes(state[activeKey]))state[activeKey]='';update();}catch(_){}}}finally{suppressPersist=false;}});
-  // The global duty picker is intentionally available on every MDT page.
-  // Do not bind it to pageContainer mutations: navigation and page rendering
-  // outside the Leitstelle must not close an already opened selection popup.
+  // Der globale Dienst-Picker darf auf jeder MDT-Seite geöffnet bleiben. Seitenwechsel schließen ihn nur beim tatsächlichen Klick außerhalb.
 })();
 </script>
 
-
-<script>
-/* Global duty controller: duty status is independent of the currently opened MDT page. */
-(function(){
-  if(window.fibGlobalDutyControllerBound) return;
-  window.fibGlobalDutyControllerBound = true;
-  let queue = Promise.resolve();
-
-  function token(){
-    try { return sessionStorage.getItem("fib_mdt_session") || sessionStorage.getItem("lspd_mdt_session") || ""; }
-    catch(_) { return ""; }
-  }
-  function userId(){
-    try { return String(window.currentUser?.id || window.currentUser?.userId || ""); }
-    catch(_) { return ""; }
-  }
-  async function getProfile(){
-    const uid = userId();
-    if(!uid) throw new Error("Deine Sitzung konnte nicht ermittelt werden.");
-    const bundle = await window.runServer("getPersonnelFileBundle", token(), uid);
-    return bundle?.agent || bundle?.personnel || {};
-  }
-  async function getOwnPatrol(){
-    const uid = userId();
-    if(!uid) return null;
-    const patrols = await window.runServer("getPatrols", token());
-    return (Array.isArray(patrols) ? patrols : []).find(p =>
-      (p.members || []).some(m => String(m.id || m.user_id || m.userId || "") === uid)
-    ) || null;
-  }
-  async function persistDuty(event){
-    const detail = event.detail || {};
-    const isStart = event.type === "fib-mdt:duty-start-request";
-    if(!detail.location || !detail.activity || !detail.vehicleType) return;
-
-    const applyButton = document.getElementById("fibDutyStartButton");
-    if(applyButton) applyButton.disabled = true;
-
-    try {
-      const profile = await getProfile();
-      const callsign = String(profile.callSign || profile.call_sign || "").trim();
-      if(!callsign) throw new Error("Bitte hinterlege zuerst dein Callsign in deiner Personalakte.");
-
-      const existing = await getOwnPatrol();
-      if(!isStart && !existing) return;
-
-      const form = {
-        ...(existing ? {id: existing.id} : {}),
-        callsign,
-        number: callsign,
-        vehicleType: detail.vehicleType,
-        tenCode: detail.tenCode || existing?.tenCode || existing?.ten_code || existing?.status || (detail.activity === "OOV" ? "10-6" : "10-1"),
-        location: detail.location,
-        activity: detail.activity,
-        members: existing
-          ? (existing.members || []).map(m => ({id: m.id || m.user_id, position: m.position || "Member"}))
-          : []
-      };
-
-      const saveMethod = existing ? "updatePatrol" : "startDuty";
-      const result = existing
-        ? await window.runServer("updatePatrol", token(), form)
-        : await window.runServer("startDuty", token(), form);
-      if(!result || result.success === false) throw new Error(result?.message || "Der Dienststatus konnte nicht gespeichert werden.");
-
-      // For a new duty entry, verify the server can immediately read the
-      // membership back. This prevents a false-positive UI state when a write
-      // was acknowledged but the patrol/member relation is not actually there.
-      let saved = result?.patrol || result || {};
-      if(isStart && !saved.id){
-        const verified = await getOwnPatrol();
-        if(!verified) throw new Error("Der Dienst konnte nicht in der Leitstelle eingetragen werden.");
-        saved = verified;
-      }
-      // The API response is authoritative for the newly created patrol. Broadcast it
-      // immediately so the Leitstelle can render the new row without waiting for a
-      // second round-trip. A background refresh follows for full member/rank data.
-      window.dispatchEvent(new CustomEvent("fib-mdt:duty-started", {
-        detail: {...form, callSign: callsign, patrol: saved}
-      }));
-      window.dispatchEvent(new CustomEvent("fib-mdt:duty-data-changed", {
-        detail: {patrol: saved, inDuty: true}
-      }));
-
-      if(isStart && typeof window.showSuccess === "function") window.showSuccess("Du bist jetzt im Dienst.");
-    } catch(error) {
-      if(typeof window.showError === "function") window.showError(error?.message || "Der Dienststatus konnte nicht gespeichert werden.");
-    } finally {
-      if(applyButton) applyButton.disabled = false;
-    }
-  }
-
-  window.addEventListener("fib-mdt:duty-start-request", function(event){
-    queue = queue.catch(()=>{}).then(()=>persistDuty(event));
-  });
-  window.addEventListener("fib-mdt:duty-selection-changed", function(event){
-    queue = queue.catch(()=>{}).then(()=>persistDuty(event));
-  });
-
-  async function restoreGlobalDutyState(){
-    try {
-      if(!token() || !userId()) return;
-      const patrols = await window.runServer("getPatrols", token());
-      const uid = userId();
-      const own = (Array.isArray(patrols) ? patrols : []).find(p =>
-        (p.members || []).some(m => String(m.id || m.user_id || m.userId || "") === uid)
-      );
-      if(own){
-        const lead = (own.members || []).find(m => String(m.position || "").toLowerCase() === "lead") || (own.members || [])[0] || {};
-        if(typeof window.fibUpdateOwnStatus === "function"){
-          window.fibUpdateOwnStatus({
-            callSign: String(lead.callSign || own.callsign || "Kein Funkrufname hinterlegt"),
-            status: String(own.activity || "Tätigkeit nicht hinterlegt"),
-            unit: String(own.location || "Einsatzort nicht hinterlegt"),
-            inPatrol: true
-          });
-        }
-        window.dispatchEvent(new CustomEvent("fib-mdt:duty-state-restored", {detail:{
-          inDuty:true,
-          location:String(own.location || ""),
-          activity:String(own.activity || ""),
-          vehicleType:String(own.vehicleType || own.vehicle_type || ""),
-          tenCode:String(own.tenCode || own.ten_code || own.status || "10-1")
-        }}));
-      } else {
-        window.dispatchEvent(new CustomEvent("fib-mdt:duty-state-restored", {detail:{inDuty:false}}));
-      }
-    } catch(_) {
-      /* Duty state is auxiliary UI state; normal page loading must continue if unavailable. */
-    }
-  }
-
-  window.addEventListener("fib-mdt:duty-end-request", async function(){
-    const endButton = document.getElementById("fibDutyEndButton");
-    if(endButton) endButton.disabled = true;
-    try {
-      const result = await window.runServer("leavePatrol", token());
-      if(result?.success === false) throw new Error(result.message || "Der Dienst konnte nicht beendet werden.");
-      window.dispatchEvent(new CustomEvent("fib-mdt:duty-ended"));
-      window.dispatchEvent(new CustomEvent("fib-mdt:duty-data-changed", {
-        detail: {inDuty:false}
-      }));
-      if(typeof window.showSuccess === "function") window.showSuccess("Du hast deinen Dienst beendet.");
-    } catch(error) {
-      if(typeof window.showError === "function") window.showError(error?.message || "Der Dienst konnte nicht beendet werden.");
-    } finally {
-      if(endButton) endButton.disabled = false;
-    }
-  });
-  setTimeout(restoreGlobalDutyState, 700);
-  window.addEventListener("fib-mdt:data-changed", function(e){ if(e.detail?.method === "leavePatrol" || e.detail?.method === "createPatrol" || e.detail?.method === "updatePatrol") restoreGlobalDutyState(); });
-})();
-</script>
 
 <script>
 /* Phase 3.77: collapsed sidebar expands on hover; no toggle button. */
@@ -8656,5 +8549,3 @@ const NAVIGATION = [
 </body>
 
 </html>
-
-<style id="lspd-duty-v36-cleanup">.fib-duty-picker-actions,.fib-duty-picker-start-button,.fib-duty-picker-end-button{display:none!important}.fib-duty-picker-footer{min-height:34px!important}.fib-duty-option.is-selected{outline:2px solid rgba(47,120,183,.12)!important}</style>

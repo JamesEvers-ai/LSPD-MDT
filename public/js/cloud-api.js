@@ -111,7 +111,7 @@
     if(p==="withSuccessHandler") return fn=>{success=fn;return proxy};
     if(p==="withFailureHandler") return fn=>{failure=fn;return proxy};
     if(p==="then") return undefined;
-    return (...args)=>{if(used)throw new Error("Ein API-Runner kann nur einen Aufruf ausführen.");used=true;invoke(String(p),args).then(v=>{if(typeof success==="function")success(v)}).catch(e=>{if(typeof failure==="function")failure(e);else console.error("LSPD MDT API",e)});};
+    return (...args)=>{used=true;invoke(String(p),args).then(v=>{if(typeof success==="function")success(v)}).catch(e=>{if(typeof failure==="function")failure(e);else console.error("LSPD MDT API",e)});};
   }});return proxy;}
   const api={};
   Object.defineProperty(api,"run",{get:makeRunner});
@@ -124,10 +124,6 @@
     getPageTemplateStatus:()=>({loaded:templateCache.size,total:new Set(Object.values(pages)).size}),
     refresh:async method=>{ if(method){for(const key of dataCache.keys()) if(key.includes(`\u0000${method}\u0000`)) dataCache.delete(key);} else clearDataCache(); }
   };
-  // Do not block the initial MDT render with requests for every page template.
-  // Navigation still lazy-loads missing templates; idle-time prefetch warms the cache
-  // after the first paint instead of creating a burst of requests during startup.
-  const warmTemplates=()=>preloadPages().catch(error=>console.warn("[LSPD MDT] Hintergrund-Vorladen der Seitentemplates fehlgeschlagen:",error));
-  if(typeof window.requestIdleCallback === "function") window.requestIdleCallback(warmTemplates,{timeout:3000});
-  else setTimeout(warmTemplates,1200);
+  // Warm every static page template immediately. First navigation can use this cache.
+  preloadPages().catch(error=>console.warn("[LSPD MDT] Vorladen der Seitentemplates fehlgeschlagen:",error));
 })();
