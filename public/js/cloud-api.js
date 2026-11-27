@@ -18,7 +18,7 @@
   let cacheEpoch = 0;
   const inflightReads = new Map();
   const LIVE_OR_AUTH_READS = new Set([
-    "getCurrentUser", "getSessionInfo", "getMyPermissions", "getPatrols",
+    "getCurrentUser", "getSessionInfo", "getMyPermissions", "getPatrols", "getPatrolRevision", "getOwnDuty",
     "getDashboardStats", "getDashboardStatistics", "getActivePatrols",
     "getLivePatrols", "getCurrentSession", "getNotifications",
     "getWarrantStatistics"

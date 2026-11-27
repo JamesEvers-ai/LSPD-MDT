@@ -1028,94 +1028,38 @@ html body #pageContainer .content :is(
   display:inline-flex !important; align-items:center !important; justify-content:center !important;
   border-radius:50% !important; font-size:8px !important;
 }
-.content .patrols-page .patrol-card.patrol-card-compact {
-  display:block !important; width:100% !important; min-height:0 !important;
-  height:auto !important; margin:0 !important; padding:0 !important;
-  border:1px solid #d5e0ea !important; border-left:3px solid #2c79b9 !important;
-  border-radius:8px !important; background:#fff !important;
-  box-shadow:0 2px 8px rgba(28,57,84,.06) !important; overflow:visible !important;
+/* Leitstelle: single independent row layout. No legacy patrol-card styles. */
+#pageContainer .patrols-page .patrol-group { overflow-x:auto !important; }
+#pageContainer .patrols-page .lspd-patrol-row {
+  display:block; min-width:1060px; margin:0 0 6px; border:1px solid #d5e0ea;
+  border-left:3px solid #2c79b9; border-radius:8px; background:#fff; color:#233b50;
 }
-.content .patrols-page .patrol-card.patrol-card-compact:hover {
-  background:#fff !important; border-color:#bfd2e3 !important; border-left-color:#2c79b9 !important;
-  transform:none !important; box-shadow:0 3px 10px rgba(28,57,84,.08) !important;
+#pageContainer .lspd-row-main {
+  display:grid; grid-template-columns:minmax(135px,1fr) 92px minmax(125px,1.1fr) minmax(90px,.75fr) minmax(145px,1.1fr) minmax(215px,1.7fr) 148px;
+  align-items:stretch; min-height:68px; padding:0 8px; gap:0;
 }
-.content .patrols-page .patrol-compact-main {
-  min-height:64px !important; display:grid !important; align-items:center !important;
-  grid-template-columns:150px 92px minmax(150px,1.1fr) 100px minmax(150px,1fr) minmax(220px,1.7fr) auto !important;
-  gap:0 !important; padding:0 9px !important;
-}
-.content .patrols-page .patrol-compact-callsign,
-.content .patrols-page .patrol-compact-field,
-.content .patrols-page .patrol-compact-crew,
-.content .patrols-page .patrol-compact-actions {
-  min-width:0 !important; height:100% !important; display:flex !important; align-items:center !important;
-}
-.content .patrols-page .patrol-compact-callsign { gap:7px !important; }
-.content .patrols-page .patrol-compact-callsign strong {
-  color:#245b91 !important; font-size:12px !important; white-space:nowrap !important;
-}
-.content .patrols-page .patrol-compact-field,
-.content .patrols-page .patrol-compact-crew {
-  flex-direction:column !important; align-items:flex-start !important; justify-content:center !important;
-  padding:0 12px !important; border-left:1px solid #e6edf3 !important;
-}
-.content .patrols-page .patrol-compact-field:first-of-type { border-left:0 !important; }
-.content .patrols-page .patrol-info-label {
-  font-size:7px !important; line-height:1 !important; letter-spacing:.08em !important;
-  font-weight:800 !important; color:#8795a5 !important; margin-bottom:5px !important;
-}
-.content .patrols-page .patrol-info-value {
-  display:flex !important; align-items:center !important; gap:5px !important;
-  color:#31475d !important; font-size:10px !important; font-weight:700 !important;
-  white-space:nowrap !important; overflow:hidden !important; text-overflow:ellipsis !important; max-width:100% !important;
-}
-.content .patrols-page .patrol-info-value i { color:#6f91ad !important; font-size:9px !important; }
-.content .patrols-page .patrol-modern-status {
-  display:inline-flex !important; align-items:center !important; min-height:24px !important;
-  padding:0 8px !important; border-radius:6px !important; font-size:9px !important;
-  font-weight:800 !important; white-space:nowrap !important;
-}
-.content .patrols-page .patrol-compact-crew .patrol-crew-list {
-  display:flex !important; align-items:center !important; gap:4px !important;
-  max-width:100% !important; overflow:hidden !important; white-space:nowrap !important;
-}
-.content .patrols-page .patrol-crew-person {
-  display:inline-flex !important; align-items:center !important; gap:4px !important;
-  min-height:25px !important; padding:0 6px !important; border:1px solid #d9e3ec !important;
-  border-radius:6px !important; background:#f7f9fb !important; white-space:nowrap !important;
-}
-.content .patrols-page .patrol-crew-rank { font-size:7px !important; color:#718296 !important; font-weight:800 !important; }
-.content .patrols-page .patrol-crew-name { font-size:9px !important; color:#344b61 !important; font-weight:700 !important; }
-.content .patrols-page .patrol-crew-callsign { font-size:7px !important; color:#3975ad !important; font-weight:700 !important; }
-.content .patrols-page .patrol-crew-lead { font-size:6px !important; color:#286eae !important; background:#e6f1fc !important; padding:2px 4px !important; border-radius:3px !important; font-weight:900 !important; }
-.content .patrols-page .patrol-compact-actions {
-  justify-content:flex-end !important; gap:4px !important; padding-left:9px !important;
-}
-.content .patrols-page .patrol-compact-actions .patrol-action-button {
-  min-height:30px !important; height:30px !important; border-radius:6px !important;
-  font-size:8px !important; padding:0 9px !important; white-space:nowrap !important;
-}
-.content .patrols-page .patrol-compact-actions .patrol-edit-button { width:30px !important; padding:0 !important; }
-.content .patrols-page .patrol-card-live { font-size:7px !important; white-space:nowrap !important; }
-.content .patrols-page .patrol-card-live > span { width:6px !important; height:6px !important; }
-@media (max-width: 1200px) {
-  .content .patrols-page .patrol-compact-main {
-    grid-template-columns:130px 82px minmax(120px,1fr) 88px minmax(120px,1fr) minmax(170px,1.2fr) auto !important;
-  }
-  .content .patrols-page .patrol-compact-activity { display:none !important; }
-}
-@media (max-width: 900px) {
-  .content .patrols-page .patrol-compact-main {
-    grid-template-columns:130px 82px minmax(110px,1fr) minmax(140px,1fr) auto !important;
-  }
-  .content .patrols-page .patrol-compact-crew { display:none !important; }
-}
-@media (max-width: 700px) {
-  .content .patrols-page .patrol-compact-main {
-    grid-template-columns:1fr auto !important; min-height:58px !important; padding:0 8px !important;
-  }
-  .content .patrols-page .patrol-compact-callsign { grid-column:1 !important; }
-  .content .patrols-page .patrol-compact-status,
-  .content .patrols-page .patrol-compact-field { display:none !important; }
-  .content .patrols-page .patrol-compact-actions { grid-column:2 !important; }
-}
+#pageContainer .lspd-row-call,#pageContainer .lspd-row-field,#pageContainer .lspd-row-crew,#pageContainer .lspd-row-actions {display:flex; min-width:0; align-items:center; padding:9px 10px;}
+#pageContainer .lspd-row-call {gap:6px; flex-wrap:wrap; align-content:center;}
+#pageContainer .lspd-row-call strong {font-size:15px; font-weight:750; color:#245b91; white-space:nowrap;}
+#pageContainer .lspd-row-icon {color:#286eae; font-size:14px;}
+#pageContainer .lspd-row-live {display:inline-flex; gap:4px; align-items:center; color:#34596a; font-size:11px; font-weight:650;}
+#pageContainer .lspd-row-live > span {width:7px; height:7px; border-radius:50%; background:#29965d;}
+#pageContainer .lspd-row-field,#pageContainer .lspd-row-crew {flex-direction:column; align-items:flex-start; justify-content:center; gap:5px; border-left:1px solid #e1e9f1;}
+#pageContainer .lspd-row-label {font-size:11px; line-height:1.15; font-weight:700; letter-spacing:.025em; color:#536b81;}
+#pageContainer .lspd-row-value {font-size:14px; font-weight:650; line-height:1.35; color:#233b50; overflow-wrap:anywhere;}
+#pageContainer .lspd-row-value i {margin-right:5px; font-size:12px; color:#557b99;}
+#pageContainer .lspd-row-ten {font:750 17px/1.2 system-ui,sans-serif; font-variant-numeric:tabular-nums; white-space:nowrap; padding:5px 8px; color:#17324d; background:#edf4fa; border:1px solid #d0e0ec; border-left:3px solid var(--duty-accent,#5487b6); border-radius:5px;}
+#pageContainer .lspd-row-activity {border-left:3px solid var(--duty-accent,#e1e9f1);}
+#pageContainer .lspd-row-members {display:flex; flex-wrap:wrap; gap:4px; align-items:center;}
+#pageContainer .lspd-row-member {display:inline-flex; flex-wrap:wrap; align-items:center; gap:5px; border:1px solid #d9e3ec; border-radius:5px; background:#f7f9fb; padding:5px 6px; font-size:12px; line-height:1.3;}
+#pageContainer .lspd-row-name {font-size:13px; font-weight:650; color:#233b50;}
+#pageContainer .lspd-row-rank,#pageContainer .lspd-row-member-call,#pageContainer .lspd-row-lead {font-size:11px; color:#3e607b; font-weight:650;}
+#pageContainer .lspd-row-lead {background:#e5eff9; border-radius:3px; padding:2px 3px;}
+#pageContainer .lspd-row-empty {font-size:13px; color:#536b81;}
+#pageContainer .lspd-row-actions {justify-content:flex-end; gap:6px; padding:8px 0 8px 6px;}
+#pageContainer .lspd-row-button {display:inline-flex; align-items:center; justify-content:center; gap:5px; height:36px; border-radius:6px; border:1px solid #b5cce0; background:#edf4fa; color:#245b91; font:650 13px/1 system-ui,sans-serif; cursor:pointer; padding:0 10px; white-space:nowrap; flex-shrink:0;}
+#pageContainer .lspd-row-button:hover:not(:disabled) {background:#dcebf8; border-color:#84b1d6;}
+#pageContainer .lspd-row-button:focus-visible {outline:2px solid #286eae; outline-offset:2px;}
+#pageContainer .lspd-row-button:disabled {background:#eef3f6; color:#536b81; cursor:default;}
+#pageContainer .lspd-row-edit {width:36px; padding:0; font-size:21px;}
+#pageContainer .lspd-row-join {min-width:94px;}

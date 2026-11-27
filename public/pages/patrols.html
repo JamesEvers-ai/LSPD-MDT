@@ -1427,17 +1427,6 @@
                 Aktualisieren
             </button>
 
-
-            <button
-                type="button"
-                class="patrol-header-button patrol-header-duty-end"
-                id="patrolEndDutyButton"
-                hidden
-            >
-                <i class="fa-solid fa-right-from-bracket"></i>
-                Außer Dienst
-            </button>
-
         </div>
 
     </div>
@@ -1497,8 +1486,7 @@
 (function () {
     "use strict";
 
-    const previous = window.__FIB_MDT_PATROLS__;
-    const state = previous || {
+    const state = {
         patrolData: [],
         patrolUsers: [],
         ownPersonnelProfile: null,
@@ -1517,7 +1505,9 @@
     };
 
     window.__FIB_MDT_PATROLS__ = state;
-    let dutySaveQueue = Promise.resolve();
+    let active = true;
+    let pendingRefresh = false;
+    window.__fibPageLifecycle.addCleanup(()=>{active=false;});
 
     const PATROL_PERMISSIONS = Object.freeze({
         view: "patrols.view",
@@ -1526,7 +1516,7 @@
         delete: "patrols.delete"
     });
 
-    const VEHICLES = [
+    let VEHICLES = [
         "STR",
         "STR (UM)",
         "OFF",
@@ -1540,11 +1530,10 @@
     let STATUSES = [...DEFAULT_STATUSES];
     async function loadConfiguredTenCodes() {
       try {
-        const result = await window.runServer("getPatrolTenCodes");
-        const values = Array.isArray(result?.codes) ? result.codes : [];
-        if (values.length) STATUSES = [...new Set(values.map(v => String(typeof v === "string" ? v : (v.code || v.value || v.name || "")).trim()).filter(Boolean))];
-        
-      } catch (e) { console.warn("Ten-Code-Konfiguration nicht verfügbar; Standardcodes werden verwendet.", e); }
+        const result = await (window.fibGetPatrolDutyConfig ? window.fibGetPatrolDutyConfig() : window.runServer("getPatrolDutyConfig"));
+        if(result?.tenCodes?.length) STATUSES=result.tenCodes.map(String);
+        if(result?.vehicles?.length) VEHICLES=result.vehicles.map(String);
+      } catch(e){ console.warn("Dienstkonfiguration:",e); }
     }
 
     const PAGE_CACHE_MS = 30000;
@@ -1597,12 +1586,7 @@
         if (isMasterAccount()) return true;
 
         try {
-            if (
-                typeof hasPermission === "function" &&
-                hasPermission(permission)
-            ) {
-                return true;
-            }
+            if (typeof hasPermission === "function") return hasPermission(permission);
         } catch (error) {}
 
         try {
@@ -1694,63 +1678,9 @@
         return String(window.currentUser?.id || window.currentUser?.userId || "");
     }
 
-    function renderOwnStatus() {
-        const userId = getLoggedInUserId();
-        const ownPatrol = (state.patrolData || []).find(function (patrol) {
-            return (patrol.members || []).some(function (member) {
-                return String(member.id || member.userId || "") === userId;
-            });
-        });
-        const profile = state.ownPersonnelProfile || {};
-        const ownCallSign = String(profile.callSign || "").trim();
-        const inPatrol = Boolean(ownPatrol);
-        // The top-right strip is a duty overview, not a radio-code display:
-        // show the selected activity as Status and the selected operational area
-        // as Einsatzort. The database `status` (e.g. 10-01) and callsign/number
-        // belong to the patrol record and must not be placed in these fields.
-        const statusText = inPatrol
-            ? String(ownPatrol.activity || "Tätigkeit nicht hinterlegt")
-            : (profile.personnelStatus ? String(profile.personnelStatus) : "Nicht in Streife");
-        const unitText = inPatrol
-            ? String(ownPatrol.location || "Einsatzort nicht hinterlegt")
-            : "Kein Einsatzort";
-        if (typeof window.fibUpdateOwnStatus === "function") {
-            window.fibUpdateOwnStatus({
-                callSign: ownCallSign || "Kein Funkrufname hinterlegt",
-                status: statusText,
-                unit: unitText,
-                inPatrol: inPatrol
-            });
-        }
-    }
-
-    function restoreOwnDutyPicker() {
-      // Do not publish an off-duty state while the patrol request is still in flight.
-      // Profile and patrol data load independently; the old implementation could
-      // briefly overwrite a valid local/server selection with an empty state.
-      if (!state.patrolDataLoaded || !Array.isArray(state.patrolData) || !state.ownPersonnelProfile) return;
-      const profile = state.ownPersonnelProfile || {};
-      const ownId = String(profile.userId || profile.user_id || profile.id || getLoggedInUserId() || "");
-      if (!ownId) return;
-      const ownPatrol = state.patrolData.find(p => (p.members || []).some(m =>
-        String(m.id || m.user_id || m.userId || m.userID || "") === ownId
-      ));
-      if (ownPatrol) {
-        window.dispatchEvent(new CustomEvent("fib-mdt:duty-state-restored", {detail: {
-          inDuty: true,
-          location: String(ownPatrol.location || ""),
-          activity: String(ownPatrol.activity || ""),
-          vehicleType: String(ownPatrol.vehicleType || ownPatrol.vehicle_type || ""),
-          tenCode: String(ownPatrol.tenCode || ownPatrol.ten_code || ownPatrol.status || "10-1")
-        }}));
-      } else {
-        window.dispatchEvent(new CustomEvent("fib-mdt:duty-state-restored", {detail: {inDuty: false}}));
-      }
-    }
-
     function fetchOwnPersonnelProfile(forceReload) {
         if (state.ownPersonnelProfileLoaded && !forceReload) {
-            renderOwnStatus();
+
             return Promise.resolve(state.ownPersonnelProfile);
         }
         if (state.ownPersonnelProfilePromise && !forceReload) return state.ownPersonnelProfilePromise;
@@ -1760,8 +1690,8 @@
                     state.ownPersonnelProfile = profile && typeof profile === "object" ? profile : {};
                     state.ownPersonnelProfileLoaded = true;
                     state.ownPersonnelProfilePromise = null;
-                    renderOwnStatus();
-                    restoreOwnDutyPicker();
+
+
                     resolve(state.ownPersonnelProfile);
                 })
                 .withFailureHandler(function (error) {
@@ -1823,12 +1753,13 @@
             state.patrolData = cache.data;
             state.patrolDataLoaded = true;
             renderPatrols();
-            renderOwnStatus();
-            restoreOwnDutyPicker();
+
+
             return Promise.resolve(state.patrolData);
         }
 
-        if (state.patrolDataPromise && !forceReload) {
+        if (state.patrolDataPromise) {
+            if(forceReload) pendingRefresh=true;
             return state.patrolDataPromise;
         }
 
@@ -1837,6 +1768,7 @@
         state.patrolDataPromise = new Promise(function (resolve, reject) {
             CloudApi.run
                 .withSuccessHandler(function (data) {
+                    if(!active){state.patrolDataPromise=null;resolve([]);return;}
                     const normalized = Array.isArray(data) ? data : [];
 
                     state.patrolData = normalized;
@@ -1848,12 +1780,15 @@
                     setLoading(false);
                     updateCount();
                     renderPatrols();
-                    renderOwnStatus();
-                    restoreOwnDutyPicker();
+
+
                     resolve(normalized);
+                    if(pendingRefresh){pendingRefresh=false;fetchPatrols(true).catch(()=>{});}
                 })
                 .withFailureHandler(function (error) {
                     state.patrolDataPromise = null;
+                    pendingRefresh=false;
+                    if(!active){reject(error);return;}
                     setLoading(false);
 
                     if (!state.patrolData.length) {
@@ -1938,11 +1873,7 @@
 
     function refreshPatrolData() {
         clearPatrolsCache();
-        clearPatrolUsersCache();
-
-        fetchOwnPersonnelProfile(true).catch(function () {});
-        fetchPatrolUsers(true).catch(function () {});
-        fetchPatrols(true).catch(function () {});
+        return fetchPatrols(true);
     }
 
     function renderPatrols() {
@@ -2027,7 +1958,7 @@
 
     function createPatrolCard(patrol) {
         const card = document.createElement("article");
-        card.className = "patrol-card patrol-card-compact";
+        card.className = "lspd-patrol-row";
 
         const statusValue = String(
             patrol.tenCode || patrol.ten_code || patrol.status || "Unbekannt"
@@ -2044,11 +1975,11 @@
         const patrolLocation = String(patrol.location || "").trim();
         const patrolActivity = String(patrol.activity || "").trim();
         const vehicle = String(patrol.vehicleType || patrol.vehicle_type || "—").trim() || "—";
-        const currentUserId = String(state.currentUserId || window.currentUser?.id || "");
+        const currentUserId = getLoggedInUserId();
         const alreadyMember = members.some(function (member) {
             return String(member.id || member.user_id || "") === currentUserId;
         });
-        const actionAllowed = canEdit() || canDelete();
+        const actionAllowed = canEdit();
 
         const membersHtml = members.length
             ? members.map(function (member) {
@@ -2057,45 +1988,45 @@
                 const memberCallsign = String(member.callSign || "").trim();
                 const lead = String(member.position || "").toLowerCase() === "lead";
                 return `
-                    <span class="patrol-crew-person${lead ? " is-lead" : ""}" title="${escapeHtml(memberName)}${memberCallsign ? " · " + escapeHtml(memberCallsign) : ""}">
-                        <span class="patrol-crew-rank">${escapeHtml(rank)}</span>
-                        <span class="patrol-crew-name">${escapeHtml(memberName)}</span>
-                        ${memberCallsign ? `<span class="patrol-crew-callsign">${escapeHtml(memberCallsign)}</span>` : ""}
-                        ${lead ? `<span class="patrol-crew-lead">LEAD</span>` : ""}
+                    <span class="lspd-row-member${lead ? " is-lead" : ""}" title="${escapeHtml(memberName)}${memberCallsign ? " · " + escapeHtml(memberCallsign) : ""}">
+                        <span class="lspd-row-rank">${escapeHtml(rank)}</span>
+                        <span class="lspd-row-name">${escapeHtml(memberName)}</span>
+                        ${memberCallsign ? `<span class="lspd-row-member-call">${escapeHtml(memberCallsign)}</span>` : ""}
+                        ${lead ? `<span class="lspd-row-lead">LEAD</span>` : ""}
                     </span>
                 `;
             }).join("")
-            : `<span class="patrol-crew-empty">Keine Besatzung</span>`;
+            : `<span class="lspd-row-empty">Keine Besatzung</span>`;
 
         card.innerHTML = `
-            <div class="patrol-compact-main">
-                <div class="patrol-compact-callsign">
-                    <span class="patrol-call-sign-icon"><i class="fa-solid fa-radio"></i></span>
+            <div class="lspd-row-main">
+                <div class="lspd-row-call">
+                    <span class="lspd-row-icon"><i class="fa-solid fa-radio"></i></span>
                     <strong>${escapeHtml(patrolCallsign)}</strong>
-                    <span class="patrol-card-live"><span></span> AKTIV</span>
+                    <span class="lspd-row-live"><span></span> AKTIV</span>
                 </div>
-                <div class="patrol-compact-field patrol-compact-status">
-                    <span class="patrol-info-label">STATUS</span>
-                    <span class="patrol-modern-status status-${escapeHtml(statusClass)}">${escapeHtml(statusValue)}</span>
+                <div class="lspd-row-field lspd-row-code">
+                    <span class="lspd-row-label">TEN CODE</span>
+                    <span class="lspd-row-ten status-${escapeHtml(statusClass)}">${escapeHtml(statusValue)}</span>
                 </div>
-                <div class="patrol-compact-field">
-                    <span class="patrol-info-label">EINSATZORT</span>
-                    <span class="patrol-info-value"><i class="fa-solid fa-location-dot"></i>${escapeHtml(patrolLocation || "—")}</span>
+                <div class="lspd-row-field">
+                    <span class="lspd-row-label">EINSATZORT</span>
+                    <span class="lspd-row-value"><i class="fa-solid fa-location-dot"></i>${escapeHtml(patrolLocation || "—")}</span>
                 </div>
-                <div class="patrol-compact-field">
-                    <span class="patrol-info-label">FAHRZEUG</span>
-                    <span class="patrol-info-value"><i class="fa-solid fa-car-side"></i>${escapeHtml(vehicle)}</span>
+                <div class="lspd-row-field">
+                    <span class="lspd-row-label">FAHRZEUG</span>
+                    <span class="lspd-row-value"><i class="fa-solid fa-car-side"></i>${escapeHtml(vehicle)}</span>
                 </div>
-                <div class="patrol-compact-field patrol-compact-activity">
-                    <span class="patrol-info-label">TÄTIGKEIT</span>
-                    <span class="patrol-info-value"><i class="fa-solid fa-bullhorn"></i>${escapeHtml(patrolActivity || "—")}</span>
+                <div class="lspd-row-field lspd-row-activity">
+                    <span class="lspd-row-label">STATUS / TÄTIGKEIT</span>
+                    <span class="lspd-row-value"><i class="fa-solid fa-bullhorn"></i>${escapeHtml(patrolActivity || "—")}</span>
                 </div>
-                <div class="patrol-compact-crew">
-                    <span class="patrol-info-label">BESATZUNG</span>
-                    <div class="patrol-crew-list">${membersHtml}</div>
+                <div class="lspd-row-crew">
+                    <span class="lspd-row-label">BESATZUNG</span>
+                    <div class="lspd-row-members">${membersHtml}</div>
                 </div>
-                <div class="patrol-compact-actions">
-                    <button class="patrol-action-button patrol-join-button" type="button"
+                <div class="lspd-row-actions">
+                    <button class="lspd-row-button lspd-row-join" type="button"
                         title="${alreadyMember ? "Bereits Mitglied dieser Streife" : "Dieser Streife beitreten"}"
                         aria-label="${alreadyMember ? "Bereits Mitglied dieser Streife" : "Dieser Streife beitreten"}"
                         data-patrol-join="${escapeHtml(patrol.id)}" ${alreadyMember ? "disabled" : ""}>
@@ -2103,14 +2034,20 @@
                         <span>${alreadyMember ? "Dabei" : "Beitreten"}</span>
                     </button>
                     ${actionAllowed ? `
-                        <button class="patrol-action-button patrol-edit-button" type="button" title="Streife bearbeiten" data-patrol-action="${escapeHtml(patrol.id)}">
-                            <i class="fa-solid fa-pen"></i>
+                        <button class="lspd-row-button lspd-row-edit" type="button" title="Streife bearbeiten" aria-label="Streife bearbeiten" data-patrol-action="${escapeHtml(patrol.id)}">
+                            <span aria-hidden="true">✎</span>
                         </button>
                     ` : ""}
                 </div>
             </div>
         `;
 
+        const config=window.__FIB_PATROL_DUTY_CONFIG__||{};
+        const validColor=value=>typeof value==="string"&&/^(#[0-9a-f]{3,8}|rgba?\([0-9\s.,%+-]+\)|hsla?\([0-9\s.,%+-]+\))$/i.test(value.trim());
+        const codeColor=config.tenCodeColors?.[statusValue];
+        if(validColor(codeColor))card.querySelector('.lspd-row-ten').style.setProperty('--duty-accent',codeColor);
+        const activityColor=config.statusColors?.[patrolActivity];
+        if(validColor(activityColor))card.querySelector('.lspd-row-activity').style.setProperty('--duty-accent',activityColor);
         const joinButton = card.querySelector("[data-patrol-join]");
         if (joinButton && !alreadyMember) {
             joinButton.addEventListener("click", function (event) {
@@ -2118,11 +2055,10 @@
                 joinButton.disabled = true;
                 CloudApi.run.withSuccessHandler(function () {
                     clearPatrolsCache();
-                    refreshPatrolData();
-                    if (typeof window.showSuccess === "function") window.showSuccess("Du bist der Streife beigetreten.");
+                    showSuccess("Du bist der Streife beigetreten.");
                 }).withFailureHandler(function (error) {
                     joinButton.disabled = false;
-                    if (typeof window.showError === "function") window.showError(error?.message || String(error));
+                    showError(error?.message || String(error));
                 }).joinPatrol(getToken(), patrol.id);
             });
         }
@@ -2216,7 +2152,11 @@
         `;
     }
 
-    function openPatrolModal(patrol) {
+    async function openPatrolModal(patrol) {
+        await loadConfiguredTenCodes();
+        if(!active)return;
+        await fetchPatrolUsers(true).catch(()=>{});
+        if(!active)return;
         const editing = !!patrol;
         const editable = editing ? canEdit() : canCreate();
 
@@ -2279,8 +2219,11 @@
         if (editing && patrol) {
             callsign.value = patrol.callsign || "";
             number.value = patrol.number || "";
-            vehicle.value = patrol.vehicleType || VEHICLES[0];
-            status.value = patrol.status || STATUSES[0];
+            const currentVehicle=patrol.vehicleType||patrol.vehicle_type||VEHICLES[0];
+            const currentCode=patrol.tenCode||patrol.ten_code||patrol.status||STATUSES[0];
+            if(!VEHICLES.includes(currentVehicle))vehicle.add(new Option(currentVehicle,currentVehicle));
+            if(!STATUSES.includes(currentCode))status.add(new Option(currentCode,currentCode));
+            vehicle.value=currentVehicle; status.value=currentCode;
         } else {
             callsign.value = String(state.ownPersonnelProfile?.callSign || "").trim();
             vehicle.value = VEHICLES[0];
@@ -2498,6 +2441,9 @@
             number: number?.value?.trim() || "",
             vehicleType: vehicle?.value || "",
             status: status?.value || "",
+            tenCode: status?.value || "",
+            location: patrol?.location || "",
+            activity: patrol?.activity || "",
             members: selectedMembers.map(function (member) {
                 return {
                     id: member.id,
@@ -2523,12 +2469,12 @@
             return;
         }
 
-        if (!VEHICLES.includes(form.vehicleType)) {
+        if (!form.vehicleType || (!VEHICLES.includes(form.vehicleType)&&form.vehicleType!==String(patrol?.vehicleType||patrol?.vehicle_type||""))) {
             showError("Bitte einen gültigen Fahrzeugtyp auswählen.");
             return;
         }
 
-        if (!STATUSES.includes(form.status)) {
+        if (!form.status || (!STATUSES.includes(form.status)&&form.status!==String(patrol?.tenCode||patrol?.ten_code||patrol?.status||""))) {
             showError("Bitte einen gültigen Status auswählen.");
             return;
         }
@@ -2551,46 +2497,9 @@
 
         CloudApi.run
             .withSuccessHandler(function (result) {
-                const saved = result?.patrol || result;
-
-                if (!saved || !saved.id) {
-                    FIB_MDT_MODAL.close();
-                    clearPatrolsCache();
-                    fetchPatrols(true).catch(function () {});
-                    showSuccess(
-                        editing
-                            ? "Die Streife wurde aktualisiert."
-                            : "Die Streife wurde erstellt."
-                    );
-                    return;
-                }
-
-                if (editing) {
-                    const index = state.patrolData.findIndex(function (item) {
-                        return String(item.id) === String(saved.id);
-                    });
-
-                    if (index >= 0) {
-                        state.patrolData[index] = saved;
-                    } else {
-                        state.patrolData.push(saved);
-                    }
-                } else {
-                    state.patrolData.push(saved);
-                }
-
-                window.fibCache.patrols.data = state.patrolData;
-                window.fibCache.patrols.timestamp = Date.now();
-                state.patrolDataLoaded = true;
-
-                renderPatrols();
+                if(!result||result.success!==true){setModalBusy(false,"Änderungen speichern");showError(result?.message||"Speichern fehlgeschlagen.");return;}
                 FIB_MDT_MODAL.close();
-
-                showSuccess(
-                    editing
-                        ? "Die Streife wurde aktualisiert."
-                        : "Die Streife wurde erstellt."
-                );
+                showSuccess(editing?"Die Streife wurde aktualisiert.":"Die Streife wurde erstellt.");
             })
             .withFailureHandler(function (error) {
                 setModalBusy(
@@ -2648,57 +2557,12 @@
     }
 
     function bindStaticEvents() {
-        const createButton = document.getElementById("patrolEndDutyButton");
-        if (createButton) createButton.style.display = "none";
-        const pageDutyEndButton = document.getElementById("patrolEndDutyButton");
-        if (pageDutyEndButton && !pageDutyEndButton.dataset.bound) {
-            pageDutyEndButton.dataset.bound = "true";
-            pageDutyEndButton.addEventListener("click", function () {
-                const topbarEndButton = document.getElementById("fibDutyEndButton");
-                if (topbarEndButton && !topbarEndButton.hidden) {
-                    topbarEndButton.click();
-                    return;
-                }
-                pageDutyEndButton.disabled = true;
-                CloudApi.run.withSuccessHandler(function () {
-                    clearPatrolsCache();
-                    refreshPatrolData();
-                    pageDutyEndButton.hidden = true;
-                    pageDutyEndButton.style.display = "none";
-                    if (typeof window.showSuccess === "function") window.showSuccess("Du hast deinen Dienst beendet.");
-                    window.dispatchEvent(new CustomEvent("fib-mdt:duty-ended"));
-                }).withFailureHandler(function (error) {
-                    pageDutyEndButton.disabled = false;
-                    if (typeof window.showError === "function") window.showError(error?.message || String(error));
-                }).leavePatrol(getToken());
-            });
-        }
-        if (!window.fibPatrolDutyButtonSyncBound) {
-            window.fibPatrolDutyButtonSyncBound = true;
-            window.addEventListener("fib-mdt:duty-started", function () {
-                const button = document.getElementById("patrolEndDutyButton");
-                if (button) { button.hidden = false; button.style.display = "inline-flex"; button.disabled = false; }
-            });
-            window.addEventListener("fib-mdt:duty-state-restored", function (event) {
-                const button = document.getElementById("patrolEndDutyButton");
-                if (!button) return;
-                const active = !!event.detail?.inDuty;
-                button.hidden = !active;
-                button.style.display = active ? "inline-flex" : "none";
-                button.disabled = false;
-            });
-            window.addEventListener("fib-mdt:duty-ended", function () {
-                const button = document.getElementById("patrolEndDutyButton");
-                if (button) { button.hidden = true; button.style.display = "none"; button.disabled = false; }
-            });
-        }
-
         const refreshButton =
             document.getElementById("patrolRefreshButton");
 
         if (refreshButton && !refreshButton.dataset.bound) {
             refreshButton.dataset.bound = "true";
-            refreshButton.addEventListener("click", refreshPatrolData);
+            refreshButton.addEventListener("click", ()=>{refreshPatrolData().catch(()=>{});window.FIBDuty?.refresh();});
         }
 
         document
@@ -2724,11 +2588,6 @@
     }
 
     function applyPermissionUI() {
-        const createButton =
-            document.getElementById("patrolEndDutyButton");
-
-        if (createButton) createButton.style.display = "none";
-
         const description =
             document.getElementById("patrolPermissionHint");
 
@@ -2759,61 +2618,48 @@
         }
 
         applyPermissionUI();
-        loadConfiguredTenCodes().then(function(){ const select=document.getElementById("patrolModalStatus"); if(select){const selected=select.value;select.innerHTML=STATUSES.map(v=>`<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join("");if(STATUSES.includes(selected))select.value=selected;} });
+        loadConfiguredTenCodes().then(()=>{if(active&&state.patrolDataLoaded)renderPatrols();});
         bindStaticEvents();
-
-        if (cacheValid(window.fibCache.patrols)) {
-            state.patrolData = window.fibCache.patrols.data;
-            state.patrolDataLoaded = true;
-            renderPatrols();
-        }
-
-        if (cacheValid(window.fibCache.patrolUsers)) {
-            state.patrolUsers = window.fibCache.patrolUsers.data;
-            state.patrolUsersLoaded = true;
-        }
-
-        fetchOwnPersonnelProfile(false).catch(function () {});
-        fetchPatrols(false).catch(function () {});
-        if (canCreate() || canEdit()) {
-            fetchPatrolUsers(false).catch(function () {});
-        }
-        renderOwnStatus();
+        // First load starts with a revision snapshot, then loads the list. A change
+        // during the fetch remains detectable by the next revision check.
+        poll(true);
+        
 
         state.initialized = true;
     }
 
     window.initializePatrols = initializePatrols;
-    // Cross-client live sync: only a tiny patrol revision is checked frequently.
-    // The full patrol payload (with users/ranks/members) is fetched only when the
-    // revision actually changed. This keeps the Leitstelle current without
-    // hammering Supabase with the expensive getPatrols join query.
-    if (!window.fibPatrolLiveSyncTimer) {
-        let lastPatrolRevision = null;
-        window.fibPatrolLiveSyncTimer = window.__fibPageLifecycle.interval(function () {
-            const list = document.getElementById("patrolsList");
-            const modal = document.getElementById("fibGlobalModalOverlay");
-            if (!list || state.saving || (modal && modal.classList.contains("open")) || document.visibilityState !== "visible") return;
-            window.runServer("getPatrolRevision").then(function (snapshot) {
-                const revision = String(snapshot && snapshot.revision || "");
-                if (lastPatrolRevision === null) {
-                    lastPatrolRevision = revision;
-                    return;
-                }
-                if (revision !== lastPatrolRevision) {
-                    lastPatrolRevision = revision;
-                    clearPatrolsCache();
-                    fetchPatrols(true).catch(function () {});
-                }
-            }).catch(function () {});
-        }, 5000);
+    let lastRevision=null, polling=false;
+    async function poll(force=false){
+        if(!active||polling||!hasPatrolPermission(PATROL_PERMISSIONS.view)||!document.getElementById("patrolsList"))return;
+        if(!force&&document.visibilityState!=="visible")return;
+        polling=true;
+        try{
+            const snapshot=await window.runServer("getPatrolRevision",getToken());
+            if(!active)return;
+            if(!snapshot||typeof snapshot.revision!=="string")throw new Error("Ungültige Leitstellen-Revision");
+            if(force||lastRevision!==snapshot.revision){
+                // If a write happened while a fetch was active, wait for that fetch
+                // and perform a fresh read rather than marking stale data current.
+                if(state.patrolDataPromise)await state.patrolDataPromise;
+                if(!active)return;
+                await fetchPatrols(true);
+                lastRevision=snapshot.revision;
+            }
+        }catch(error){
+            console.warn("Leitstellen-Synchronisation:",error);
+            if(!state.patrolDataLoaded&&active)fetchPatrols(true).catch(()=>{});
+        }finally{polling=false;}
     }
-    window.__fibPageLifecycle.on(window, "fib-mdt:duty-started", function () {
-        const list = document.getElementById("patrolsList");
-        if (list) fetchPatrols(true).catch(function () {});
+    window.__fibPageLifecycle.interval(()=>poll(),5000);
+    window.__fibPageLifecycle.on(document,"visibilitychange",()=>{if(document.visibilityState==="visible")poll(true);});
+    window.__fibPageLifecycle.on(window,"fib-mdt:data-changed",event=>{
+        if(!active||!hasPatrolPermission(PATROL_PERMISSIONS.view))return;
+        if(/^(startDuty|updateOwnDuty|leavePatrol|joinPatrol|deletePatrol|updatePatrol|createPatrol|setPatrolTenCode)$/.test(event.detail?.method||"")){
+            clearPatrolsCache();fetchPatrols(true).catch(()=>{});
+        }
     });
-    window.__fibPageLifecycle.on(window, "fib-mdt:refresh-request", function (event) { const modal=document.getElementById("fibGlobalModalOverlay"); if (document.getElementById("patrolsList") && !state.saving && !(modal && modal.classList.contains("open"))) refreshPatrolData(); });
-    window.__fibPageLifecycle.on(window, "fib-mdt:data-changed", function (event) { const modal=document.getElementById("fibGlobalModalOverlay"); if (document.getElementById("patrolsList") && !(modal && modal.classList.contains("open")) && /Patrol|patrol|Member|member/.test(String(event.detail && event.detail.method || ""))) refreshPatrolData(); });
+
 })();
 </script>
 
@@ -4378,262 +4224,6 @@ html body #pageContainer .patrols-page #patrolsList .patrol-card-modern .patrol-
   html body #pageContainer .patrols-page #patrolsList .patrol-card-modern .patrol-crew-person {
     width:100% !important;
     max-width:none !important;
-  }
-}
-</style>
-
-
-<style id="lspd-patrol-final-v44">
-/* V44 – finale Leitstellen-Zeile. Diese Regeln stehen bewusst am Ende,
-   damit ältere Leitstellen-CSS-Regeln nicht mehr in die Aktionsbuttons greifen. */
-html body #pageContainer .patrols-page #patrolsList .patrol-card-compact {
-  display:block !important;
-  width:100% !important;
-  min-width:0 !important;
-  max-width:none !important;
-  min-height:0 !important;
-  height:auto !important;
-  margin:0 0 4px !important;
-  padding:0 !important;
-  overflow:hidden !important;
-  border:1px solid #d6e2ec !important;
-  border-radius:9px !important;
-  background:#fff !important;
-  box-shadow:0 1px 4px rgba(28,57,84,.05) !important;
-}
-html body #pageContainer .patrols-page #patrolsList .patrol-card-compact .patrol-compact-main {
-  display:grid !important;
-  grid-template-columns:minmax(105px,1.05fr) minmax(70px,.62fr) minmax(120px,1.15fr) minmax(78px,.72fr) minmax(105px,1fr) minmax(220px,2fr) minmax(112px,.85fr) !important;
-  align-items:stretch !important;
-  width:100% !important;
-  min-height:48px !important;
-  gap:0 !important;
-}
-html body #pageContainer .patrols-page #patrolsList .patrol-card-compact .patrol-compact-main > * {
-  min-width:0 !important;
-  min-height:48px !important;
-  box-sizing:border-box !important;
-  border-right:1px solid #e4ebf1 !important;
-}
-html body #pageContainer .patrols-page #patrolsList .patrol-card-compact .patrol-compact-main > *:last-child {
-  border-right:0 !important;
-}
-html body #pageContainer .patrols-page #patrolsList .patrol-card-compact .patrol-compact-callsign,
-html body #pageContainer .patrols-page #patrolsList .patrol-card-compact .patrol-compact-field,
-html body #pageContainer .patrols-page #patrolsList .patrol-card-compact .patrol-compact-crew {
-  display:flex !important;
-  flex-direction:column !important;
-  justify-content:center !important;
-  padding:6px 11px !important;
-  background:#fff !important;
-}
-html body #pageContainer .patrols-page #patrolsList .patrol-card-compact .patrol-compact-callsign {
-  flex-direction:row !important;
-  align-items:center !important;
-  gap:8px !important;
-  background:#f6f9fc !important;
-}
-html body #pageContainer .patrols-page #patrolsList .patrol-card-compact .patrol-call-sign-icon {
-  width:25px !important;
-  height:25px !important;
-  min-width:25px !important;
-  display:grid !important;
-  place-items:center !important;
-  border-radius:7px !important;
-  background:#2d78b8 !important;
-  color:#fff !important;
-  font-size:10px !important;
-}
-html body #pageContainer .patrols-page #patrolsList .patrol-card-compact .patrol-compact-callsign strong {
-  min-width:0 !important;
-  overflow:hidden !important;
-  text-overflow:ellipsis !important;
-  white-space:nowrap !important;
-  color:#245b91 !important;
-  font-size:10px !important;
-  font-weight:900 !important;
-}
-html body #pageContainer .patrols-page #patrolsList .patrol-card-compact .patrol-card-live {
-  display:inline-flex !important;
-  align-items:center !important;
-  gap:4px !important;
-  white-space:nowrap !important;
-  color:#5f7488 !important;
-  font-size:7px !important;
-  font-weight:900 !important;
-  letter-spacing:.08em !important;
-}
-html body #pageContainer .patrols-page #patrolsList .patrol-card-compact .patrol-card-live span {
-  width:5px !important;
-  height:5px !important;
-  border-radius:50% !important;
-  background:#31a56d !important;
-}
-html body #pageContainer .patrols-page #patrolsList .patrol-card-compact .patrol-info-label {
-  display:block !important;
-  margin:0 0 3px !important;
-  color:#8998a7 !important;
-  font-size:7px !important;
-  line-height:1 !important;
-  font-weight:900 !important;
-  letter-spacing:.08em !important;
-}
-html body #pageContainer .patrols-page #patrolsList .patrol-card-compact .patrol-info-value {
-  display:flex !important;
-  align-items:center !important;
-  gap:5px !important;
-  min-width:0 !important;
-  color:#33495e !important;
-  font-size:9px !important;
-  line-height:1.2 !important;
-  font-weight:750 !important;
-  white-space:nowrap !important;
-  overflow:hidden !important;
-  text-overflow:ellipsis !important;
-}
-html body #pageContainer .patrols-page #patrolsList .patrol-card-compact .patrol-info-value i {
-  flex:0 0 12px !important;
-  width:12px !important;
-  color:#7090aa !important;
-  text-align:center !important;
-  font-size:8px !important;
-}
-html body #pageContainer .patrols-page #patrolsList .patrol-card-compact .patrol-modern-status {
-  display:inline-flex !important;
-  align-items:center !important;
-  justify-content:center !important;
-  align-self:flex-start !important;
-  min-height:23px !important;
-  max-width:100% !important;
-  padding:0 8px !important;
-  border-radius:6px !important;
-  border:1px solid #d9e3ec !important;
-  background:#eef3f7 !important;
-  color:#40536a !important;
-  font-size:8px !important;
-  font-weight:900 !important;
-  white-space:nowrap !important;
-}
-html body #pageContainer .patrols-page #patrolsList .patrol-card-compact .patrol-compact-crew {
-  overflow:hidden !important;
-}
-html body #pageContainer .patrols-page #patrolsList .patrol-card-compact .patrol-crew-list {
-  display:flex !important;
-  align-items:center !important;
-  gap:4px !important;
-  min-width:0 !important;
-  overflow:hidden !important;
-}
-html body #pageContainer .patrols-page #patrolsList .patrol-card-compact .patrol-crew-person {
-  display:inline-flex !important;
-  align-items:center !important;
-  min-width:0 !important;
-  max-width:100% !important;
-  height:25px !important;
-  border:1px solid #dce5ee !important;
-  border-radius:6px !important;
-  overflow:hidden !important;
-  background:#f4f7fa !important;
-}
-html body #pageContainer .patrols-page #patrolsList .patrol-card-compact .patrol-crew-rank {
-  flex:0 0 auto !important;
-  padding:0 6px !important;
-  color:#315d84 !important;
-  background:#e2edf7 !important;
-  font-size:7px !important;
-  font-weight:900 !important;
-}
-html body #pageContainer .patrols-page #patrolsList .patrol-card-compact .patrol-crew-name {
-  min-width:0 !important;
-  padding:0 7px !important;
-  overflow:hidden !important;
-  text-overflow:ellipsis !important;
-  white-space:nowrap !important;
-  color:#43566a !important;
-  font-size:8px !important;
-  font-weight:750 !important;
-}
-html body #pageContainer .patrols-page #patrolsList .patrol-card-compact .patrol-crew-callsign,
-html body #pageContainer .patrols-page #patrolsList .patrol-card-compact .patrol-crew-lead {
-  display:none !important;
-}
-html body #pageContainer .patrols-page #patrolsList .patrol-card-compact .patrol-crew-empty {
-  color:#8998a7 !important;
-  font-size:8px !important;
-}
-html body #pageContainer .patrols-page #patrolsList .patrol-card-compact .patrol-compact-actions {
-  display:flex !important;
-  flex-direction:row !important;
-  align-items:center !important;
-  justify-content:center !important;
-  gap:5px !important;
-  padding:6px 7px !important;
-  background:#fbfcfd !important;
-  border-right:0 !important;
-}
-html body #pageContainer .patrols-page #patrolsList .patrol-card-compact .patrol-action-button {
-  display:inline-flex !important;
-  align-items:center !important;
-  justify-content:center !important;
-  flex:0 0 auto !important;
-  width:34px !important;
-  min-width:34px !important;
-  height:32px !important;
-  min-height:32px !important;
-  padding:0 !important;
-  border:1px solid #cddbe7 !important;
-  border-radius:7px !important;
-  background:#f3f7fa !important;
-  color:#567188 !important;
-  font-size:12px !important;
-  line-height:1 !important;
-  cursor:pointer !important;
-  opacity:1 !important;
-}
-html body #pageContainer .patrols-page #patrolsList .patrol-card-compact .patrol-action-button:hover:not(:disabled) {
-  background:#e7f1f9 !important;
-  border-color:#9fc0da !important;
-  color:#245b91 !important;
-}
-html body #pageContainer .patrols-page #patrolsList .patrol-card-compact .patrol-join-button {
-  width:auto !important;
-  min-width:91px !important;
-  padding:0 11px !important;
-  gap:6px !important;
-  background:#2d78b8 !important;
-  border-color:#2d78b8 !important;
-  color:#fff !important;
-  font-size:9px !important;
-  font-weight:900 !important;
-}
-html body #pageContainer .patrols-page #patrolsList .patrol-card-compact .patrol-join-button:hover:not(:disabled) {
-  background:#23679f !important;
-  border-color:#23679f !important;
-  color:#fff !important;
-}
-html body #pageContainer .patrols-page #patrolsList .patrol-card-compact .patrol-join-button:disabled {
-  width:auto !important;
-  min-width:70px !important;
-  background:#edf7f0 !important;
-  border-color:#cbe3d2 !important;
-  color:#398052 !important;
-  cursor:default !important;
-}
-html body #pageContainer .patrols-page #patrolsList .patrol-card-compact .patrol-edit-button {
-  width:34px !important;
-  min-width:34px !important;
-}
-html body #pageContainer .patrols-page #patrolsList .patrol-card-compact .patrol-edit-button i {
-  font-size:12px !important;
-}
-@media (max-width:1100px) {
-  html body #pageContainer .patrols-page #patrolsList .patrol-card-compact .patrol-compact-main {
-    grid-template-columns:minmax(95px,1fr) 64px minmax(105px,1fr) 72px minmax(95px,1fr) minmax(180px,1.7fr) 104px !important;
-  }
-}
-@media (max-width:850px) {
-  html body #pageContainer .patrols-page #patrolsList .patrol-card-compact .patrol-compact-main {
-    grid-template-columns:minmax(90px,1fr) 62px minmax(100px,1fr) 68px minmax(90px,1fr) minmax(150px,1.5fr) 100px !important;
   }
 }
 </style>

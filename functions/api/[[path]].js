@@ -691,6 +691,27 @@ async function dispatchCore(method,args,env,token){
   }
   return {success:true,codes};
  }
+ if(method==="getOwnDuty"){
+  const au=await authz(env,token,"patrols.view");
+  const [members,people]=await Promise.all([
+   db(env,"patrol_members",{query:{select:"patrol_id",user_id:`eq.${au.user.id}`,limit:"1"}}),
+   db(env,"personnel",{query:{select:"call_sign",user_id:`eq.${au.user.id}`,limit:"1"}})
+  ]);
+  const callSign=text(people?.[0]?.call_sign);
+  const rows=members?.length?await db(env,"patrols",{query:{select:"id,callsign,vehicle_type,ten_code,status,location,activity",id:`eq.${members[0].patrol_id}`,limit:"1"}}):[];
+  return {success:true,callSign,patrol:rows?.[0]||null};
+ }
+ if(method==="updateOwnDuty"){
+  const au=await authz(env,token,"patrols.view"),d=args[1]||{};
+  const columns={location:"location",activity:"activity",vehicleType:"vehicle_type",tenCode:"ten_code"};
+  const key=String(d.field||""),value=text(d.value);
+  if(!Object.hasOwn(columns,key)||!value)throw Object.assign(new Error("Ungültige Dienstauswahl."),{status:400});
+  const mine=await db(env,"patrol_members",{query:{select:"patrol_id",user_id:`eq.${au.user.id}`,limit:"1"}});
+  if(!mine?.length)throw Object.assign(new Error("Du bist nicht im Dienst."),{status:409});
+  const rows=await db(env,"patrols",{method:"PATCH",query:{id:`eq.${mine[0].patrol_id}`,select:"id,callsign,vehicle_type,ten_code,status,location,activity"},body:{[columns[key]]:value,updated_at:new Date().toISOString(),updated_by:au.user.id},prefer:"return=representation"});
+  if(!rows?.length)throw Object.assign(new Error("Die Streife existiert nicht mehr."),{status:409});
+  return {success:true,patrol:rows[0]};
+ }
  if(method==="startDuty"){
   const au=await authz(env,token,"patrols.view");
   const d=args[1]||{};
@@ -702,9 +723,7 @@ async function dispatchCore(method,args,env,token){
    const existing=await db(env,"patrols",{query:{select:"id,callsign,number,vehicle_type,status,ten_code,location,activity,created_at,created_by,updated_at,updated_by",id:`eq.${existingId}`,limit:"1"}});
    if(existing?.length){
     const row=existing[0];
-    await db(env,"patrols",{method:"PATCH",query:{id:`eq.${existingId}`},body:{vehicle_type:vehicleType,ten_code:tenCode,location,activity,status:"10-1",updated_at:new Date().toISOString(),updated_by:au.user.id},prefer:"return=minimal"});
-    const refreshed={...row,vehicle_type:vehicleType,vehicleType,ten_code:tenCode,tenCode,location,activity,status:"10-1",updated_at:new Date().toISOString(),updated_by:au.user.id};
-    return {success:true,patrol:refreshed,alreadyOnDuty:true};
+    return {success:true,patrol:{...row,vehicleType:row.vehicle_type,tenCode:row.ten_code||row.status},alreadyOnDuty:true};
    }
   }
   const people=await db(env,"personnel",{query:{select:"user_id,call_sign",user_id:`eq.${au.user.id}`,limit:"1"}});
@@ -723,10 +742,13 @@ async function dispatchCore(method,args,env,token){
  }
  if(method==="getPatrolRevision"){
   await authz(env,token,"patrols.view");
-  const rows=await db(env,"patrols",{query:{select:"id,updated_at,created_at",order:"id.asc"}});
+  const [rows,members]=await Promise.all([
+   db(env,"patrols",{query:{select:"id,updated_at,created_at",order:"id.asc"}}),
+   db(env,"patrol_members",{query:{select:"patrol_id,user_id,position",order:"patrol_id.asc,user_id.asc"}})
+  ]);
   const list=Array.isArray(rows)?rows:[];
-  const revision=list.map(r=>`${String(r.id)}:${String(r.updated_at||r.created_at||"")}`).join("|");
-  return {count:list.length,revision,latestUpdatedAt:list.reduce((max,r)=>{const v=String(r.updated_at||r.created_at||"");return v>max?v:max},"")};
+  const revision=JSON.stringify([list,(members||[])]);
+  return {count:list.length,revision};
  }
  if(method==="getPatrols"){
   await authz(env,token,"patrols.view");const [ps,ms,us,rs,people]=await Promise.all([
@@ -796,17 +818,25 @@ async function dispatchCore(method,args,env,token){
   const users=await db(env,"users",{query:{select:"id,active,approved",id:`eq.${au.user.id}`,active:"eq.true",approved:"eq.true",limit:"1"}});
   if(!users?.length)throw new Error("Dein Benutzerkonto ist nicht aktiv oder nicht freigegeben.");
   await db(env,"patrol_members",{method:"POST",body:{patrol_id:pid,user_id:au.user.id,position:"Member"},prefer:"return=minimal"});
-  await db(env,"patrols",{method:"PATCH",query:{id:`eq.${pid}`},body:{updated_at:new Date().toISOString(),updated_by:au.user.id},prefer:"return=minimal"});
   return {success:true,patrolId:pid,callSign:text(profile?.[0]?.call_sign)};
  }
  if(method==="leavePatrol"){
-  const au=await authz(env,token),mine=await db(env,"patrol_members",{query:{select:"patrol_id",user_id:`eq.${au.user.id}`,limit:"1"}});
+  const au=await authz(env,token),mine=await db(env,"patrol_members",{query:{select:"patrol_id,position",user_id:`eq.${au.user.id}`,limit:"1"}});
   if(!mine?.length)return {success:true,alreadyOffDuty:true};
   const pid=text(mine[0].patrol_id);
   await db(env,"patrol_members",{method:"DELETE",query:{patrol_id:`eq.${pid}`,user_id:`eq.${au.user.id}`},prefer:"return=minimal"});
-  await db(env,"patrols",{method:"PATCH",query:{id:`eq.${pid}`},body:{updated_at:new Date().toISOString(),updated_by:au.user.id},prefer:"return=minimal"}).catch(()=>{});
-  const remaining=await db(env,"patrol_members",{query:{select:"user_id",patrol_id:`eq.${pid}`}});
+  const remaining=await db(env,"patrol_members",{query:{select:"user_id,position",patrol_id:`eq.${pid}`,order:"user_id.asc"}});
   if(!remaining?.length)await db(env,"patrols",{method:"DELETE",query:{id:`eq.${pid}`},prefer:"return=minimal"});
+  else {
+   const patch={updated_at:new Date().toISOString(),updated_by:au.user.id};
+   if(!remaining.some(m=>String(m.position).toLowerCase()==="lead")){
+    const next=remaining[0];
+    await db(env,"patrol_members",{method:"PATCH",query:{patrol_id:`eq.${pid}`,user_id:`eq.${next.user_id}`},body:{position:"Lead"},prefer:"return=minimal"});
+    const people=await db(env,"personnel",{query:{select:"call_sign",user_id:`eq.${next.user_id}`,limit:"1"}});
+    if(text(people?.[0]?.call_sign))patch.callsign=text(people[0].call_sign);
+   }
+   await db(env,"patrols",{method:"PATCH",query:{id:`eq.${pid}`},body:patch,prefer:"return=minimal"});
+  }
   return {success:true,patrolId:pid,patrolClosed:!remaining?.length};
  }
  if(method==="deletePatrol"){await authz(env,token,"patrols.delete");const pid=text(args[1]);await db(env,"patrol_members",{method:"DELETE",query:{patrol_id:`eq.${pid}`},prefer:"return=minimal"});await db(env,"patrols",{method:"DELETE",query:{id:`eq.${pid}`},prefer:"return=minimal"});return {success:true};}
