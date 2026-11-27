@@ -2664,24 +2664,6 @@
             refreshButton.dataset.bound = "true";
             refreshButton.addEventListener("click", refreshPatrolData);
         }
-        const endDutyButton = document.getElementById("fibDutyEndButton");
-        if (endDutyButton && !endDutyButton.dataset.apiBound) {
-            endDutyButton.dataset.apiBound = "true";
-            endDutyButton.addEventListener("click", function () {
-                endDutyButton.disabled = true;
-                CloudApi.run.withSuccessHandler(function () {
-                    clearPatrolsCache();
-                    refreshPatrolData();
-                    endDutyButton.disabled = false;
-                    if (typeof window.showSuccess === "function") window.showSuccess("Du hast deinen Dienst beendet.");
-                    window.dispatchEvent(new CustomEvent("fib-mdt:duty-ended"));
-                }).withFailureHandler(function (error) {
-                    endDutyButton.disabled = false;
-                    if (typeof window.showError === "function") window.showError(error?.message || String(error));
-                }).leavePatrol(getToken());
-            });
-        }
-
         document
             .querySelectorAll(".patrol-group-button")
             .forEach(function (button) {

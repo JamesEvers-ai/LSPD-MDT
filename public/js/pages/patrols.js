@@ -1289,64 +1289,11 @@
         const createButton = document.getElementById("patrolCreateButton");
         // Duty creation now happens exclusively in the topbar picker, never in the legacy modal.
         if (createButton) createButton.style.display = "none";
-        if (!window.fibDutyStartListenerBound) {
-            window.fibDutyStartListenerBound = true;
-            function handleDutySelection(event) {
-                // Serialize rapid topbar changes. updatePatrol replaces membership rows,
-                // so concurrent writes could otherwise delete a newer update.
-                dutySaveQueue = dutySaveQueue.catch(function () {}).then(function () { return persistDutySelection(event); });
-                return dutySaveQueue;
-            }
-            async function persistDutySelection(event) {
-                const detail = event.detail || {};
-                const isStart = event.type === "fib-mdt:duty-start-request";
-                if (!detail.location || !detail.activity || !detail.vehicleType) return;
-                try {
-                    const profile = await fetchOwnPersonnelProfile(false);
-                    const callsign = String(profile?.callSign || profile?.call_sign || "").trim();
-                    if (!callsign) {
-                        showError("Bitte hinterlege zuerst dein Callsign in deiner Personalakte.");
-                        return;
-                    }
-                    const ownId = String(profile.userId || profile.user_id || profile.id || "");
-                    const existing = (state.patrolData || []).find(p => (p.members || []).some(m => String(m.id || m.user_id) === ownId));
-                    // Selection changes only update an existing duty entry; they must never silently start a new shift.
-                    if (!isStart && !existing) return;
-                    const applyButton = document.getElementById("fibDutyStartButton");
-                    if (applyButton) applyButton.disabled = true;
-                    const form = {
-                        ...(existing ? {id: existing.id} : {}),
-                        callsign: callsign,
-                        number: callsign,
-                        vehicleType: detail.vehicleType,
-                        tenCode: detail.tenCode || existing?.tenCode || existing?.ten_code || existing?.status || (detail.activity === "OOV" ? "10-6" : "10-1"),
-                        location: detail.location,
-                        activity: detail.activity,
-                        members: existing ? (existing.members || []).map(m => ({id: m.id || m.user_id, position: m.position || "Member"})) : []
-                    };
-                    const saveMethod = existing ? "updatePatrol" : "createPatrol";
-                    CloudApi.run.withSuccessHandler(function (result) {
-                        const saved = result?.patrol || result;
-                        if (saved && saved.id) {
-                            const idx = (state.patrolData || []).findIndex(p => String(p.id) === String(saved.id));
-                            if (idx >= 0) state.patrolData[idx] = saved; else state.patrolData.push(saved);
-                        }
-                        clearPatrolsCache();
-                        fetchPatrols(true).catch(function () {});
-                        if (isStart) window.dispatchEvent(new CustomEvent("fib-mdt:duty-started", {detail:{...form,callSign:callsign}}));
-                        else window.dispatchEvent(new CustomEvent("fib-mdt:duty-started", {detail:{...form,callSign:callsign}}));
-                        if (isStart && typeof window.showSuccess === "function") window.showSuccess("Du bist jetzt im Dienst.");
-                        if (applyButton) applyButton.disabled = false;
-                    }).withFailureHandler(function (error) {
-                        if (applyButton) applyButton.disabled = false;
-                        if (typeof window.showError === "function") window.showError(error?.message || "Der Dienststatus konnte nicht gespeichert werden.");
-                    })[saveMethod](getToken(), form);
-                } catch (error) {
-                    if (typeof window.showError === "function") window.showError(error?.message || "Dein Callsign konnte nicht aus der Personalakte geladen werden.");
-                }
-            }
-            window.__fibPageLifecycle.on(window, "fib-mdt:duty-start-request", handleDutySelection);
-            window.__fibPageLifecycle.on(window, "fib-mdt:duty-selection-changed", handleDutySelection);
+        // Duty start/stop is handled centrally by the global topbar controller in index.html.
+        // The Leitstelle only keeps its Ten-Code update listener because changing a Ten Code
+        // is an edit to the already active patrol, not a second duty-status system.
+        if (!window.fibPatrolTenCodeListenerBound) {
+            window.fibPatrolTenCodeListenerBound = true;
             window.__fibPageLifecycle.on(window, "fib-mdt:ten-code-changed", async function(event) {
                 const code = String(event.detail?.tenCode || "").trim();
                 if (!code) return;
@@ -1375,24 +1322,6 @@
             refreshButton.dataset.bound = "true";
             refreshButton.addEventListener("click", refreshPatrolData);
         }
-        const endDutyButton = document.getElementById("fibDutyEndButton");
-        if (endDutyButton && !endDutyButton.dataset.apiBound) {
-            endDutyButton.dataset.apiBound = "true";
-            endDutyButton.addEventListener("click", function () {
-                endDutyButton.disabled = true;
-                CloudApi.run.withSuccessHandler(function () {
-                    clearPatrolsCache();
-                    refreshPatrolData();
-                    endDutyButton.disabled = false;
-                    if (typeof window.showSuccess === "function") window.showSuccess("Du hast deinen Dienst beendet.");
-                    window.dispatchEvent(new CustomEvent("fib-mdt:duty-ended"));
-                }).withFailureHandler(function (error) {
-                    endDutyButton.disabled = false;
-                    if (typeof window.showError === "function") window.showError(error?.message || String(error));
-                }).leavePatrol(getToken());
-            });
-        }
-
         document
             .querySelectorAll(".patrol-group-button")
             .forEach(function (button) {

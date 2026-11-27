@@ -678,6 +678,26 @@ async function dispatchCore(method,args,env,token){
   await db(env,"patrols",{method:"PATCH",query:{id:`eq.${pid}`},body:{ten_code:code,updated_at:new Date().toISOString()},prefer:"return=minimal"});
   return {success:true,id:pid,tenCode:code};
  }
+ if(method==="startDuty") {
+  const au=await authz(env,token,"patrols.view");
+  const d=(args[0]&&typeof args[0]==="object"?args[0]:args[1])||{};
+  const existing=await db(env,"patrol_members",{query:{select:"patrol_id",user_id:`eq.${au.user.id}`,limit:"1"}});
+  if(existing?.length) throw new Error("Du bist bereits im Dienst eingetragen.");
+  const [userRows,personRows]=await Promise.all([
+    db(env,"users",{query:{select:"id,active,approved",id:`eq.${au.user.id}`,active:"eq.true",approved:"eq.true",limit:"1"}}),
+    db(env,"personnel",{query:{select:"user_id,call_sign",user_id:`eq.${au.user.id}`,limit:"1"}})
+  ]);
+  if(!userRows?.length) throw new Error("Dein Benutzerkonto ist nicht aktiv oder nicht freigegeben.");
+  const callsign=text(personRows?.[0]?.call_sign);
+  if(!callsign) throw new Error("Bitte hinterlege zuerst dein Callsign in deiner Personalakte.");
+  const pid=id("P"),now=new Date().toISOString();
+  const tenCode=text(d.tenCode||d.ten_code||d.status)||"10-1";
+  const row={id:pid,callsign,number:callsign,vehicle_type:text(d.vehicleType||d.vehicle_type),status:"10-1",ten_code:tenCode,location:text(d.location),activity:text(d.activity),created_at:now,created_by:au.user.id,updated_at:now,updated_by:au.user.id};
+  if(!row.vehicle_type||!row.location||!row.activity) throw new Error("Einsatzort, Status und Fahrzeug sind erforderlich.");
+  await db(env,"patrols",{method:"POST",body:row,prefer:"return=minimal"});
+  await db(env,"patrol_members",{method:"POST",body:{patrol_id:pid,user_id:au.user.id,position:"Lead"},prefer:"return=minimal"});
+  return {success:true,patrol:{...row,tenCode:row.ten_code,vehicleType:row.vehicle_type,members:[{id:au.user.id,name:au.user.name,callSign:callsign,position:"Lead"}]}};
+ }
  if(["createPatrol","updatePatrol"].includes(method)){
   const au=await authz(env,token,method==="createPatrol"?"patrols.create":"patrols.edit");const d=args[1]||{},pid=text(d.id)||id("P"),now=new Date().toISOString();
   const requestedTenCode=text(d.tenCode||d.ten_code||d.status)||"10-1";const row={id:pid,callsign:"",number:text(d.number),vehicle_type:text(d.vehicleType),status:"10-1",ten_code:requestedTenCode,location:text(d.location),activity:text(d.activity),updated_at:now,updated_by:au.user.id};
