@@ -28,6 +28,19 @@ export async function db(env, table, { method = "GET", query = {}, body, prefer 
   }
   return parsed;
 }
+
+export async function rpc(env, fn, body = {}) {
+  const { url, key } = config(env);
+  const response = await fetch(`${url}/rest/v1/rpc/${encodeURIComponent(fn)}`, {
+    method: "POST",
+    headers: { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify(body)
+  });
+  const raw = await response.text(); let parsed = null;
+  try { parsed = raw ? JSON.parse(raw) : null; } catch { parsed = raw; }
+  if (!response.ok) { const error = new Error(parsed?.message || parsed?.details || parsed?.hint || `Supabase RPC-Fehler HTTP ${response.status}`); error.status=response.status; throw error; }
+  return parsed;
+}
 export function json(data, status = 200, extraHeaders = {}) {
   return new Response(JSON.stringify(data), {
     status,

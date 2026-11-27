@@ -1134,6 +1134,18 @@
       width: 245px;
     }
 
+    /* Nach einem Seitenwechsel bleibt die Navigation nicht über dem Inhalt stehen. */
+    .sidebar.nav-navigation-lock,
+    .sidebar.nav-navigation-lock:hover {
+      width: 72px;
+    }
+    .sidebar.nav-navigation-lock .brand-text,
+    .sidebar.nav-navigation-lock .nav-section-title,
+    .sidebar.nav-navigation-lock .nav-label,
+    .sidebar.nav-navigation-lock .user-info {
+      opacity: 0;
+    }
+
 
     .sidebar-header {
       height: 72px;
@@ -2380,6 +2392,10 @@
 
       .sidebar:hover {
         width: 220px;
+      }
+      .sidebar.nav-navigation-lock,
+      .sidebar.nav-navigation-lock:hover {
+        width: 58px;
       }
 
 
@@ -3729,7 +3745,7 @@ const NAVIGATION = [
       {
         id: "dashboard",
         title: "Dashboard",
-        icon: "🏠︎",
+        icon: "⌂",
         permission: "dashboard.view",
         file: "Page_Dashboard"
       }
@@ -3747,7 +3763,7 @@ const NAVIGATION = [
       {
         id: "patrols",
         title: "Leitstelle",
-        icon: "☏",
+        icon: "◉",
         permission: "patrols.view",
         file: "Page_Patrols"
       },
@@ -3771,7 +3787,7 @@ const NAVIGATION = [
       {
         id: "vacations",
         title: "Urlaubsanträge",
-        icon: "✈",
+        icon: "◇",
         permission: "vacations.view",
         file: "Page_Vacations"
       },
@@ -3779,7 +3795,7 @@ const NAVIGATION = [
       {
         id: "ifines",
         title: "Interner Bußgeldkatalog",
-        icon: "🗒",
+        icon: "▤",
         permission: "ifines.view",
         file: "Page_IFines"
       },
@@ -3787,7 +3803,7 @@ const NAVIGATION = [
       {
         id: "vehicle-catalog",
         title: "Fahrzeugkatalog",
-        icon: "🚘",
+        icon: "▣",
         permission: "vehicles.view",
         file: "Page_VehicleCatalog"
       },
@@ -3795,7 +3811,7 @@ const NAVIGATION = [
       {
         id: "uniform-catalog",
         title: "Dienstkleidung",
-        icon: "👔",
+        icon: "□",
         permission: "officers.view",
         file: "Page_UniformCatalog"
       }
@@ -3813,7 +3829,7 @@ const NAVIGATION = [
       {
         id: "academy",
         title: "Übersicht",
-        icon: "🎓",
+        icon: "△",
         permission: "academy.view",
         file: "Page_Academy"
       },
@@ -3854,7 +3870,7 @@ const NAVIGATION = [
       {
         id: "fines",
         title: "Bußgeldkatalog",
-        icon: "🖳",
+        icon: "▥",
         permission: "fines.view",
         file: "Page_Fines"
       },
@@ -3862,7 +3878,7 @@ const NAVIGATION = [
       {
         id: "lawyers",
         title: "Anwaltskammer",
-        icon: "✍︎",
+        icon: "✎",
         permission: "lawyers.view",
         file: "Page_Lawyers"
       },
@@ -3870,7 +3886,7 @@ const NAVIGATION = [
       {
         id: "records",
         title: "Akten & Berichte",
-        icon: "🗁",
+        icon: "▤",
         permission: "records.view",
         file: "Page_Records"
       },
@@ -3878,7 +3894,7 @@ const NAVIGATION = [
       {
         id: "warrants",
         title: "Haftbefehle",
-        icon: "𓍝",
+        icon: "⚑",
         permission: "warrants.view",
         file: "Page_Warrants"
       },
@@ -3894,7 +3910,7 @@ const NAVIGATION = [
       {
         id: "calendar",
         title: "Kalender",
-        icon: "⌨",
+        icon: "▦",
         permission: "calendar.view",
         file: "Page_Calendar"
       }
@@ -3912,7 +3928,7 @@ const NAVIGATION = [
       {
         id: "gangs",
         title: "Beweise gegen Gangs",
-        icon: "🜲",
+        icon: "◇",
         permission: "gangs.evidence.view",
         file: "Page_Gangs"
       },
@@ -3947,7 +3963,7 @@ const NAVIGATION = [
       {
         id: "logs",
         title: "Logs",
-        icon: "✒",
+        icon: "✎",
         permission: "logs.view",
         file: "Page_Logs"
       }
@@ -5052,6 +5068,17 @@ const NAVIGATION = [
 
       currentPage =
         pageId;
+
+      /* Beim Seitenwechsel die Hover-Sidebar bewusst wieder einklappen.
+       * Sobald die Maus die Sidebar verlässt, darf sie wieder normal aufklappen. */
+      const navigationSidebar = document.querySelector('.sidebar');
+      if (navigationSidebar) {
+        navigationSidebar.classList.add('nav-navigation-lock');
+        navigationSidebar.addEventListener('mouseleave', function unlockSidebar(){
+          navigationSidebar.classList.remove('nav-navigation-lock');
+          navigationSidebar.removeEventListener('mouseleave', unlockSidebar);
+        }, {once:true});
+      }
 
 
       /*
