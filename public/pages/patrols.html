@@ -3811,3 +3811,85 @@
  .patrol-crew-person{width:100%!important}
 }
 </style>
+
+<style>
+/* v36 Leitstelle – final card sizing fix
+   The roster card must grow with its header, information and crew sections.
+   Override legacy compact/grid rules that could collapse the modern card.
+*/
+#patrolsList.patrols-content{
+  display:flex!important;
+  flex-direction:column!important;
+  gap:14px!important;
+  height:auto!important;
+  min-height:0!important;
+  max-height:none!important;
+  overflow:visible!important;
+}
+#patrolsList .patrol-group{
+  display:block!important;
+  width:100%!important;
+  height:auto!important;
+  min-height:0!important;
+  max-height:none!important;
+  overflow:visible!important;
+}
+#patrolsList .patrol-card.patrol-card-modern{
+  display:block!important;
+  width:100%!important;
+  max-width:none!important;
+  min-width:0!important;
+  height:auto!important;
+  min-height:0!important;
+  max-height:none!important;
+  overflow:visible!important;
+  margin:0 0 10px!important;
+  padding:0!important;
+}
+#patrolsList .patrol-card-modern .patrol-card-head{
+  min-height:58px!important;
+  height:auto!important;
+  overflow:visible!important;
+}
+#patrolsList .patrol-card-modern .patrol-card-main{
+  display:grid!important;
+  width:100%!important;
+  height:auto!important;
+  min-height:0!important;
+  max-height:none!important;
+  overflow:visible!important;
+}
+#patrolsList .patrol-card-modern .patrol-card-crew{
+  display:block!important;
+  width:100%!important;
+  height:auto!important;
+  min-height:0!important;
+  max-height:none!important;
+  overflow:visible!important;
+}
+#patrolsList .patrol-card-modern .patrol-crew-list{
+  display:flex!important;
+  flex-wrap:wrap!important;
+  width:100%!important;
+  height:auto!important;
+  min-height:31px!important;
+  max-height:none!important;
+  overflow:visible!important;
+}
+#patrolsList .patrol-card-modern .patrol-info-block,
+#patrolsList .patrol-card-modern .patrol-info-value,
+#patrolsList .patrol-card-modern .patrol-crew-person{
+  visibility:visible!important;
+  opacity:1!important;
+}
+@media (max-width:900px){
+  #patrolsList .patrol-card-modern .patrol-card-main{
+    grid-template-columns:1fr 1fr!important;
+  }
+}
+@media (max-width:620px){
+  #patrolsList .patrol-card-modern .patrol-card-main{
+    grid-template-columns:1fr!important;
+  }
+}
+</style>
