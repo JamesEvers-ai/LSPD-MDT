@@ -2246,7 +2246,7 @@
       <div class="rank-permission-content">
         <div id="departmentPermissionEditor">
           <div class="rank-permission-title">Abteilung auswählen</div>
-          <div class="rank-permission-description">Lege hier fest, welche Police-Academy-Berechtigungen für die ausgewählte Abteilung gelten.</div>
+          <div class="rank-permission-description">Lege hier fest, welche Berechtigungen für diese Abteilung zusätzlich zu den normalen Rangberechtigungen gelten. Die Zuordnung erfolgt anhand der Abteilung in der Personalakte.</div>
         </div>
       </div>
     </div>
@@ -3008,7 +3008,9 @@
     const links=(state.departmentPermissions?.links||[]).filter(x=>String(x.department)===String(department));
     const selected=new Set(links.map(x=>String(x.permission_id)));
     const permissions=state.departmentPermissions?.permissions||[];
-    editor.innerHTML=`<div class="rank-permission-header"><div class="rank-permission-title">Academy-Zugriff · ${escapeHtml(department||"Abteilung")}</div><div class="rank-permission-description">Diese Berechtigungen gelten zusätzlich zu den normalen Rangberechtigungen. Eine Person benötigt sowohl die passende Rangberechtigung als auch die Freigabe ihrer Abteilung.</div></div><div class="permission-category"><div class="permission-category-title">Police Academy</div><div class="permission-list">${permissions.map(p=>`<label class="permission-item"><div class="permission-item-content"><div class="permission-item-name">${escapeHtml(p.label||p.name||p.key)}</div><div class="permission-item-key">${escapeHtml(p.key)}</div></div><input type="checkbox" class="department-permission-checkbox" value="${escapeHtml(p.id)}" ${selected.has(String(p.id))?"checked":""}></label>`).join("")}</div></div><div class="rank-permission-save"><button type="button" class="system-button primary" id="saveDepartmentPermissions">Änderungen speichern</button></div>`;
+    const grouped=permissions.reduce((acc,p)=>{const category=String(p.category||"Sonstige");(acc[category]||(acc[category]=[])).push(p);return acc;},{});
+    const categories=Object.entries(grouped).sort((a,b)=>a[0].localeCompare(b[0],"de"));
+    editor.innerHTML=`<div class="rank-permission-header"><div class="rank-permission-title">Abteilungsberechtigungen · ${escapeHtml(department||"Abteilung")}</div><div class="rank-permission-description">Diese Berechtigungen gelten zusätzlich zu den normalen Rangberechtigungen. Eine Person benötigt sowohl die passende Rangberechtigung als auch die Freigabe ihrer Abteilung. Die Abteilung wird ausschließlich aus der Personalakte ermittelt.</div></div>${categories.map(([category,items])=>`<div class="permission-category"><div class="permission-category-title">${escapeHtml(category)}</div><div class="permission-list">${items.map(p=>`<label class="permission-item"><div class="permission-item-content"><div class="permission-item-name">${escapeHtml(p.label||p.name||p.key)}</div><div class="permission-item-key">${escapeHtml(p.key)}</div></div><input type="checkbox" class="department-permission-checkbox" value="${escapeHtml(p.id)}" ${selected.has(String(p.id))?"checked":""}></label>`).join("")}</div></div>`).join("")}<div class="rank-permission-save"><button type="button" class="system-button primary" id="saveDepartmentPermissions">Änderungen speichern</button></div>`;
     document.getElementById("saveDepartmentPermissions")?.addEventListener("click",function(){
       const token=getSystemSessionToken();const values=[...editor.querySelectorAll(".department-permission-checkbox:checked")].map(x=>x.value);
       CloudApi.run.withSuccessHandler(function(){showSystemSuccess("Die Abteilungsberechtigungen wurden gespeichert.");loadDepartmentPermissionData();}).withFailureHandler(function(error){showSystemError(error?.message||"Die Abteilungsberechtigungen konnten nicht gespeichert werden.");}).systemSetDepartmentPermissions(token,department,values);

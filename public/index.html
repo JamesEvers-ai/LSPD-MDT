@@ -3600,6 +3600,9 @@
     let currentUser = null;
 
     let myPermissions = [];
+    let myDepartmentPermissions = [];
+    let myDepartmentScopedPermissions = [];
+    let myDepartment = "";
 
     let isMaster = false;
 
@@ -4601,11 +4604,18 @@ const NAVIGATION = [
 
 
             myPermissions =
-              Array.isArray(
-                result.permissions
-              )
+              Array.isArray(result.permissions)
                 ? result.permissions
                 : [];
+            myDepartmentPermissions =
+              Array.isArray(result.departmentPermissions)
+                ? result.departmentPermissions
+                : [];
+            myDepartmentScopedPermissions =
+              Array.isArray(result.departmentScopedPermissions)
+                ? result.departmentScopedPermissions
+                : [];
+            myDepartment = String(result.department || "");
 
 
             showApplication();
@@ -4747,9 +4757,15 @@ const NAVIGATION = [
       }
 
 
-      return myPermissions.includes(
-        permission
-      );
+      if (!myPermissions.includes(permission)) {
+        return false;
+      }
+
+      if (myDepartmentScopedPermissions.includes(permission)) {
+        return myDepartmentPermissions.includes(permission);
+      }
+
+      return true;
 
     }
 
@@ -7026,11 +7042,18 @@ const NAVIGATION = [
                     isMaster;
 
                   const previousPermissions =
-                    Array.isArray(
-                      myPermissions
-                    )
+                    Array.isArray(myPermissions)
                       ? myPermissions.slice()
                       : [];
+                  const previousDepartmentPermissions =
+                    Array.isArray(myDepartmentPermissions)
+                      ? myDepartmentPermissions.slice()
+                      : [];
+                  const previousDepartmentScopedPermissions =
+                    Array.isArray(myDepartmentScopedPermissions)
+                      ? myDepartmentScopedPermissions.slice()
+                      : [];
+                  const previousDepartment = myDepartment;
 
 
                   isMaster =
@@ -7038,29 +7061,32 @@ const NAVIGATION = [
 
 
                   myPermissions =
-                    Array.isArray(
-                      result?.permissions
-                    )
+                    Array.isArray(result?.permissions)
                       ? result.permissions
                       : [];
+                  myDepartmentPermissions =
+                    Array.isArray(result?.departmentPermissions)
+                      ? result.departmentPermissions
+                      : [];
+                  myDepartmentScopedPermissions =
+                    Array.isArray(result?.departmentScopedPermissions)
+                      ? result.departmentScopedPermissions
+                      : [];
+                  myDepartment = String(result?.department || "");
 
 
                   const permissionsChanged =
                     previousMaster !== isMaster ||
-                    previousPermissions.length !==
-                      myPermissions.length ||
-                    previousPermissions.some(
-                      permission =>
-                        !myPermissions.includes(
-                          permission
-                        )
-                    ) ||
-                    myPermissions.some(
-                      permission =>
-                        !previousPermissions.includes(
-                          permission
-                        )
-                    );
+                    previousDepartment !== myDepartment ||
+                    previousPermissions.length !== myPermissions.length ||
+                    previousPermissions.some(permission => !myPermissions.includes(permission)) ||
+                    myPermissions.some(permission => !previousPermissions.includes(permission)) ||
+                    previousDepartmentPermissions.length !== myDepartmentPermissions.length ||
+                    previousDepartmentPermissions.some(permission => !myDepartmentPermissions.includes(permission)) ||
+                    myDepartmentPermissions.some(permission => !previousDepartmentPermissions.includes(permission)) ||
+                    previousDepartmentScopedPermissions.length !== myDepartmentScopedPermissions.length ||
+                    previousDepartmentScopedPermissions.some(permission => !myDepartmentScopedPermissions.includes(permission)) ||
+                    myDepartmentScopedPermissions.some(permission => !previousDepartmentScopedPermissions.includes(permission));
 
 
                   /*

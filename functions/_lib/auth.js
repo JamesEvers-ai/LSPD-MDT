@@ -9,10 +9,14 @@ const SESSION_HOURS = 8;
 const SESSION_CACHE_TTL_MS = 5_000;
 const PERMISSION_CACHE_TTL_MS = 15_000;
 const RANK_NAME_CACHE_TTL_MS = 60_000;
+const DEPARTMENT_CACHE_TTL_MS = 15_000;
+const DEPARTMENT_SCOPE_CACHE_TTL_MS = 15_000;
 const MAX_AUTH_CACHE_ENTRIES = 500;
 const sessionCache = new Map();
 const permissionCache = new Map();
 const rankNameCache = new Map();
+const departmentCache = new Map();
+const departmentScopeCache = new Map();
 
 function pruneCache(cache, maxAgeMs) {
   const now = Date.now();
@@ -41,6 +45,8 @@ export function clearAuthCaches() {
   sessionCache.clear();
   permissionCache.clear();
   rankNameCache.clear();
+  departmentCache.clear();
+  departmentScopeCache.clear();
 }
 const encoder = new TextEncoder();
 const toHex = bytes => [...new Uint8Array(bytes)].map(b => b.toString(16).padStart(2, "0")).join("");
@@ -147,8 +153,44 @@ export async function publicUser(env, user) {
     profileImage: String(user?.profile_image || "")
   };
 }
+async function getUserDepartment(env, userId) {
+  pruneCache(departmentCache, DEPARTMENT_CACHE_TTL_MS);
+  const cacheKey = `${String(env.SUPABASE_URL || "")}\u0000${String(userId || "")}`;
+  const cached = cacheGet(departmentCache, cacheKey);
+  if (cached) return cached;
+  const rows = await db(env, "personnel", {
+    query: { select: "department", user_id: `eq.${String(userId || "")}`, limit: "1" }
+  });
+  const department = String(rows?.[0]?.department || "").trim();
+  return cacheSet(departmentCache, cacheKey, department, DEPARTMENT_CACHE_TTL_MS);
+}
+
+async function getDepartmentPermissionScope(env) {
+  pruneCache(departmentScopeCache, DEPARTMENT_SCOPE_CACHE_TTL_MS);
+  const cacheKey = String(env.SUPABASE_URL || "");
+  const cached = cacheGet(departmentScopeCache, cacheKey);
+  if (cached) return cached;
+  const [links, permissions] = await Promise.all([
+    db(env, "department_permissions", { query: { select: "department,permission_id", limit: "5000" } }),
+    db(env, "permissions", { query: { select: "id,key", limit: "5000" } })
+  ]);
+  const keyById = new Map((permissions || []).map(p => [String(p.id), String(p.key || "")]).filter(([,key]) => key));
+  const scoped = new Set();
+  const byDepartment = new Map();
+  for (const link of Array.isArray(links) ? links : []) {
+    const key = keyById.get(String(link.permission_id || ""));
+    const department = String(link.department || "").trim();
+    if (!key || !department) continue;
+    scoped.add(key);
+    if (!byDepartment.has(department)) byDepartment.set(department, new Set());
+    byDepartment.get(department).add(key);
+  }
+  const result = { scopedPermissions: [...scoped], byDepartment: [...byDepartment.entries()].map(([department, values]) => [department, [...values]]) };
+  return cacheSet(departmentScopeCache, cacheKey, result, DEPARTMENT_SCOPE_CACHE_TTL_MS);
+}
+
 export async function getPermissions(env, user) {
-  if (user.master === true) return { master: true, permissions: ["*"] };
+  if (user.master === true) return { master: true, permissions: ["*"], department: "", departmentPermissions: ["*"], departmentScopedPermissions: [] };
   pruneCache(permissionCache, PERMISSION_CACHE_TTL_MS);
   const cacheKey = `${String(env.SUPABASE_URL || "")}\u0000${String(user.id || "")}\u0000${String(user.rank || "")}`;
   const cached = cacheGet(permissionCache, cacheKey);
@@ -158,17 +200,21 @@ export async function getPermissions(env, user) {
     query: { select: "id,name,short_name,level,active", name: `eq.${String(user.rank || "")}`, limit: "1" }
   });
   let rank = Array.isArray(ranks) ? ranks[0] : null;
-  // Legacy rows may store the rank ID rather than its display name.
   if (!rank && user.rank) {
     const byId = await db(env, "ranks", { query: { select: "id,name,short_name,level,active", id: `eq.${String(user.rank)}`, limit: "1" } });
     rank = Array.isArray(byId) ? byId[0] : null;
   }
-  if (!rank?.id) return cacheSet(permissionCache, cacheKey, { master: false, permissions: [] }, PERMISSION_CACHE_TTL_MS);
-  const links = await db(env, "rank_permissions", { query: { select: "permission_id", rank_id: `eq.${rank.id}` } });
-  const ids = (Array.isArray(links) ? links : []).map(x => x.permission_id).filter(Boolean);
-  if (!ids.length) return cacheSet(permissionCache, cacheKey, { master: false, permissions: [] }, PERMISSION_CACHE_TTL_MS);
-  const permissions = await db(env, "permissions", {
-    query: { select: "key", id: `in.(${ids.join(",")})` }
-  });
-  return cacheSet(permissionCache, cacheKey, { master: false, permissions: (Array.isArray(permissions) ? permissions : []).map(p => String(p.key || "")).filter(Boolean) }, PERMISSION_CACHE_TTL_MS);
+  const ids = rank?.id ? (await db(env, "rank_permissions", { query: { select: "permission_id", rank_id: `eq.${rank.id}` } }) || []).map(x => x.permission_id).filter(Boolean) : [];
+  const permissions = ids.length ? await db(env, "permissions", { query: { select: "key", id: `in.(${ids.join(",")})` } }) : [];
+  const department = await getUserDepartment(env, user.id);
+  const scope = await getDepartmentPermissionScope(env);
+  const byDepartment = new Map(scope.byDepartment || []);
+  const departmentPermissions = department ? (byDepartment.get(department) || []) : [];
+  return cacheSet(permissionCache, cacheKey, {
+    master: false,
+    permissions: (Array.isArray(permissions) ? permissions : []).map(p => String(p.key || "")).filter(Boolean),
+    department,
+    departmentPermissions,
+    departmentScopedPermissions: scope.scopedPermissions || []
+  }, PERMISSION_CACHE_TTL_MS);
 }

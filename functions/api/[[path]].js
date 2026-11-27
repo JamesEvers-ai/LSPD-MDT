@@ -9,12 +9,15 @@ async function authz(env,token,permission){
   const auth=await requireSession(env,token);
   if(!auth)throw Object.assign(new Error("Deine Sitzung ist abgelaufen. Bitte erneut anmelden."),{status:401});
   const p=await getPermissions(env,auth.user);
-  if(auth.user.master!==true&&permission&&!p.permissions.includes("*")&&!p.permissions.includes(permission))throw Object.assign(new Error("Du besitzt nicht die erforderliche Berechtigung."),{status:403});
-  return {...auth,master:auth.user.master===true,permissions:p.permissions};
+  const hasRankPermission=auth.user.master===true||p.permissions.includes("*")||!permission||p.permissions.includes(permission);
+  if(!hasRankPermission)throw Object.assign(new Error("Du besitzt nicht die erforderliche Berechtigung."),{status:403});
+  const departmentScoped=permission && Array.isArray(p.departmentScopedPermissions) && p.departmentScopedPermissions.includes(permission);
+  if(auth.user.master!==true&&departmentScoped&&!p.departmentPermissions.includes(permission))throw Object.assign(new Error(`Deine Abteilung „${p.department||"nicht zugeordnet"}“ ist für diese Berechtigung nicht freigeschaltet.`),{status:403});
+  return {...auth,master:auth.user.master===true,permissions:p.permissions,department:p.department||"",departmentPermissions:p.departmentPermissions||[],departmentScopedPermissions:p.departmentScopedPermissions||[]};
 }
 async function has(env,auth,perm){return auth.master||auth.permissions.includes("*")||auth.permissions.includes(perm)}
 async function rankRows(env){return await db(env,"ranks",{query:{select:"id,name,short_name,level,active",order:"level.desc"}})}
-async function permissionsFor(env,auth){return {master:auth.master,permissions:auth.permissions}}
+async function permissionsFor(env,auth){return {master:auth.master,permissions:auth.permissions,department:auth.department||"",departmentPermissions:auth.departmentPermissions||[],departmentScopedPermissions:auth.departmentScopedPermissions||[]}}
 async function handleAuth(path,request,env,payload){const args=Array.isArray(payload.args)?payload.args:[];const token=bearer(request,payload);
  if(path==="login"){const username=text(args[0]),password=String(args[1]??"");if(!username||!password)return bad("Benutzername und Passwort erforderlich.");const rows=await db(env,"users",{query:{select:"id,username,name,rank,password_salt,password_hash,active,approved,master,profile_image",username:`ilike.${username.replace(/[%,_*]/g," ")}`,limit:"1"}});const u=Array.isArray(rows)?rows[0]:null;if(!u||!(await verifyPassword(password,u.password_salt,u.password_hash)))return bad("Benutzername oder Passwort ist falsch.",401,"INVALID_CREDENTIALS");if(u.approved!==true)return bad("Dieser Account wartet noch auf die Freigabe durch einen Master.",403,"ACCOUNT_PENDING");if(u.active!==true)return bad("Dieser Benutzer ist deaktiviert.",403,"ACCOUNT_DISABLED");const sess=await createSession(env,u.id);await writeAudit(env,{user:{id:u.id,name:u.name}},"login","authentication",u.id,"Anmeldung erfolgreich");return json({success:true,token:sess.token,expiresAt:sess.expiresAt,user:await publicUser(env,u)});}
  if(path==="register"){const username=text(args[0]),name=text(args[1]),password=String(args[2]??"");if(!username||!name||!password)return bad("Benutzername, Name und Passwort sind erforderlich.");if(!/^[A-Za-z0-9]+$/.test(username))return bad("Der Benutzername darf ausschließlich Buchstaben und Zahlen enthalten. Sonderzeichen, Leerzeichen und Umlaute sind nicht erlaubt.");if(password.length<8)return bad("Das Passwort muss mindestens 8 Zeichen lang sein.");const existing=await db(env,"users",{query:{select:"id",username:`ilike.${username.replace(/[%,_*]/g," ")}`,limit:"1"}});if(existing?.length)return bad("Dieser Benutzername existiert bereits.",409);const salt=[...crypto.getRandomValues(new Uint8Array(16))].map(b=>b.toString(16).padStart(2,"0")).join("");await db(env,"users",{method:"POST",body:{id:id("U"),username,name,rank:null,password_salt:salt,password_hash:await sha256(salt+password),active:false,approved:false,master:false,profile_image:null,created_at:new Date().toISOString()},prefer:"return=minimal"});return json({success:true,message:"Der Account wurde beantragt und muss durch einen Master freigegeben werden."});}
@@ -315,25 +318,14 @@ async function moduleDispatch(method,args,env,token){
  if(d.metadata!==undefined)patch.metadata=d.metadata&&typeof d.metadata==="object"?d.metadata:{};
  const saved=await db(env,cfg.table,{method:"PATCH",query:{id:`eq.${itemId}`,select:"id,title,description,status,event_date,metadata,created_by,created_by_name,created_at,updated_at"},body:patch,prefer:"return=representation"});return normalizeModuleRow(saved?.[0]||{id:itemId,...patch});
 }
-async function academyDepartmentHas(env,au,permission){
+function academyDepartmentHas(env,au,permission){
  if(au.master)return true;
- const perms=await db(env,"permissions",{query:{select:"id",key:`eq.${permission}`,limit:"1"}});
- const permId=perms?.[0]?.id;if(!permId)return false;
- const links=await db(env,"department_permissions",{query:{select:"permission_id",department:`eq.${au.department}`,permission_id:`eq.${permId}`,limit:"1"}});
- return !!links?.length;
+ return Array.isArray(au.departmentPermissions) && au.departmentPermissions.includes(permission);
 }
 async function academyAccess(env,token,permission="academy.view"){
  const au=await authz(env,token,permission);
- if(au.master)return au;
- const people=await db(env,"personnel",{query:{select:"department",user_id:`eq.${au.user.id}`,limit:"1"}});
- const department=text(people?.[0]?.department);
- if(!department)throw Object.assign(new Error("Deiner Personalakte ist keine Abteilung zugeordnet. Der Academy-Zugriff kann daher nicht ermittelt werden."),{status:403});
- const perms=await db(env,"permissions",{query:{select:"id,key",key:`eq.${permission}`,limit:"1"}});
- const permId=perms?.[0]?.id;
- if(!permId)throw Object.assign(new Error("Die Academy-Berechtigung ist noch nicht eingerichtet."),{status:403});
- const links=await db(env,"department_permissions",{query:{select:"permission_id",department:`eq.${department}`,permission_id:`eq.${permId}`,limit:"1"}});
- if(!links?.length)throw Object.assign(new Error(`Deine Abteilung „${department}“ ist für diesen Academy-Bereich nicht freigeschaltet.`),{status:403});
- return {...au,department};
+ if(!au.master&&!au.department)throw Object.assign(new Error("Deiner Personalakte ist keine Abteilung zugeordnet. Der Academy-Zugriff kann daher nicht ermittelt werden."),{status:403});
+ return au;
 }
 async function academyDispatch(method,args,env,token){
  if(!["academyGetData","academySaveDocument","academyDeleteDocument","academyGetDocumentFile","academySaveTest","academyDeleteTest","academyGetTestForAttempt","academySubmitTest"].includes(method))return undefined;
@@ -897,16 +889,20 @@ async function dispatchCore(method,args,env,token){
  if(method==="systemGetDepartmentPermissions"){
   await authz(env,token,"system.permissions.view");
   const departments=["Internal Affairs Division","Central Division","Northern Division","Patrol Division","Investigative Division","Metropolitan Division","Support Division","Internal Affairs","Patrol Unit","Detective Bureau","Special Weapons and Tactics","Gang Enforcement Detail","Canine (K9)","Police Academy","Public Relations Office","Air Support Division","High Command"];
-  const perms=await db(env,"permissions",{query:{select:"id,key,name,label,description",key:"in.(academy.view,academy.manage,academy.test)",order:"key.asc"}});
-  const links=await db(env,"department_permissions",{query:{select:"department,permission_id",order:"department.asc"}});
-  return {departments,permissions:perms||[],links:links||[]};
+  const perms=await db(env,"permissions",{query:{select:"id,key,name,label,description,category",order:"category.asc,key.asc",limit:"5000"}});
+  const links=await db(env,"department_permissions",{query:{select:"department,permission_id",order:"department.asc",limit:"5000"}});
+  return {departments,permissions:(perms||[]).filter(p=>!String(p.key||"").startsWith("system.")),links:links||[]};
  }
  if(method==="systemSetDepartmentPermissions"){
   const au=await authz(env,token,"system.permissions.manage");
   const department=text(args[1]),selected=Array.isArray(args[2])?args[2].map(text).filter(Boolean):[];
   if(!department)throw new Error("Abteilung fehlt.");
+  const valid=selected.length
+    ? await db(env,"permissions",{query:{select:"id,key",id:`in.(${selected.map(v=>v.replace(/[^A-Za-z0-9_-]/g,"")).join(",")})`,limit:"5000"}})
+    : [];
+  const allowedIds=(valid||[]).filter(p=>!String(p.key||"").startsWith("system.")).map(p=>String(p.id));
   await db(env,"department_permissions",{method:"DELETE",query:{department:`eq.${department}`},prefer:"return=minimal"});
-  if(selected.length)await db(env,"department_permissions",{method:"POST",body:selected.map(permission_id=>({id:id("DP"),department,permission_id,created_at:new Date().toISOString(),created_by:au.user.id})),prefer:"return=minimal"});
+  if(allowedIds.length)await db(env,"department_permissions",{method:"POST",body:allowedIds.map(permission_id=>({id:id("DP"),department,permission_id,created_at:new Date().toISOString(),created_by:au.user.id})),prefer:"return=minimal"});
   clearAuthCaches();return {success:true};
  }
  if(method==="systemCreateUser"){await authz(env,token,"system.users.manage");const d=args[1]||{};const username=text(d.username||d.Username),name=text(d.name||d.Name),password=String(d.password||d.Password||"");if(!username||!name||!password)throw new Error("Benutzername, Name und Passwort sind erforderlich.");const salt=[...crypto.getRandomValues(new Uint8Array(16))].map(b=>b.toString(16).padStart(2,"0")).join("");const row={id:id("U"),username,name,rank:text(d.rankId||d.rank)||null,password_salt:salt,password_hash:await sha256(salt+password),active:d.active!==false,approved:d.approved!==false,master:d.master===true,created_at:new Date().toISOString()};const r=await db(env,"users",{method:"POST",query:{select:"id,username,name,rank,active,approved,master"},body:row,prefer:"return=representation"});return r?.[0]||{success:true};}
