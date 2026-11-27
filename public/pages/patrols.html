@@ -1426,19 +1426,7 @@
 
                 Aktualisieren
             </button>
-
-
-            <button
-                type="button"
-                class="patrol-header-button patrol-header-duty-end"
-                id="patrolEndDutyButton"
-                hidden
-            >
-                <i class="fa-solid fa-right-from-bracket"></i>
-                Außer Dienst
-            </button>
-
-        </div>
+</div>
 
     </div>
 
@@ -2661,131 +2649,14 @@
             .deletePatrol(getToken(), patrol.id);
     }
 
+    window.addEventListener("fib-mdt:duty-data-changed", function () {
+        if (typeof refreshPatrolData === "function") refreshPatrolData();
+    });
+    window.addEventListener("fib-mdt:duty-ended", function () {
+        if (typeof refreshPatrolData === "function") refreshPatrolData();
+    });
+
     function bindStaticEvents() {
-        const createButton = document.getElementById("patrolEndDutyButton");
-        if (createButton) createButton.style.display = "none";
-        if (!window.fibDutyStartListenerBound) {
-            window.fibDutyStartListenerBound = true;
-            function handleDutySelection(event) {
-                // Serialize rapid topbar changes. updatePatrol replaces membership rows,
-                // so concurrent writes could otherwise delete a newer update.
-                dutySaveQueue = dutySaveQueue.catch(function () {}).then(function () { return persistDutySelection(event); });
-                return dutySaveQueue;
-            }
-            async function persistDutySelection(event) {
-                const detail = event.detail || {};
-                const isStart = event.type === "fib-mdt:duty-start-request";
-                if (!detail.location || !detail.activity || !detail.vehicleType) return;
-                try {
-                    const profile = await fetchOwnPersonnelProfile(false);
-                    const callsign = String(profile?.callSign || profile?.call_sign || "").trim();
-                    if (!callsign) {
-                        showError("Bitte hinterlege zuerst dein Callsign in deiner Personalakte.");
-                        return;
-                    }
-                    const ownId = String(profile.userId || profile.user_id || profile.id || "");
-                    const existing = (state.patrolData || []).find(p => (p.members || []).some(m => String(m.id || m.user_id) === ownId));
-                    // Selection changes only update an existing duty entry; they must never silently start a new shift.
-                    if (!isStart && !existing) return;
-                    const applyButton = document.getElementById("fibDutyStartButton");
-                    if (applyButton) applyButton.disabled = true;
-                    const form = {
-                        ...(existing ? {id: existing.id} : {}),
-                        callsign: callsign,
-                        number: callsign,
-                        vehicleType: detail.vehicleType,
-                        tenCode: detail.tenCode || existing?.tenCode || existing?.ten_code || existing?.status || (detail.activity === "OOV" ? "10-6" : "10-1"),
-                        location: detail.location,
-                        activity: detail.activity,
-                        members: existing ? (existing.members || []).map(m => ({id: m.id || m.user_id, position: m.position || "Member"})) : []
-                    };
-                    const saveMethod = existing ? "updatePatrol" : "createPatrol";
-                    CloudApi.run.withSuccessHandler(function (result) {
-                        const saved = result?.patrol || result;
-                        if (saved && saved.id) {
-                            const idx = (state.patrolData || []).findIndex(p => String(p.id) === String(saved.id));
-                            if (idx >= 0) state.patrolData[idx] = saved; else state.patrolData.push(saved);
-                        }
-                        clearPatrolsCache();
-                        fetchPatrols(true).catch(function () {});
-                        if (isStart) window.dispatchEvent(new CustomEvent("fib-mdt:duty-started", {detail:{...form,callSign:callsign}}));
-                        else window.dispatchEvent(new CustomEvent("fib-mdt:duty-started", {detail:{...form,callSign:callsign}}));
-                        if (isStart && typeof window.showSuccess === "function") window.showSuccess("Du bist jetzt im Dienst.");
-                        if (applyButton) applyButton.disabled = false;
-                    }).withFailureHandler(function (error) {
-                        if (applyButton) applyButton.disabled = false;
-                        if (typeof window.showError === "function") window.showError(error?.message || "Der Dienststatus konnte nicht gespeichert werden.");
-                    })[saveMethod](getToken(), form);
-                } catch (error) {
-                    if (typeof window.showError === "function") window.showError(error?.message || "Dein Callsign konnte nicht aus der Personalakte geladen werden.");
-                }
-            }
-            window.__fibPageLifecycle.on(window, "fib-mdt:duty-start-request", handleDutySelection);
-            window.__fibPageLifecycle.on(window, "fib-mdt:duty-selection-changed", handleDutySelection);
-            window.__fibPageLifecycle.on(window, "fib-mdt:ten-code-changed", async function(event) {
-                const code = String(event.detail?.tenCode || "").trim();
-                if (!code) return;
-                try {
-                    await fetchPatrols(true);
-                    const profile = await fetchOwnPersonnelProfile(true);
-                    const ownId = String(profile.userId || profile.user_id || profile.id || "");
-                    const existing = (state.patrolData || []).find(p => (p.members || []).some(m => String(m.id || m.user_id) === ownId));
-                    if (!existing) { showError("Du bist aktuell keiner Streife zugeordnet."); return; }
-                    const result = await window.runServer("setPatrolTenCode", {id: existing.id, tenCode: code});
-                    if (!result || result.success === false) throw new Error(result?.message || "Ten Code konnte nicht gespeichert werden.");
-                    existing.tenCode = code; existing.ten_code = code;
-                    clearPatrolsCache();
-                    await fetchPatrols(true);
-                    if (typeof window.showSuccess === "function") window.showSuccess("Ten Code der Streife aktualisiert.");
-                } catch (error) {
-                    showError(error?.message || "Ten Code konnte nicht gespeichert werden.");
-                }
-            });
-        }
-
-        const pageDutyEndButton = document.getElementById("patrolEndDutyButton");
-        if (pageDutyEndButton && !pageDutyEndButton.dataset.bound) {
-            pageDutyEndButton.dataset.bound = "true";
-            pageDutyEndButton.addEventListener("click", function () {
-                const topbarEndButton = document.getElementById("fibDutyEndButton");
-                if (topbarEndButton && !topbarEndButton.hidden) {
-                    topbarEndButton.click();
-                    return;
-                }
-                pageDutyEndButton.disabled = true;
-                CloudApi.run.withSuccessHandler(function () {
-                    clearPatrolsCache();
-                    refreshPatrolData();
-                    pageDutyEndButton.hidden = true;
-                    pageDutyEndButton.style.display = "none";
-                    if (typeof window.showSuccess === "function") window.showSuccess("Du hast deinen Dienst beendet.");
-                    window.dispatchEvent(new CustomEvent("fib-mdt:duty-ended"));
-                }).withFailureHandler(function (error) {
-                    pageDutyEndButton.disabled = false;
-                    if (typeof window.showError === "function") window.showError(error?.message || String(error));
-                }).leavePatrol(getToken());
-            });
-        }
-        if (!window.fibPatrolDutyButtonSyncBound) {
-            window.fibPatrolDutyButtonSyncBound = true;
-            window.addEventListener("fib-mdt:duty-started", function () {
-                const button = document.getElementById("patrolEndDutyButton");
-                if (button) { button.hidden = false; button.style.display = "inline-flex"; button.disabled = false; }
-            });
-            window.addEventListener("fib-mdt:duty-state-restored", function (event) {
-                const button = document.getElementById("patrolEndDutyButton");
-                if (!button) return;
-                const active = !!event.detail?.inDuty;
-                button.hidden = !active;
-                button.style.display = active ? "inline-flex" : "none";
-                button.disabled = false;
-            });
-            window.addEventListener("fib-mdt:duty-ended", function () {
-                const button = document.getElementById("patrolEndDutyButton");
-                if (button) { button.hidden = true; button.style.display = "none"; button.disabled = false; }
-            });
-        }
-
         const refreshButton =
             document.getElementById("patrolRefreshButton");
 
@@ -2834,11 +2705,6 @@
     }
 
     function applyPermissionUI() {
-        const createButton =
-            document.getElementById("patrolEndDutyButton");
-
-        if (createButton) createButton.style.display = "none";
-
         const description =
             document.getElementById("patrolPermissionHint");
 
@@ -3156,14 +3022,14 @@
 .patrols-header-actions {
   align-items: center !important;
 }
-.patrol-header-duty-end {
+. {
   display: none !important;
   background: #fff !important;
   border-color: #e2b9b9 !important;
   color: #a33d3d !important;
 }
-.patrol-header-duty-end:not([hidden]) { display: inline-flex !important; }
-.patrol-header-duty-end:hover {
+.:not([hidden]) { display: inline-flex !important; }
+.:hover {
   background: #fff3f3 !important;
   border-color: #d99898 !important;
   color: #913737 !important;

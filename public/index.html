@@ -8443,11 +8443,12 @@ const NAVIGATION = [
   function dispatchSelection(){if(onDuty&&state.location&&state.activity&&state.vehicle)window.dispatchEvent(new CustomEvent('fib-mdt:duty-selection-changed',{detail:{location:state.location,activity:state.activity,vehicleType:state.vehicle,tenCode:state.tenCode}}));}
   function render(key){activeKey=key;picker.querySelector('#fibDutyPickerTitle').textContent=labels[key];const root=picker.querySelector('#fibDutyOptions');root.className='fib-duty-options'+(key==='activity'?' fib-duty-options-warm':'');root.innerHTML='';options[key].forEach(item=>{const b=document.createElement('button');b.type='button';b.className='fib-duty-option';b.textContent=item;b.setAttribute('aria-pressed',String(state[key]===item));b.addEventListener('click',()=>{state[key]=item;update();close();if(key==='tenCode'){if(onDuty)window.dispatchEvent(new CustomEvent('fib-mdt:ten-code-changed',{detail:{tenCode:item}}));}else dispatchSelection();});root.appendChild(b);});}
   function onPatrolsPage(){const t=(document.getElementById('pageTitle')||{}).textContent||'';return /leitstelle|patrols/i.test(t)||!!document.querySelector('#pageContainer .patrols-page');}
-  function open(key,trigger){if(!onPatrolsPage())return;render(key);picker.hidden=false;picker.style.position='fixed';const r=trigger&&trigger.getBoundingClientRect();const w=Math.min(400,innerWidth-16);picker.style.width=w+'px';if(r){picker.style.left=Math.max(8,Math.min(r.left,innerWidth-w-8))+'px';let top=r.bottom+6;const h=Math.min(innerHeight*.65,500);if(top+h>innerHeight-8)top=Math.max(8,r.top-h-6);picker.style.top=top+'px';picker.style.maxHeight=h+'px';}}
+  function dutyPickerAvailable(){return true;}
+  function open(key,trigger){if(!dutyPickerAvailable())return;render(key);const cfg=picker.querySelector('#fibDutyPickerConfig');if(cfg)cfg.hidden=!onPatrolsPage();picker.hidden=false;picker.style.position='fixed';const r=trigger&&trigger.getBoundingClientRect();const w=Math.min(400,innerWidth-16);picker.style.width=w+'px';if(r){picker.style.left=Math.max(8,Math.min(r.left,innerWidth-w-8))+'px';let top=r.bottom+6;const h=Math.min(innerHeight*.65,500);if(top+h>innerHeight-8)top=Math.max(8,r.top-h-6);picker.style.top=top+'px';picker.style.maxHeight=h+'px';}}
   function close(){picker.hidden=true;document.querySelectorAll('[data-duty-picker-trigger]').forEach(e=>e.setAttribute('aria-expanded','false'));}
   function configModal(){const old=document.getElementById('fibDutyConfigOverlay');if(old)old.remove();const overlay=document.createElement('div');overlay.id='fibDutyConfigOverlay';overlay.style.cssText='position:fixed;inset:0;z-index:10050;background:rgba(3,8,16,.78);display:flex;align-items:center;justify-content:center;padding:16px;';const panel=document.createElement('div');panel.style.cssText='width:min(680px,100%);max-height:85vh;overflow:auto;background:#111b2a;color:#e8eef7;border:1px solid #34445b;border-radius:12px;padding:20px;font:inherit;box-shadow:0 20px 60px #0008;';panel.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px"><div><strong style="font-size:17px">Dienst-Auswahllisten</strong><div style="color:#9eafc4;font-size:12px;margin-top:4px">Einträge hinzufügen, umbenennen oder entfernen.</div></div><button type="button" data-close style="background:#26364b;color:white;border:0;border-radius:7px;padding:8px 12px;cursor:pointer">Schließen</button></div><div id="fibDutyConfigFields"></div><button type="button" data-add style="margin-top:10px;background:#243d5b;color:white;border:1px solid #42658d;border-radius:7px;padding:9px 12px;cursor:pointer">+ Eintrag hinzufügen</button><div style="display:flex;justify-content:flex-end;gap:8px;margin-top:18px"><button type="button" data-cancel style="background:#26364b;color:white;border:0;border-radius:7px;padding:10px 14px;cursor:pointer">Abbrechen</button><button type="button" data-save style="background:#2474c6;color:white;border:0;border-radius:7px;padding:10px 14px;cursor:pointer">Speichern</button></div>';overlay.appendChild(panel);document.body.appendChild(overlay);let draft=options[activeKey].slice();const fields=panel.querySelector('#fibDutyConfigFields');function draw(){fields.innerHTML='';draft.forEach((v,i)=>{const row=document.createElement('div');row.style.cssText='display:flex;gap:8px;margin:7px 0';const input=document.createElement('input');input.value=v;input.setAttribute('aria-label','Eintrag '+(i+1));input.style.cssText='flex:1;min-width:0;background:#0b1320;color:#edf4ff;border:1px solid #3b4d64;border-radius:6px;padding:9px';input.addEventListener('input',()=>draft[i]=input.value);const del=document.createElement('button');del.type='button';del.textContent='Entfernen';del.style.cssText='background:#482b34;color:#ffdce1;border:1px solid #70414b;border-radius:6px;padding:7px 10px;cursor:pointer';del.addEventListener('click',()=>{draft.splice(i,1);draw();});row.append(input,del);fields.appendChild(row);});}draw();panel.querySelector('[data-add]').onclick=()=>{draft.push('');draw();fields.lastElementChild?.querySelector('input')?.focus();};function done(){overlay.remove();}panel.querySelector('[data-close]').onclick=done;panel.querySelector('[data-cancel]').onclick=done;overlay.addEventListener('click',e=>{if(e.target===overlay)done();});panel.querySelector('[data-save]').onclick=async()=>{const clean=[...new Set(draft.map(v=>String(v).trim()).filter(Boolean))];if(!clean.length){if(window.showError)window.showError('Mindestens ein Eintrag muss erhalten bleiben.');return;}const previous=options[activeKey];options[activeKey]=clean;const saveButton=panel.querySelector('[data-save]');saveButton.disabled=true;try{if(activeKey==='tenCode'){const result=await window.runServer('savePatrolTenCodes',sessionStorage.getItem('fib_mdt_session')||sessionStorage.getItem('lspd_mdt_session')||'',clean);if(!result||result.success!==true)throw new Error(result?.message||'Ten-Code-Liste konnte nicht global gespeichert werden.');}try{localStorage.setItem('fib_mdt_duty_options_v1',JSON.stringify(options));}catch(_){}if(!options[activeKey].includes(state[activeKey]))state[activeKey]='';update();render(activeKey);done();if(window.showSuccess)window.showSuccess('Auswahlliste gespeichert.');}catch(error){options[activeKey]=previous;saveButton.disabled=false;if(window.showError)window.showError(error?.message||'Auswahlliste konnte nicht gespeichert werden.');}};}
   update();
-  document.addEventListener('click',e=>{const trigger=e.target.closest('[data-duty-picker-trigger]');if(trigger){const key=trigger.dataset.dutyPickerTrigger;open(key,trigger);trigger.setAttribute('aria-expanded','true');return;}if(e.target.closest('#fibDutyStartButton')){if(!(state.location&&state.activity&&state.vehicle&&state.tenCode)){if(window.showError)window.showError('Bitte Einsatzort, Status und Fahrzeug jeweils über die obere Leiste auswählen.');return;}window.dispatchEvent(new CustomEvent('fib-mdt:duty-start-request',{detail:{location:state.location,activity:state.activity,vehicleType:state.vehicle,tenCode:state.tenCode}}));return;}if(!picker.hidden&&!picker.contains(e.target))close();});
+  document.addEventListener('click',e=>{const trigger=e.target.closest('[data-duty-picker-trigger]');if(trigger){const key=trigger.dataset.dutyPickerTrigger;open(key,trigger);trigger.setAttribute('aria-expanded','true');return;}if(e.target.closest('#fibDutyStartButton')){if(!(state.location&&state.activity&&state.vehicle&&state.tenCode)){if(window.showError)window.showError('Bitte Einsatzort, Status, Fahrzeug und Ten Code jeweils über die obere Leiste auswählen.');return;}window.dispatchEvent(new CustomEvent('fib-mdt:duty-start-request',{detail:{location:state.location,activity:state.activity,vehicleType:state.vehicle,tenCode:state.tenCode}}));return;}if(e.target.closest('#fibDutyEndButton')){window.dispatchEvent(new CustomEvent('fib-mdt:duty-end-request'));return;}if(!picker.hidden&&!picker.contains(e.target))close();});
   picker.querySelector('#fibDutyPickerClose').addEventListener('click',close);picker.querySelector('#fibDutyPickerConfig').addEventListener('click',configModal);
   document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!picker.hidden)close();if((e.key==='Enter'||e.key===' ')&&e.target.matches('[data-duty-picker-trigger]')){e.preventDefault();open(e.target.dataset.dutyPickerTrigger,e.target);}});
   window.addEventListener('fib-mdt:duty-started',e=>{const d=e.detail||{};if(d.location)state.location=d.location;if(d.activity)state.activity=d.activity;if(d.vehicleType||d.vehicle_type)state.vehicle=d.vehicleType||d.vehicle_type;if(d.tenCode||d.ten_code)state.tenCode=d.tenCode||d.ten_code;onDuty=true;update();});
@@ -8468,6 +8469,145 @@ const NAVIGATION = [
 })();
 </script>
 
+
+<script>
+/* Global duty controller: duty status is independent of the currently opened MDT page. */
+(function(){
+  if(window.fibGlobalDutyControllerBound) return;
+  window.fibGlobalDutyControllerBound = true;
+  let queue = Promise.resolve();
+
+  function token(){
+    try { return sessionStorage.getItem("fib_mdt_session") || sessionStorage.getItem("lspd_mdt_session") || ""; }
+    catch(_) { return ""; }
+  }
+  function userId(){
+    try { return String(window.currentUser?.id || window.currentUser?.userId || ""); }
+    catch(_) { return ""; }
+  }
+  async function getProfile(){
+    const uid = userId();
+    if(!uid) throw new Error("Deine Sitzung konnte nicht ermittelt werden.");
+    const bundle = await window.runServer("getPersonnelFileBundle", token(), uid);
+    return bundle?.agent || bundle?.personnel || {};
+  }
+  async function getOwnPatrol(){
+    const uid = userId();
+    if(!uid) return null;
+    const patrols = await window.runServer("getPatrols", token());
+    return (Array.isArray(patrols) ? patrols : []).find(p =>
+      (p.members || []).some(m => String(m.id || m.user_id || m.userId || "") === uid)
+    ) || null;
+  }
+  async function persistDuty(event){
+    const detail = event.detail || {};
+    const isStart = event.type === "fib-mdt:duty-start-request";
+    if(!detail.location || !detail.activity || !detail.vehicleType) return;
+
+    const applyButton = document.getElementById("fibDutyStartButton");
+    if(applyButton) applyButton.disabled = true;
+
+    try {
+      const profile = await getProfile();
+      const callsign = String(profile.callSign || profile.call_sign || "").trim();
+      if(!callsign) throw new Error("Bitte hinterlege zuerst dein Callsign in deiner Personalakte.");
+
+      const existing = await getOwnPatrol();
+      if(!isStart && !existing) return;
+
+      const form = {
+        ...(existing ? {id: existing.id} : {}),
+        callsign,
+        number: callsign,
+        vehicleType: detail.vehicleType,
+        tenCode: detail.tenCode || existing?.tenCode || existing?.ten_code || existing?.status || (detail.activity === "OOV" ? "10-6" : "10-1"),
+        location: detail.location,
+        activity: detail.activity,
+        members: existing
+          ? (existing.members || []).map(m => ({id: m.id || m.user_id, position: m.position || "Member"}))
+          : []
+      };
+
+      const saveMethod = existing ? "updatePatrol" : "createPatrol";
+      const result = await window.runServer(saveMethod, token(), form);
+      const saved = result?.patrol || result || {};
+
+      window.dispatchEvent(new CustomEvent("fib-mdt:duty-started", {
+        detail: {...form, callSign: callsign, patrol: saved}
+      }));
+      window.dispatchEvent(new CustomEvent("fib-mdt:duty-data-changed", {
+        detail: {patrol: saved, inDuty: true}
+      }));
+
+      if(isStart && typeof window.showSuccess === "function") window.showSuccess("Du bist jetzt im Dienst.");
+    } catch(error) {
+      if(typeof window.showError === "function") window.showError(error?.message || "Der Dienststatus konnte nicht gespeichert werden.");
+    } finally {
+      if(applyButton) applyButton.disabled = false;
+    }
+  }
+
+  window.addEventListener("fib-mdt:duty-start-request", function(event){
+    queue = queue.catch(()=>{}).then(()=>persistDuty(event));
+  });
+  window.addEventListener("fib-mdt:duty-selection-changed", function(event){
+    queue = queue.catch(()=>{}).then(()=>persistDuty(event));
+  });
+
+  async function restoreGlobalDutyState(){
+    try {
+      if(!token() || !userId()) return;
+      const patrols = await window.runServer("getPatrols", token());
+      const uid = userId();
+      const own = (Array.isArray(patrols) ? patrols : []).find(p =>
+        (p.members || []).some(m => String(m.id || m.user_id || m.userId || "") === uid)
+      );
+      if(own){
+        const lead = (own.members || []).find(m => String(m.position || "").toLowerCase() === "lead") || (own.members || [])[0] || {};
+        if(typeof window.fibUpdateOwnStatus === "function"){
+          window.fibUpdateOwnStatus({
+            callSign: String(lead.callSign || own.callsign || "Kein Funkrufname hinterlegt"),
+            status: String(own.activity || "Tätigkeit nicht hinterlegt"),
+            unit: String(own.location || "Einsatzort nicht hinterlegt"),
+            inPatrol: true
+          });
+        }
+        window.dispatchEvent(new CustomEvent("fib-mdt:duty-state-restored", {detail:{
+          inDuty:true,
+          location:String(own.location || ""),
+          activity:String(own.activity || ""),
+          vehicleType:String(own.vehicleType || own.vehicle_type || ""),
+          tenCode:String(own.tenCode || own.ten_code || own.status || "10-1")
+        }}));
+      } else {
+        window.dispatchEvent(new CustomEvent("fib-mdt:duty-state-restored", {detail:{inDuty:false}}));
+      }
+    } catch(_) {
+      /* Duty state is auxiliary UI state; normal page loading must continue if unavailable. */
+    }
+  }
+
+  window.addEventListener("fib-mdt:duty-end-request", async function(){
+    const endButton = document.getElementById("fibDutyEndButton");
+    if(endButton) endButton.disabled = true;
+    try {
+      const result = await window.runServer("leavePatrol", token());
+      if(result?.success === false) throw new Error(result.message || "Der Dienst konnte nicht beendet werden.");
+      window.dispatchEvent(new CustomEvent("fib-mdt:duty-ended"));
+      window.dispatchEvent(new CustomEvent("fib-mdt:duty-data-changed", {
+        detail: {inDuty:false}
+      }));
+      if(typeof window.showSuccess === "function") window.showSuccess("Du hast deinen Dienst beendet.");
+    } catch(error) {
+      if(typeof window.showError === "function") window.showError(error?.message || "Der Dienst konnte nicht beendet werden.");
+    } finally {
+      if(endButton) endButton.disabled = false;
+    }
+  });
+  setTimeout(restoreGlobalDutyState, 700);
+  window.addEventListener("fib-mdt:data-changed", function(e){ if(e.detail?.method === "leavePatrol" || e.detail?.method === "createPatrol" || e.detail?.method === "updatePatrol") restoreGlobalDutyState(); });
+})();
+</script>
 
 <script>
 /* Phase 3.77: collapsed sidebar expands on hover; no toggle button. */
