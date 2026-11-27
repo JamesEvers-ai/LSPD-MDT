@@ -8436,12 +8436,27 @@ const NAVIGATION = [
     if(statusChip){statusChip.removeAttribute('data-db-color');statusChip.style.removeProperty('--fib-db-color');if(statusColor){statusChip.style.setProperty('--fib-db-color',statusColor);statusChip.setAttribute('data-db-color','true');}}
     if(tenChip){tenChip.removeAttribute('data-db-color');tenChip.style.removeProperty('--fib-db-color');if(tenColor){tenChip.style.setProperty('--fib-db-color',tenColor);tenChip.setAttribute('data-db-color','true');}}
   }
+  function waitForCloudApi(){
+    if(typeof window.runServer==='function') return Promise.resolve();
+    return new Promise((resolve,reject)=>{
+      let settled=false;
+      const finish=()=>{if(settled)return;settled=true;window.removeEventListener('fib-mdt:cloud-api-ready',finish);resolve();};
+      window.addEventListener('fib-mdt:cloud-api-ready',finish,{once:true});
+      window.setTimeout(()=>{if(typeof window.runServer==='function')finish();else{settled=true;window.removeEventListener('fib-mdt:cloud-api-ready',finish);reject(new Error('Cloud-API ist nicht verfügbar.'));}},5000);
+    });
+  }
   async function loadConfig(){
     if(window.__fibPatrolDutyConfigPromise){
       try{return await window.__fibPatrolDutyConfigPromise;}catch(_){return null;}
     }
     window.__fibPatrolDutyConfigPromise=(async()=>{
-      try{return await window.runServer('getPatrolDutyConfig');}catch(error){console.warn('Dienst-Konfiguration nicht verfügbar; Standardwerte werden verwendet.',error);return null;}
+      try{
+        await waitForCloudApi();
+        return await window.runServer('getPatrolDutyConfig');
+      }catch(error){
+        console.warn('Dienst-Konfiguration nicht verfügbar; Standardwerte werden verwendet.',error);
+        return null;
+      }
     })();
     const result=await window.__fibPatrolDutyConfigPromise;
     if(result&&result.success!==false){

@@ -117,6 +117,11 @@
   Object.defineProperty(api,"run",{get:makeRunner});
   window.CloudApi=api;
   window.runServer=(method,...args)=>invoke(method,args);
+  // Signal readiness for inline bootstrap code that runs before deferred scripts.
+  // This avoids race conditions where page-level initialization calls runServer
+  // while cloud-api.js is still waiting for the parser to finish.
+  window.__fibCloudApiReady = true;
+  window.dispatchEvent(new CustomEvent("fib-mdt:cloud-api-ready"));
   window.FIBMDTCache={
     preloadPages,
     clear:clearDataCache,
