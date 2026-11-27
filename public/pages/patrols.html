@@ -2649,6 +2649,33 @@
             .deletePatrol(getToken(), patrol.id);
     }
 
+    window.addEventListener("fib-mdt:duty-started", function (event) {
+        const detail = event && event.detail ? event.detail : {};
+        const patrol = detail.patrol;
+        if (patrol && document.getElementById("patrolsList")) {
+            const normalized = {
+                ...patrol,
+                callsign: patrol.callsign || detail.callSign || "Unbekannt",
+                number: patrol.number || detail.callSign || "",
+                vehicleType: patrol.vehicleType || patrol.vehicle_type || detail.vehicleType || "",
+                tenCode: patrol.tenCode || patrol.ten_code || detail.tenCode || patrol.status || "10-1",
+                location: patrol.location || detail.location || "",
+                activity: patrol.activity || detail.activity || "",
+                members: Array.isArray(patrol.members) ? patrol.members : [{
+                    id: String(window.currentUser?.id || window.currentUser?.userId || ""),
+                    name: String(window.currentUser?.name || "Du"),
+                    callSign: detail.callSign || patrol.callsign || "",
+                    position: "Lead"
+                }]
+            };
+            state.patrolData = [normalized, ...(state.patrolData || []).filter(function(item){ return String(item.id) !== String(normalized.id); })];
+            state.patrolDataLoaded = true;
+            window.fibCache.patrols.data = state.patrolData;
+            window.fibCache.patrols.timestamp = Date.now();
+            renderPatrols();
+        }
+        if (typeof refreshPatrolData === "function") refreshPatrolData();
+    });
     window.addEventListener("fib-mdt:duty-data-changed", function () {
         if (typeof refreshPatrolData === "function") refreshPatrolData();
     });

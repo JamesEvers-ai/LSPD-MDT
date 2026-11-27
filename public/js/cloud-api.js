@@ -124,6 +124,10 @@
     getPageTemplateStatus:()=>({loaded:templateCache.size,total:new Set(Object.values(pages)).size}),
     refresh:async method=>{ if(method){for(const key of dataCache.keys()) if(key.includes(`\u0000${method}\u0000`)) dataCache.delete(key);} else clearDataCache(); }
   };
-  // Warm every static page template immediately. First navigation can use this cache.
-  preloadPages().catch(error=>console.warn("[LSPD MDT] Vorladen der Seitentemplates fehlgeschlagen:",error));
+  // Do not block the initial MDT render with requests for every page template.
+  // Navigation still lazy-loads missing templates; idle-time prefetch warms the cache
+  // after the first paint instead of creating a burst of requests during startup.
+  const warmTemplates=()=>preloadPages().catch(error=>console.warn("[LSPD MDT] Hintergrund-Vorladen der Seitentemplates fehlgeschlagen:",error));
+  if(typeof window.requestIdleCallback === "function") window.requestIdleCallback(warmTemplates,{timeout:3000});
+  else setTimeout(warmTemplates,1200);
 })();

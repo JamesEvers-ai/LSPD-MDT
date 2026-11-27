@@ -695,7 +695,13 @@ async function dispatchCore(method,args,env,token){
   const row={id:pid,callsign,number:callsign,vehicle_type:text(d.vehicleType||d.vehicle_type),status:"10-1",ten_code:tenCode,location:text(d.location),activity:text(d.activity),created_at:now,created_by:au.user.id,updated_at:now,updated_by:au.user.id};
   if(!row.vehicle_type||!row.location||!row.activity) throw new Error("Einsatzort, Status und Fahrzeug sind erforderlich.");
   await db(env,"patrols",{method:"POST",body:row,prefer:"return=minimal"});
-  await db(env,"patrol_members",{method:"POST",body:{patrol_id:pid,user_id:au.user.id,position:"Lead"},prefer:"return=minimal"});
+  try {
+   await db(env,"patrol_members",{method:"POST",body:{patrol_id:pid,user_id:au.user.id,position:"Lead"},prefer:"return=minimal"});
+  } catch(error) {
+   // Do not leave an orphaned patrol behind when membership creation fails.
+   await db(env,"patrols",{method:"DELETE",query:{id:`eq.${pid}`},prefer:"return=minimal"}).catch(()=>{});
+   throw error;
+  }
   return {success:true,patrol:{...row,tenCode:row.ten_code,vehicleType:row.vehicle_type,members:[{id:au.user.id,name:au.user.name,callSign:callsign,position:"Lead"}]}};
  }
  if(["createPatrol","updatePatrol"].includes(method)){
