@@ -694,15 +694,27 @@ async function dispatchCore(method,args,env,token){
   const tenCode=text(d.tenCode||d.ten_code||d.status)||"10-1";
   const row={id:pid,callsign,number:callsign,vehicle_type:text(d.vehicleType||d.vehicle_type),status:"10-1",ten_code:tenCode,location:text(d.location),activity:text(d.activity),created_at:now,created_by:au.user.id,updated_at:now,updated_by:au.user.id};
   if(!row.vehicle_type||!row.location||!row.activity) throw new Error("Einsatzort, Status und Fahrzeug sind erforderlich.");
-  await db(env,"patrols",{method:"POST",body:row,prefer:"return=minimal"});
+
+  // Persist the patrol first and ask Supabase to return the inserted row.
+  // This makes the successful database write explicit instead of relying on
+  // a best-effort client-side assumption that the POST was accepted.
+  const inserted=await db(env,"patrols",{method:"POST",body:row,prefer:"return=representation"});
+  const savedRow=Array.isArray(inserted)&&inserted[0]?{...row,...inserted[0]}:row;
+  if(!savedRow.id) throw new Error("Die Streife konnte nicht in der Leitstelle gespeichert werden.");
+
   try {
-   await db(env,"patrol_members",{method:"POST",body:{patrol_id:pid,user_id:au.user.id,position:"Lead"},prefer:"return=minimal"});
+   await db(env,"patrol_members",{method:"POST",body:{patrol_id:savedRow.id,user_id:au.user.id,position:"Lead"},prefer:"return=minimal"});
+   const membership=await db(env,"patrol_members",{query:{select:"patrol_id,user_id,position",patrol_id:`eq.${savedRow.id}`,user_id:`eq.${au.user.id}`,limit:"1"}});
+   if(!membership?.length) throw new Error("Die Streife wurde gespeichert, aber der Dienst konnte nicht als Besatzung eingetragen werden.");
   } catch(error) {
-   // Do not leave an orphaned patrol behind when membership creation fails.
-   await db(env,"patrols",{method:"DELETE",query:{id:`eq.${pid}`},prefer:"return=minimal"}).catch(()=>{});
+   // Never leave an invisible/orphaned patrol behind when membership creation
+   // or verification fails.
+   await db(env,"patrol_members",{method:"DELETE",query:{patrol_id:`eq.${savedRow.id}`},prefer:"return=minimal"}).catch(()=>{});
+   await db(env,"patrols",{method:"DELETE",query:{id:`eq.${savedRow.id}`},prefer:"return=minimal"}).catch(()=>{});
    throw error;
   }
-  return {success:true,patrol:{...row,tenCode:row.ten_code,vehicleType:row.vehicle_type,members:[{id:au.user.id,name:au.user.name,callSign:callsign,position:"Lead"}]}};
+
+  return {success:true,patrol:{...savedRow,tenCode:savedRow.ten_code,vehicleType:savedRow.vehicle_type,members:[{id:au.user.id,name:au.user.name,callSign:callsign,position:"Lead"}]}};
  }
  if(["createPatrol","updatePatrol"].includes(method)){
   const au=await authz(env,token,method==="createPatrol"?"patrols.create":"patrols.edit");const d=args[1]||{},pid=text(d.id)||id("P"),now=new Date().toISOString();
