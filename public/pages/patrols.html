@@ -2027,7 +2027,7 @@
 
     function createPatrolCard(patrol) {
         const card = document.createElement("article");
-        card.className = "patrol-card patrol-card-modern";
+        card.className = "patrol-card patrol-card-compact";
 
         const statusValue = String(
             patrol.tenCode || patrol.ten_code || patrol.status || "Unbekannt"
@@ -2057,26 +2057,44 @@
                 const memberCallsign = String(member.callSign || "").trim();
                 const lead = String(member.position || "").toLowerCase() === "lead";
                 return `
-                    <div class="patrol-crew-person${lead ? " is-lead" : ""}" title="${escapeHtml(memberName)}${memberCallsign ? " · " + escapeHtml(memberCallsign) : ""}">
+                    <span class="patrol-crew-person${lead ? " is-lead" : ""}" title="${escapeHtml(memberName)}${memberCallsign ? " · " + escapeHtml(memberCallsign) : ""}">
                         <span class="patrol-crew-rank">${escapeHtml(rank)}</span>
                         <span class="patrol-crew-name">${escapeHtml(memberName)}</span>
                         ${memberCallsign ? `<span class="patrol-crew-callsign">${escapeHtml(memberCallsign)}</span>` : ""}
                         ${lead ? `<span class="patrol-crew-lead">LEAD</span>` : ""}
-                    </div>
+                    </span>
                 `;
             }).join("")
-            : `<div class="patrol-crew-empty"><i class="fa-solid fa-user-slash"></i> Noch keine Besatzung</div>`;
+            : `<span class="patrol-crew-empty">Keine Besatzung</span>`;
 
         card.innerHTML = `
-            <div class="patrol-card-head">
-                <div class="patrol-card-identity">
-                    <div class="patrol-call-sign-badge">
-                        <span class="patrol-call-sign-icon"><i class="fa-solid fa-radio"></i></span>
-                        <span>${escapeHtml(patrolCallsign)}</span>
-                    </div>
+            <div class="patrol-compact-main">
+                <div class="patrol-compact-callsign">
+                    <span class="patrol-call-sign-icon"><i class="fa-solid fa-radio"></i></span>
+                    <strong>${escapeHtml(patrolCallsign)}</strong>
                     <span class="patrol-card-live"><span></span> AKTIV</span>
                 </div>
-                <div class="patrol-card-actions">
+                <div class="patrol-compact-field patrol-compact-status">
+                    <span class="patrol-info-label">STATUS</span>
+                    <span class="patrol-modern-status status-${escapeHtml(statusClass)}">${escapeHtml(statusValue)}</span>
+                </div>
+                <div class="patrol-compact-field">
+                    <span class="patrol-info-label">EINSATZORT</span>
+                    <span class="patrol-info-value"><i class="fa-solid fa-location-dot"></i>${escapeHtml(patrolLocation || "—")}</span>
+                </div>
+                <div class="patrol-compact-field">
+                    <span class="patrol-info-label">FAHRZEUG</span>
+                    <span class="patrol-info-value"><i class="fa-solid fa-car-side"></i>${escapeHtml(vehicle)}</span>
+                </div>
+                <div class="patrol-compact-field patrol-compact-activity">
+                    <span class="patrol-info-label">TÄTIGKEIT</span>
+                    <span class="patrol-info-value"><i class="fa-solid fa-bullhorn"></i>${escapeHtml(patrolActivity || "—")}</span>
+                </div>
+                <div class="patrol-compact-crew">
+                    <span class="patrol-info-label">BESATZUNG</span>
+                    <div class="patrol-crew-list">${membersHtml}</div>
+                </div>
+                <div class="patrol-compact-actions">
                     <button class="patrol-action-button patrol-join-button" type="button"
                         title="${alreadyMember ? "Bereits Mitglied dieser Streife" : "Dieser Streife beitreten"}"
                         aria-label="${alreadyMember ? "Bereits Mitglied dieser Streife" : "Dieser Streife beitreten"}"
@@ -2090,33 +2108,6 @@
                         </button>
                     ` : ""}
                 </div>
-            </div>
-
-            <div class="patrol-card-main">
-                <div class="patrol-info-block patrol-status-block">
-                    <span class="patrol-info-label">Status</span>
-                    <span class="patrol-modern-status status-${escapeHtml(statusClass)}">${escapeHtml(statusValue)}</span>
-                </div>
-                <div class="patrol-info-block">
-                    <span class="patrol-info-label">Einsatzort</span>
-                    <span class="patrol-info-value"><i class="fa-solid fa-location-dot"></i>${escapeHtml(patrolLocation || "Kein Einsatzort")}</span>
-                </div>
-                <div class="patrol-info-block">
-                    <span class="patrol-info-label">Fahrzeug</span>
-                    <span class="patrol-info-value"><i class="fa-solid fa-car-side"></i>${escapeHtml(vehicle)}</span>
-                </div>
-                <div class="patrol-info-block patrol-activity-block">
-                    <span class="patrol-info-label">Tätigkeit</span>
-                    <span class="patrol-info-value"><i class="fa-solid fa-bullhorn"></i>${escapeHtml(patrolActivity || "Keine Angabe")}</span>
-                </div>
-            </div>
-
-            <div class="patrol-card-crew">
-                <div class="patrol-crew-heading">
-                    <span><i class="fa-solid fa-users"></i> Besatzung</span>
-                    <span class="patrol-crew-count">${members.length}</span>
-                </div>
-                <div class="patrol-crew-list">${membersHtml}</div>
             </div>
         `;
 
