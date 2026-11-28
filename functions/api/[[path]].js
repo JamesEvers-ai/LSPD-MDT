@@ -69,7 +69,7 @@ const USED_LSPD_PERMISSION_KEYS=new Set([
  "dashboard.view","patrols.view","patrols.create","patrols.edit","patrols.delete","dispatch.briefing.manage",
  "officers.view","officers.edit","officers.deactivate","organization.edit","regulations.view","regulations.manage",
  "announcements.view","announcements.manage","vacations.view","vacations.manage","ifines.view","ifines.manage",
- "vehicles.view","vehicles.manage","uniforms.view","uniforms.manage","armory.view","armory.manage",
+ "vehicles.view","vehicles.manage","uniforms.view","uniforms.manage","armory.view","armory.manage","armory.special.manage",
  "academy.view","academy.manage","wanted.view","wanted.manage","warrants.view","warrants.manage",
  "records.view","records.create","records.edit","records.delete","fines.view","fines.manage",
  "lawyers.view","lawyers.manage","calendar.view","calendar.manage","gangs.evidence.view","gangs.evidence.manage",
@@ -188,24 +188,50 @@ async function syncPatrolState(env,patrolId,actorId){
 
 
 
-const EQUIPMENT_COLUMNS="id,name,category,description,image_url,rank_rules,active,updated_at";
+const EQUIPMENT_COLUMNS="id,name,category,weapon_class,special_key,description,image_url,rank_rules,active,updated_at";
 const EQUIPMENT_CATEGORIES=new Set(["items","weapons","vests"]);
+const WEAPON_CLASSES=new Set(["pistols","smgs","shotguns","rifles","snipers","machineguns"]);
+const SPECIAL_EQUIPMENT=Object.freeze({unique_lmg:{label:"Einzigartiges LMG",weaponClass:"machineguns"},heavy_sniper:{label:"Schweres Scharfschützengewehr",weaponClass:"snipers"},heavy_sniper_mk2:{label:"Schweres Scharfschützengewehr MKII",weaponClass:"snipers"}});
+function specialEquipmentKey(name){
+ const n=text(name).toLowerCase().replace(/[^a-z0-9äöüß]/g,"");
+ return ({einzigartigeslmg:"unique_lmg",einzigartigelmg:"unique_lmg",uniquelmg:"unique_lmg",schweresscharfschützengewehr:"heavy_sniper",heavysniper:"heavy_sniper",schweresscharfschützengewehrmkii:"heavy_sniper_mk2",schweresscharfschützengewehrmk2:"heavy_sniper_mk2",heavysnipermkii:"heavy_sniper_mk2",heavysnipermk2:"heavy_sniper_mk2"})[n]||null;
+}
 async function equipmentDispatch(method,args,env,token){
- if(!["getEquipmentCatalog","saveEquipmentItem","deleteEquipmentItem"].includes(method))return undefined;
+ if(!["getEquipmentCatalog","saveEquipmentItem","deleteEquipmentItem","getEquipmentSpecialAccess","setEquipmentSpecialAccess"].includes(method))return undefined;
  const au=await authz(env,token,"armory.view");
- const canManage=effectivePermission(au,"armory.manage");
+ const canManage=effectivePermission(au,"armory.manage"),canManageSpecial=effectivePermission(au,"armory.special.manage");
+ if(method==="getEquipmentSpecialAccess"||method==="setEquipmentSpecialAccess"){
+  if(!canManageSpecial)throw recordError("Keine Berechtigung zur Verwaltung von Spezialfreigaben.",403);
+  if(method==="getEquipmentSpecialAccess"){
+   const [users,grants]=await Promise.all([db(env,"users",{query:{select:"id,name,rank",active:"eq.true",approved:"eq.true",order:"name.asc"}}),db(env,"lspd_equipment_special_access",{query:{select:"user_id,special_key,enabled,note,updated_by_name,updated_at"}})]);
+   const ids=new Set((users||[]).map(u=>String(u.id)));
+   return {users,grants:(grants||[]).filter(g=>ids.has(String(g.user_id))),specials:SPECIAL_EQUIPMENT};
+  }
+  const d=args[1]||{},uid=text(d.userId),special=text(d.specialKey),note=text(d.note);
+  if(!uid||!Object.hasOwn(SPECIAL_EQUIPMENT,special)||typeof d.enabled!=="boolean"||note.length>1000)throw recordError("Ungültige Spezialfreigabe.");
+  if(d.enabled&&!au.master&&uid===String(au.user.id))throw recordError("Du darfst dir selbst keine Spezialfreigabe erteilen.",403);
+  const target=await db(env,"users",{query:{select:"id,name",id:`eq.${uid}`,active:"eq.true",approved:"eq.true",limit:"1"}});
+  if(!target?.length)throw recordError("Aktiver Mitarbeiter nicht gefunden.",404);
+  const row={user_id:uid,special_key:special,enabled:d.enabled,note,updated_by:au.user.id,updated_by_name:au.user.name,updated_at:new Date().toISOString()};
+  await db(env,"lspd_equipment_special_access",{method:"POST",query:{on_conflict:"user_id,special_key"},body:row,prefer:"resolution=merge-duplicates,return=minimal"});
+  await writeAudit(env,au,d.enabled?"special_grant":"special_revoke","armory",uid,`${SPECIAL_EQUIPMENT[special].label} · ${target[0].name} · ${note}`);
+  return {success:true,grant:row};
+ }
  if(method==="getEquipmentCatalog"){
-  const [ranks,items]=await Promise.all([rankRows(env),db(env,"fib_equipment_catalog",{query:{select:EQUIPMENT_COLUMNS,order:"category.asc,name.asc,id.asc",...(canManage?{}:{active:"eq.true"}),limit:"1000"}})]);
+  const [ranks,items,grants]=await Promise.all([rankRows(env),db(env,"fib_equipment_catalog",{query:{select:EQUIPMENT_COLUMNS,order:"category.asc,name.asc,id.asc",...(canManage?{}:{active:"eq.true"}),limit:"1000"}}),db(env,"lspd_equipment_special_access",{query:{select:"special_key,enabled,updated_at",user_id:`eq.${au.user.id}`,enabled:"eq.true"}})]);
   const activeRanks=(ranks||[]).filter(r=>r.active!==false);
   const ownRank=activeRanks.find(r=>String(r.id)===String(au.user.rank))||activeRanks.find(r=>r.name===au.user.rank);
-  const ownId=String(ownRank?.id||"");
+  const ownId=String(ownRank?.id||""),ownGrants=new Map((grants||[]).filter(g=>g.enabled===true).map(g=>[g.special_key,g]));
+  const blocked=[];
   const personal=(items||[]).filter(x=>x.active!==false).flatMap(x=>{
-   const rule=(Array.isArray(x.rank_rules)?x.rank_rules:[]).find(r=>String(r.rankId)===ownId&&Number(r.quantity)>0);
+   const rule=(Array.isArray(x.rank_rules)?x.rank_rules:[]).find(r=>String(r.rankId)===ownId&&r.enabled!==false&&Number(r.quantity)>0);
    if(!ownId||!rule)return [];
+   const special=x.special_key||specialEquipmentKey(x.name);
+   if(special&&!ownGrants.has(special)){blocked.push({id:x.id,name:x.name,special_key:special});return [];}
    const {rank_rules,...item}=x;
-   return [{...item,quantity:rule.quantity,ammunition:x.category==="weapons"?rule.ammunition:undefined}];
+   return [{...item,special_key:special,grantVersion:special?ownGrants.get(special)?.updated_at:undefined,quantity:rule.quantity,ammunition:x.category==="weapons"?rule.ammunition:undefined}];
   });
-  return {profile:{id:au.user.id,name:au.user.name,rank:ownRank?.name||"Kein aktiver Rang",rankId:ownId},canManage,personal,items:canManage?items:[],ranks:canManage?activeRanks.map(r=>({id:r.id,name:r.name,level:r.level})):[]};
+  return {profile:{id:au.user.id,name:au.user.name,rank:ownRank?.name||"Kein aktiver Rang",rankId:ownId},canManage,canManageSpecial,personal,blocked,specials:SPECIAL_EQUIPMENT,ownSpecial:[...ownGrants.keys()],items:canManage?items:[],ranks:canManage?activeRanks.map(r=>({id:r.id,name:r.name,level:r.level})):[]};
  }
  if(!canManage)throw recordError("Keine Berechtigung zur Ausrüstungsverwaltung.",403);
  if(method==="deleteEquipmentItem"){
@@ -213,9 +239,19 @@ async function equipmentDispatch(method,args,env,token){
   const result=await db(env,"fib_equipment_catalog",{method:"DELETE",query:{id:`eq.${itemId}`,select:"id"},prefer:"return=representation"});
   if(!result?.length)throw recordError("Eintrag nicht gefunden.",404);return {success:true};
  }
- const d=args[1]||{},name=text(d.name),category=text(d.category),description=text(d.description),imageUrl=text(d.imageUrl);
+ const d=args[1]||{},name=text(d.name),category=text(d.category),description=text(d.description),imageUrl=text(d.imageUrl),itemId=text(d.id);
  if(!name||name.length>180||!EQUIPMENT_CATEGORIES.has(category)||description.length>2000)throw recordError("Bitte Bezeichnung, Kategorie und Beschreibung prüfen.");
  if(imageUrl&&(!/^https:\/\//i.test(imageUrl)||imageUrl.length>2000))throw recordError("Bitte einen gültigen HTTPS-Bildlink verwenden.");
+ let weaponClass=text(d.weaponClass)||null,special=text(d.specialKey)||null;
+ if(weaponClass&&!WEAPON_CLASSES.has(weaponClass))throw recordError("Ungültige Waffenunterkategorie.");
+ if(special&&!Object.hasOwn(SPECIAL_EQUIPMENT,special))throw recordError("Ungültige Spezialwaffe.");
+ const detected=specialEquipmentKey(name);
+ if(detected&&special&&detected!==special)throw recordError("Spezialfreigabe passt nicht zur Bezeichnung.");
+ if(itemId){const old=(await db(env,"fib_equipment_catalog",{query:{select:"id,name,special_key",id:`eq.${itemId}`,limit:"1"}}))?.[0];if(!old)throw recordError("Eintrag nicht gefunden.",404);const previous=old.special_key||specialEquipmentKey(old.name);if(previous&&(detected&&detected!==previous||special&&special!==previous))throw recordError("Die hinterlegte Spezialfreigabe kann nicht umgangen werden.");special=previous||special;}
+ special=detected||special;
+ if(special&&category!=="weapons")throw recordError("Spezialwaffen müssen in der Kategorie Waffen bleiben.");
+ if(special)weaponClass=SPECIAL_EQUIPMENT[special].weaponClass;
+ if(category!=="weapons")weaponClass=null;
  if(!Array.isArray(d.rankRules))throw recordError("Rangfreigaben fehlen.");
  const ranks=await rankRows(env),validRanks=new Set((ranks||[]).filter(r=>r.active!==false).map(r=>String(r.id))),seen=new Set();
  const number=(v,min)=>{if(typeof v!=="number"||!Number.isSafeInteger(v)||v<min||v>1000000)throw recordError("Mengen müssen gültige ganze Zahlen sein.");return v;};
@@ -225,8 +261,7 @@ async function equipmentDispatch(method,args,env,token){
   if(category==="weapons")rule.ammunition=number(r.ammunition,0);
   return rule;
  });
- const row={name,category,description,image_url:imageUrl||null,rank_rules:rules,active:d.active!==false,updated_at:new Date().toISOString(),updated_by:au.user.id};
- const itemId=text(d.id);
+ const row={name,category,weapon_class:weaponClass,special_key:special,description,image_url:imageUrl||null,rank_rules:rules,active:d.active!==false,updated_at:new Date().toISOString(),updated_by:au.user.id};
  const saved=await db(env,"fib_equipment_catalog",itemId?{method:"PATCH",query:{id:`eq.${itemId}`,select:EQUIPMENT_COLUMNS},body:row,prefer:"return=representation"}:{method:"POST",query:{select:EQUIPMENT_COLUMNS},body:{...row,id:id("EQ"),created_by:au.user.id},prefer:"return=representation"});
  if(!saved?.length)throw recordError("Eintrag konnte nicht gespeichert werden.",404);
  return {success:true,item:saved[0]};
@@ -1314,6 +1349,7 @@ async function dispatchCore(method,args,env,token){
    ["fib_announcements","id,title,description,status,event_date,metadata,created_at"],
    ["fib_vacations","id,title,description,status,event_date,metadata,created_at"],
    ["fib_equipment_catalog",EQUIPMENT_COLUMNS],
+   ["lspd_equipment_special_access","user_id,special_key,enabled,note,updated_by,updated_by_name,updated_at"],
    ["fib_internal_fines","id,title,description,status,event_date,metadata,created_at"],
    ["fib_internal_fine_catalog","id,item_type,category_id,title,description,amount,sanction_type,sanction_value,sanction_unit,sanction_components,active,sort_order,created_at,updated_at,created_by"],
    ["fib_calendar_events","id,title,description,status,event_date,metadata,created_at"],
@@ -1405,7 +1441,7 @@ function auditAction(method){
 async function dispatch(method,args,env,token){
  const result = await dispatchCore(method,args,env,token);
  if(/^(createRecord|updateRecord|archiveRecord|deleteRecord|createWanted|updateWanted|deleteWanted|startDuty|leavePatrol|joinPatrol|createPatrol|deletePatrol|system(?:Create|Update|Set|Approve|Deactivate).*|savePersonnelDepartment|refreshWarrantsCache)$/.test(method)||(/ModuleItem$/.test(method)&&method!=="getModuleItems"&&args[1]==="announcements")){dashboardStatsEpoch++;dashboardStatsCache.clear();dashboardQueryCache.clear();}
- if(method!=="markNotificationsRead" && !READ_ONLY_METHODS.has(method) && !/^(get|list|search|check|has|validate|preview|load)/i.test(method)){
+ if(method!=="markNotificationsRead" && method!=="setEquipmentSpecialAccess" && !READ_ONLY_METHODS.has(method) && !/^(get|list|search|check|has|validate|preview|load)/i.test(method)){
   try{
    const actor = await authz(env,token);
    const moduleName = auditModule(method,args);

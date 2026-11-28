@@ -21,7 +21,7 @@
     "getCurrentUser", "getSessionInfo", "getMyPermissions", "getPatrols", "getPatrolRevision", "getOwnDuty", "getPatrolSync",
     "getDashboardStats", "getDashboardStatistics", "getActivePatrols",
     "getLivePatrols", "getCurrentSession", "getNotifications", "getRegulations", "getRegulation", "getRegulationHistory", "getRegulationVersion",
-    "getWarrantStatistics", "getRecords", "getRecord", "getRecordShares", "getEquipmentCatalog", "getVacationRequests", "getFinanceAccess", "getBonusData", "getAccountingData", "getPersonnelFileBundle", "getPersonnelHistory"
+    "getWarrantStatistics", "getRecords", "getRecord", "getRecordShares", "getEquipmentCatalog", "getEquipmentSpecialAccess", "getVacationRequests", "getFinanceAccess", "getBonusData", "getAccountingData", "getPersonnelFileBundle", "getPersonnelHistory"
   ]);
   let lastToken = null;
 
