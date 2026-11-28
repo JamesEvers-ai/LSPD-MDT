@@ -158,7 +158,7 @@ async function getUserDepartment(env, userId) {
   pruneCache(departmentCache, DEPARTMENT_CACHE_TTL_MS);
   const cacheKey = `${String(env.SUPABASE_URL || "")}\u0000${String(userId || "")}`;
   const cached = cacheGet(departmentCache, cacheKey);
-  if (cached) return cached;
+  if (cached !== null) return cached;
   const rows = await db(env, "personnel", {
     query: { select: "department", user_id: `eq.${String(userId || "")}`, limit: "1" }
   });

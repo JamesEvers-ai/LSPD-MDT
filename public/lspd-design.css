@@ -1018,7 +1018,7 @@ html body #pageContainer .patrols-page #patrolsList {display:block!important;bac
 #pageContainer .dispatch-group {margin:0 0 12px;min-width:0;overflow-x:auto;scrollbar-width:thin;padding-bottom:2px;}
 #pageContainer .dispatch-group-title {display:inline-flex;align-items:center;gap:8px;min-height:27px;padding:3px 11px;background:#dcebf7;color:#234e74;border:1px solid #c2d6e8;border-radius:6px 6px 0 0;font:750 13px/1.2 system-ui,sans-serif;letter-spacing:.015em;}
 #pageContainer .dispatch-group-count {font-size:11px;color:#4b6c88;font-weight:650;}
-#pageContainer .dispatch-row {box-sizing:border-box;display:grid;grid-template-columns:125px 76px 180px 165px 100px minmax(180px,1fr) 138px;align-items:center;gap:3px;min-width:994px;min-height:38px;padding:3px 4px;margin:0 0 3px;border:1px solid #cad9e8;border-radius:5px;background:#e6edf5;color:#18344f;font:650 13px/1.25 system-ui,sans-serif;}
+#pageContainer .dispatch-row {box-sizing:border-box;display:grid;grid-template-columns:125px 76px minmax(145px,1fr) minmax(140px,1fr) 100px minmax(180px,1.4fr) 70px;align-items:center;gap:3px;min-width:864px;min-height:38px;padding:3px 4px;margin:0 0 3px;border:1px solid #cad9e8;border-radius:5px;background:#e6edf5;color:#18344f;font:650 13px/1.25 system-ui,sans-serif;}
 #pageContainer .dispatch-row:hover {background:#dce8f3;border-color:#a6bfd7;}
 #pageContainer .dispatch-call {display:flex;align-items:stretch;min-width:0;height:30px;border-radius:3px;overflow:hidden;background:#d8e8f7;color:#204e77;}
 #pageContainer .dispatch-prefix {display:flex;align-items:center;justify-content:center;flex:1;min-width:0;padding:0 5px;text-transform:uppercase;font-size:13px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
@@ -1033,17 +1033,15 @@ html body #pageContainer .patrols-page #patrolsList {display:block!important;bac
 #pageContainer .dispatch-name {padding:4px 6px;font-size:13px;color:#203a53;font-weight:650;}
 #pageContainer .dispatch-lead {padding:4px 5px;background:#e8dcb0;color:#645015;font-size:11px;font-weight:800;}
 #pageContainer .dispatch-no-crew {color:#61788c;font-size:13px;}
-#pageContainer .dispatch-overview-shell{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(300px,.9fr);gap:18px;margin:0 0 18px;align-items:start;}
-#pageContainer .dispatch-overview-card,#pageContainer .dispatch-briefing-card{background:#f5f8fc;border:1px solid #d7e2ee;border-radius:12px;padding:16px 18px;box-shadow:0 10px 20px rgba(16,42,67,.05);}
-#pageContainer .dispatch-overview-header,#pageContainer .dispatch-briefing-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px;}
-#pageContainer .dispatch-overview-title,#pageContainer .dispatch-briefing-title{font:800 18px/1.2 system-ui,sans-serif;color:#173b5b;}
-#pageContainer .dispatch-overview-subtitle,#pageContainer .dispatch-briefing-meta{font:500 12px/1.45 system-ui,sans-serif;color:#58718a;}
-#pageContainer .dispatch-overview-total{display:inline-flex;align-items:center;justify-content:center;min-height:36px;padding:0 12px;border-radius:999px;background:#dcebf7;color:#1f537c;font:800 13px/1 system-ui,sans-serif;white-space:nowrap;}
-#pageContainer .dispatch-overview-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;}
-#pageContainer .dispatch-overview-column{display:grid;gap:10px;}
-#pageContainer .dispatch-overview-item{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:48px;padding:12px 14px;border-radius:10px;border:1px solid #d6e2ee;background:#fff;color:#23445f;}
-#pageContainer .dispatch-overview-item span{font:650 13px/1.3 system-ui,sans-serif;color:#4a6784;}
-#pageContainer .dispatch-overview-item strong{font:800 22px/1 system-ui,sans-serif;color:#163b5a;}
+#pageContainer .dispatch-workspace{display:grid;grid-template-columns:minmax(0,1fr) minmax(270px,310px);gap:14px;align-items:start;min-width:0;}
+#pageContainer .dispatch-briefing-card{min-width:0;background:#f5f8fc;border:1px solid #d7e2ee;border-radius:10px;padding:14px;box-shadow:0 6px 15px rgba(16,42,67,.05);overflow-wrap:anywhere;}
+#pageContainer .dispatch-briefing-header{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:12px;}
+#pageContainer .dispatch-briefing-title{font:800 16px/1.3 system-ui,sans-serif;color:#173b5b;}
+#pageContainer .dispatch-briefing-meta{font:500 12px/1.45 system-ui,sans-serif;color:#58718a;margin-top:4px;}
+#pageContainer .dispatch-briefing-card [hidden]{display:none!important;}
+#pageContainer .dispatch-briefing-card .mdt-rich-toolbar{display:flex;flex-wrap:wrap;gap:4px;}
+#pageContainer .dispatch-briefing-card .patrol-header-button{white-space:nowrap;}
+#pageContainer .dispatch-briefing-card .mdt-rich-content{font-size:14px;line-height:1.55;}
 #pageContainer .dispatch-briefing-view,#pageContainer .dispatch-briefing-preview{min-height:170px;padding:14px 15px;border-radius:10px;border:1px solid #d8e3ef;background:#fff;overflow:auto;}
 #pageContainer .dispatch-briefing-editor[hidden],#pageContainer .dispatch-briefing-view[hidden]{display:none!important;}
 #pageContainer .dispatch-briefing-input{width:100%;min-height:150px;margin-top:10px;padding:12px 14px;border:1px solid #cad8e6;border-radius:10px;background:#fff;color:#163b5a;font:500 14px/1.55 system-ui,sans-serif;resize:vertical;box-sizing:border-box;}
@@ -1058,7 +1056,7 @@ html body #pageContainer .patrols-page #patrolsList {display:block!important;bac
 #pageContainer .dispatch-button.lspd-row-join:hover:not(:disabled){background:#2a75b0;color:#fff;border-color:#2a75b0;}
 #pageContainer .dispatch-button:disabled {background:#f2f5f8;border-color:#cbd6e0;color:#5a7185;cursor:default;}
 #pageContainer .dispatch-button:focus-visible,#pageContainer .dispatch-crew:focus-visible,#pageContainer .dispatch-briefing-input:focus-visible {outline:2px solid #24679d;outline-offset:1px;}
-@media (max-width:1200px){#pageContainer .dispatch-overview-shell{grid-template-columns:minmax(0,1fr);}#pageContainer .dispatch-overview-grid{grid-template-columns:1fr;}}
+@media (max-width:1300px){#pageContainer .dispatch-workspace{grid-template-columns:minmax(0,1fr);}}
 #pageContainer .patrol-empty {padding:35px 20px;text-align:center;border:1px dashed #c9d9e7;border-radius:8px;background:#fff;color:#577087;}
 #pageContainer .patrol-empty-title {font-size:15px;font-weight:700;margin:8px 0;}
 #pageContainer .patrol-empty-text {font-size:13px;}

@@ -1,8 +1,7 @@
 (function () {
     "use strict";
 
-    const previous = window.__FIB_MDT_PATROLS__;
-    const state = previous || {
+    const state = {
         patrolData: [],
         patrolUsers: [],
         ownPersonnelProfile: null,
@@ -13,22 +12,33 @@
         patrolDataPromise: null,
         patrolUsersPromise: null,
         patrolFilters: {
-            group: "callsign"
+            group: "status"
         },
+        briefingRow: null,
+        canManageBriefing: false,
+        briefingSaving: false,
+        briefingLoading: false,
         initialized: false,
         instanceId: "",
         mounted: false
     };
 
     window.__FIB_MDT_PATROLS__ = state;
-    let dutySaveQueue = Promise.resolve();
+    let active = true;
+    let pendingRefresh = false;
+    window.__fibPageLifecycle.addCleanup(()=>{active=false;});
 
     const PATROL_PERMISSIONS = Object.freeze({
         view: "patrols.view",
         create: "patrols.create",
         edit: "patrols.edit",
-        delete: "patrols.delete"
+        delete: "patrols.delete",
+        dispatchBriefingManage: "dispatch.briefing.manage"
     });
+
+    if (window.MDTRichText && typeof window.MDTRichText.attachToolbar === "function") {
+        window.MDTRichText.attachToolbar(document.body);
+    }
 
     let VEHICLES = [
         "STR",
@@ -42,33 +52,12 @@
 
     const DEFAULT_STATUSES = ["10-1", "10-3", "10-6", "10-23", "10-76"];
     let STATUSES = [...DEFAULT_STATUSES];
-    let PATROL_DUTY_CONFIG = {tenCodes: [...DEFAULT_STATUSES], locations: [], activities: [], vehicles: [...VEHICLES], tenCodeColors: {}, statusColors: {}};
-    async function loadPatrolDutyConfig() {
-      if (!window.__fibPatrolDutyConfigPromise) {
-        window.__fibPatrolDutyConfigPromise = (async function () {
-          try {
-            return await window.runServer("getPatrolDutyConfig");
-          } catch (e) {
-            console.warn("Dienst-Konfiguration nicht verfügbar; Standardwerte werden verwendet.", e);
-            return null;
-          }
-        })();
-      }
-      const result = await window.__fibPatrolDutyConfigPromise;
-      if (result && result.success !== false) {
-        PATROL_DUTY_CONFIG = {
-          tenCodes: Array.isArray(result.tenCodes) && result.tenCodes.length ? result.tenCodes.map(String) : [...DEFAULT_STATUSES],
-          locations: Array.isArray(result.locations) ? result.locations.map(String) : [],
-          activities: Array.isArray(result.activities) ? result.activities.map(String) : [],
-          vehicles: Array.isArray(result.vehicles) && result.vehicles.length ? result.vehicles.map(String) : [...VEHICLES],
-          tenCodeColors: result.tenCodeColors && typeof result.tenCodeColors === "object" ? result.tenCodeColors : {},
-          statusColors: result.statusColors && typeof result.statusColors === "object" ? result.statusColors : {}
-        };
-        STATUSES = [...PATROL_DUTY_CONFIG.tenCodes];
-        VEHICLES = [...PATROL_DUTY_CONFIG.vehicles];
-        window.__FIB_PATROL_DUTY_CONFIG__ = PATROL_DUTY_CONFIG;
-      }
-      return PATROL_DUTY_CONFIG;
+    async function loadConfiguredTenCodes() {
+      try {
+        const result = await (window.fibGetPatrolDutyConfig ? window.fibGetPatrolDutyConfig() : window.runServer("getPatrolDutyConfig"));
+        if(result?.tenCodes?.length) STATUSES=result.tenCodes.map(String);
+        if(result?.vehicles?.length) VEHICLES=result.vehicles.map(String);
+      } catch(e){ console.warn("Dienstkonfiguration:",e); }
     }
 
     const PAGE_CACHE_MS = 30000;
@@ -121,12 +110,7 @@
         if (isMasterAccount()) return true;
 
         try {
-            if (
-                typeof hasPermission === "function" &&
-                hasPermission(permission)
-            ) {
-                return true;
-            }
+            if (typeof hasPermission === "function") return hasPermission(permission);
         } catch (error) {}
 
         try {
@@ -218,63 +202,9 @@
         return String(window.currentUser?.id || window.currentUser?.userId || "");
     }
 
-    function renderOwnStatus() {
-        const userId = getLoggedInUserId();
-        const ownPatrol = (state.patrolData || []).find(function (patrol) {
-            return (patrol.members || []).some(function (member) {
-                return String(member.id || member.userId || "") === userId;
-            });
-        });
-        const profile = state.ownPersonnelProfile || {};
-        const ownCallSign = String(profile.callSign || "").trim();
-        const inPatrol = Boolean(ownPatrol);
-        // The top-right strip is a duty overview, not a radio-code display:
-        // show the selected activity as Status and the selected operational area
-        // as Einsatzort. The database `status` (e.g. 10-01) and callsign/number
-        // belong to the patrol record and must not be placed in these fields.
-        const statusText = inPatrol
-            ? String(ownPatrol.activity || "Tätigkeit nicht hinterlegt")
-            : (profile.personnelStatus ? String(profile.personnelStatus) : "Nicht in Streife");
-        const unitText = inPatrol
-            ? String(ownPatrol.location || "Einsatzort nicht hinterlegt")
-            : "Kein Einsatzort";
-        if (typeof window.fibUpdateOwnStatus === "function") {
-            window.fibUpdateOwnStatus({
-                callSign: ownCallSign || "Kein Funkrufname hinterlegt",
-                status: statusText,
-                unit: unitText,
-                inPatrol: inPatrol
-            });
-        }
-    }
-
-    function restoreOwnDutyPicker() {
-      // Do not publish an off-duty state while the patrol request is still in flight.
-      // Profile and patrol data load independently; the old implementation could
-      // briefly overwrite a valid local/server selection with an empty state.
-      if (!state.patrolDataLoaded || !Array.isArray(state.patrolData) || !state.ownPersonnelProfile) return;
-      const profile = state.ownPersonnelProfile || {};
-      const ownId = String(profile.userId || profile.user_id || profile.id || getLoggedInUserId() || "");
-      if (!ownId) return;
-      const ownPatrol = state.patrolData.find(p => (p.members || []).some(m =>
-        String(m.id || m.user_id || m.userId || m.userID || "") === ownId
-      ));
-      if (ownPatrol) {
-        window.dispatchEvent(new CustomEvent("fib-mdt:duty-state-restored", {detail: {
-          inDuty: true,
-          location: String(ownPatrol.location || ""),
-          activity: String(ownPatrol.activity || ""),
-          vehicleType: String(ownPatrol.vehicleType || ownPatrol.vehicle_type || ""),
-          tenCode: String(ownPatrol.tenCode || ownPatrol.ten_code || ownPatrol.status || "10-1")
-        }}));
-      } else {
-        window.dispatchEvent(new CustomEvent("fib-mdt:duty-state-restored", {detail: {inDuty: false}}));
-      }
-    }
-
     function fetchOwnPersonnelProfile(forceReload) {
         if (state.ownPersonnelProfileLoaded && !forceReload) {
-            renderOwnStatus();
+
             return Promise.resolve(state.ownPersonnelProfile);
         }
         if (state.ownPersonnelProfilePromise && !forceReload) return state.ownPersonnelProfilePromise;
@@ -284,8 +214,8 @@
                     state.ownPersonnelProfile = profile && typeof profile === "object" ? profile : {};
                     state.ownPersonnelProfileLoaded = true;
                     state.ownPersonnelProfilePromise = null;
-                    renderOwnStatus();
-                    restoreOwnDutyPicker();
+
+
                     resolve(state.ownPersonnelProfile);
                 })
                 .withFailureHandler(function (error) {
@@ -309,6 +239,101 @@
 
         element.textContent =
             count === 1 ? "1 Streife" : count + " Streifen";
+    }
+
+    function renderBriefingPreview() {
+        const preview = document.getElementById("dispatchBriefingPreview");
+        const input = document.getElementById("dispatchBriefingInput");
+        if (!preview || !input) return;
+        const value = input.value || "";
+        preview.innerHTML = value.trim() ? (window.MDTRichText ? window.MDTRichText.render(value) : "<p>" + escapeHtml(value).replace(/\n/g, "<br>") + "</p>") : "<p>Keine Vorschau verfügbar.</p>";
+    }
+
+    function setBriefingEditor(open) {
+        const editor = document.getElementById("dispatchBriefingEditor");
+        const view = document.getElementById("dispatchBriefingView");
+        const editButton = document.getElementById("dispatchBriefingEdit");
+        if (editor) editor.hidden = !open;
+        if (view) view.hidden = open;
+        if (editButton) editButton.hidden = !state.canManageBriefing || open;
+        if (open) renderBriefingPreview();
+    }
+
+    function renderDispatchBriefing() {
+        const meta = document.getElementById("dispatchBriefingMeta");
+        const view = document.getElementById("dispatchBriefingView");
+        const input = document.getElementById("dispatchBriefingInput");
+        const row = state.briefingRow;
+        if (meta) {
+            if (row) {
+                const timestamp = row.updated_at || row.updatedAt || row.created_at || row.createdAt;
+                const date = timestamp ? new Date(timestamp) : null;
+                const label = date && !Number.isNaN(date.getTime()) ? date.toLocaleString("de-DE", { dateStyle: "medium", timeStyle: "short" }) : "ohne Zeitangabe";
+                meta.textContent = "Zuletzt aktualisiert von " + (row.metadata?.updated_by_name || row.created_by_name || row.createdByName || "Unbekannt") + " · " + label;
+            } else {
+                meta.textContent = state.canManageBriefing ? "Noch kein Leitstellenbriefing hinterlegt." : "Keine zusätzlichen Leitstelleninformationen vorhanden.";
+            }
+        }
+        if (view) {
+            const body = row?.description || "";
+            view.innerHTML = body.trim() ? (window.MDTRichText ? window.MDTRichText.render(body) : "<p>" + escapeHtml(body).replace(/\n/g, "<br>") + "</p>") : "<p>Noch keine Leitstelleninformation hinterlegt.</p>";
+        }
+        if (input) input.value = row?.description || "";
+        renderBriefingPreview();
+        setBriefingEditor(false);
+    }
+
+    async function loadDispatchBriefing() {
+        if (!active || state.briefingLoading) return;
+        state.briefingLoading = true;
+        try {
+            const [permissions, rows] = await Promise.all([
+                new Promise((resolve, reject) => { CloudApi.run.withSuccessHandler(resolve).withFailureHandler(reject).getMyPermissions(getToken()); }),
+                new Promise((resolve, reject) => { CloudApi.run.withSuccessHandler(resolve).withFailureHandler(reject).getModuleItems(getToken(), "dispatchbriefing"); })
+            ]);
+            if (!active) return;
+            const permissionList = permissions && Array.isArray(permissions.permissions) ? permissions.permissions : [];
+            state.canManageBriefing = !!permissions?.master || ((permissionList.includes("*") || permissionList.includes(PATROL_PERMISSIONS.dispatchBriefingManage)) && (!(permissions.departmentScopedPermissions || []).includes(PATROL_PERMISSIONS.dispatchBriefingManage) || (permissions.departmentPermissions || []).includes(PATROL_PERMISSIONS.dispatchBriefingManage)));
+            state.briefingRow = Array.isArray(rows) && rows.length ? rows.slice().sort(function (a, b) {
+                return String(b.updated_at || b.updatedAt || b.created_at || b.createdAt || "").localeCompare(String(a.updated_at || a.updatedAt || a.created_at || a.createdAt || ""));
+            })[0] : null;
+            renderDispatchBriefing();
+        } catch (error) {
+            if (!active) return;
+            state.canManageBriefing = false;
+            state.briefingRow = null;
+            const meta = document.getElementById("dispatchBriefingMeta");
+            const view = document.getElementById("dispatchBriefingView");
+            if (meta) meta.textContent = error?.message || "Leitstelleninformationen konnten nicht geladen werden.";
+            if (view) view.innerHTML = "<p>Leitstelleninformationen sind derzeit nicht verfügbar.</p>";
+            setBriefingEditor(false);
+        } finally { state.briefingLoading = false; }
+    }
+
+    async function saveDispatchBriefing() {
+        if (!state.canManageBriefing || state.briefingSaving) return;
+        const input = document.getElementById("dispatchBriefingInput");
+        const saveButton = document.getElementById("dispatchBriefingSave");
+        const payload = { title: "Leitstelleninformationen", description: String(input?.value || "").trim(), status: "active", metadata: { entry_type: "dispatch_briefing", application: "lspd" } };
+        state.briefingSaving = true;
+        if (saveButton) saveButton.disabled = true;
+        try {
+            const saved = await new Promise((resolve, reject) => {
+                const runner = CloudApi.run.withSuccessHandler(resolve).withFailureHandler(reject);
+                if (state.briefingRow?.id) runner.updateModuleItem(getToken(), "dispatchbriefing", state.briefingRow.id, payload);
+                else runner.createModuleItem(getToken(), "dispatchbriefing", payload);
+            });
+            if (!active) return;
+            if (!saved?.id) throw new Error("Speicherung konnte nicht bestätigt werden.");
+            state.briefingRow = saved;
+            renderDispatchBriefing();
+            showSuccess("Leitstelleninformationen gespeichert.");
+        } catch (error) {
+            showError(error?.message || "Leitstelleninformationen konnten nicht gespeichert werden.");
+        } finally {
+            state.briefingSaving = false;
+            if (saveButton) saveButton.disabled = false;
+        }
     }
 
     function setLoading(loading) {
@@ -347,12 +372,13 @@
             state.patrolData = cache.data;
             state.patrolDataLoaded = true;
             renderPatrols();
-            renderOwnStatus();
-            restoreOwnDutyPicker();
+
+
             return Promise.resolve(state.patrolData);
         }
 
-        if (state.patrolDataPromise && !forceReload) {
+        if (state.patrolDataPromise) {
+            if(forceReload) pendingRefresh=true;
             return state.patrolDataPromise;
         }
 
@@ -361,6 +387,7 @@
         state.patrolDataPromise = new Promise(function (resolve, reject) {
             CloudApi.run
                 .withSuccessHandler(function (data) {
+                    if(!active){state.patrolDataPromise=null;resolve([]);return;}
                     const normalized = Array.isArray(data) ? data : [];
 
                     state.patrolData = normalized;
@@ -372,12 +399,15 @@
                     setLoading(false);
                     updateCount();
                     renderPatrols();
-                    renderOwnStatus();
-                    restoreOwnDutyPicker();
+
+
                     resolve(normalized);
+                    if(pendingRefresh){pendingRefresh=false;fetchPatrols(true).catch(()=>{});}
                 })
                 .withFailureHandler(function (error) {
                     state.patrolDataPromise = null;
+                    pendingRefresh=false;
+                    if(!active){reject(error);return;}
                     setLoading(false);
 
                     if (!state.patrolData.length) {
@@ -456,34 +486,13 @@
         return state.patrolUsersPromise;
     }
 
-    function getPatrolColor(type, value) {
-        const map = type === "tenCode" ? PATROL_DUTY_CONFIG.tenCodeColors : PATROL_DUTY_CONFIG.statusColors;
-        const color = map && map[String(value || "")];
-        return typeof color === "string" ? color.trim() : "";
-    }
-
-    function applyConfiguredPatrolColors(card, tenCode, activity) {
-        const tenCodeColor = getPatrolColor("tenCode", tenCode);
-        const activityColor = getPatrolColor("status", activity);
-        const tenCodeEl = card.querySelector(".patrol-status");
-        const activityEl = card.querySelector(".patrol-activity-status");
-        if (tenCodeEl && tenCodeColor) {
-            tenCodeEl.style.setProperty("--patrol-db-color", tenCodeColor);
-            tenCodeEl.setAttribute("data-db-color", "true");
-        }
-        if (activityEl && activityColor) {
-            activityEl.style.setProperty("--patrol-db-color", activityColor);
-            activityEl.setAttribute("data-db-color", "true");
-        }
-    }
+    // Patrol display colors are intentionally fixed.
+    // The former master-only color customization was removed so patrol rendering
+    // no longer depends on a persisted color configuration or optional globals.
 
     function refreshPatrolData() {
         clearPatrolsCache();
-        clearPatrolUsersCache();
-
-        fetchOwnPersonnelProfile(true).catch(function () {});
-        fetchPatrolUsers(true).catch(function () {});
-        fetchPatrols(true).catch(function () {});
+        return fetchPatrols(true);
     }
 
     function renderPatrols() {
@@ -516,7 +525,7 @@
                 return String(member.position || "").toLowerCase() === "lead";
             }) || (patrol.members || [])[0];
             const callsign = String(
-                leadMember?.callSign || patrol.callsign || "Unbekannt"
+                patrol.callsign || leadMember?.callSign || "Unbekannt"
             ).trim() || "Unbekannt";
             const status = String(
                 patrol.tenCode || patrol.ten_code || patrol.status || "Unbekannt"
@@ -530,21 +539,21 @@
         container.innerHTML = "";
 
         Object.keys(groups)
-            .sort()
+            .sort((a,b)=>a.localeCompare(b,"de",{numeric:true}))
             .forEach(function (groupName) {
                 const group = document.createElement("div");
-                group.className = "patrol-group";
+                group.className = "dispatch-group";
 
                 group.innerHTML = `
-                    <div class="patrol-group-title">
+                    <div class="dispatch-group-title">
                         ${escapeHtml(groupName)}
-                        <span class="patrol-group-count">
+                        <span class="dispatch-group-count">
                             ${groups[groupName].length}
                         </span>
                     </div>
                 `;
 
-                groups[groupName].forEach(function (patrol) {
+                groups[groupName].sort((a,b)=>String(a.callsign||"").localeCompare(String(b.callsign||""),"de",{numeric:true})).forEach(function (patrol) {
                     group.appendChild(createPatrolCard(patrol));
                 });
 
@@ -566,108 +575,42 @@
         return parts[0].charAt(0).toUpperCase() + ". " + parts.slice(1).join(" ");
     }
 
+    function canManagePatrol(patrol) {
+        return canEdit() || (patrol?.members||[]).some(m=>String(m.id||m.user_id||"")===getLoggedInUserId() && String(m.position||"").toLowerCase()==="lead");
+    }
     function createPatrolCard(patrol) {
-        const card = document.createElement("div");
-        card.className = "patrol-card";
+        const card=document.createElement("article");
+        card.className="dispatch-row";
+        const members=Array.isArray(patrol.members)?patrol.members:[];
+        const statusValue=String(patrol.tenCode||patrol.ten_code||patrol.status||"—");
+        const patrolActivity=String(patrol.activity||"—");
+        const call=String(patrol.callsign||"—");
+        const split=call.match(/^(.*?)[-\s]+(\d+[A-Z]?)$/i);
+        const currentUserId=getLoggedInUserId();
+        const alreadyMember=members.some(m=>String(m.id||m.user_id||"")===currentUserId);
+        const busy=state.patrolData.some(p=>(p.members||[]).some(m=>String(m.id||m.user_id||"")===currentUserId));
+        const crew=members.slice().sort((a,b)=>Number(String(b.position).toLowerCase()==="lead")-Number(String(a.position).toLowerCase()==="lead"));
+        const membersHtml=crew.map(m=>{
+            const lead=String(m.position).toLowerCase()==="lead";
+            const fullName=String(m.name||"Unbekannt");
+            return `<span class="dispatch-person${lead?' is-lead':''}" title="${escapeHtml(fullName+(m.callSign?' · '+m.callSign:''))}${lead?' · Streifenführer':''}"><span class="dispatch-rank">${escapeHtml(m.rankShortName||m.rank||"—")}</span><span class="dispatch-name">${escapeHtml(shortAgentName(fullName))}</span>${lead?'<span class="dispatch-lead" aria-label="Streifenführer" title="Streifenführer">SF</span>':''}</span>`;
+        }).join("")||'<span class="dispatch-no-crew">Keine Besatzung</span>';
+        const disabled=alreadyMember||busy;
+        card.innerHTML=`
+            <div class="dispatch-call" title="Funkrufname: ${escapeHtml(call)}"><span class="dispatch-prefix">${escapeHtml(split?split[1]:call)}</span>${split?`<span class="dispatch-number">${escapeHtml(split[2])}</span>`:''}</div>
+            <span class="dispatch-segment lspd-row-ten" title="Ten Code: ${escapeHtml(statusValue)}">${escapeHtml(statusValue)}</span>
+            <span class="dispatch-segment dispatch-location" title="Einsatzort: ${escapeHtml(patrol.location||'—')}">${escapeHtml(patrol.location||'—')}</span>
+            <span class="dispatch-segment lspd-row-activity" title="Status: ${escapeHtml(patrolActivity)}">${escapeHtml(patrolActivity)}</span>
+            <span class="dispatch-segment dispatch-vehicle" title="Fahrzeug: ${escapeHtml(patrol.vehicleType||patrol.vehicle_type||'—')}">${escapeHtml(patrol.vehicleType||patrol.vehicle_type||'—')}</span>
+            <div class="dispatch-crew" tabindex="0" aria-label="Besatzung">${membersHtml}</div>
+            <div class="dispatch-actions">${canManagePatrol(patrol)?`<button class="dispatch-button lspd-row-edit" type="button" title="Streife bearbeiten" aria-label="Streife bearbeiten" data-patrol-action="${escapeHtml(patrol.id)}"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 5 4 4M4 20l4-1L20 7a2.8 2.8 0 0 0-4-4L4 15z"/></svg></button>`:''}<button type="button" class="dispatch-button lspd-row-join" data-patrol-join="${escapeHtml(patrol.id)}" title="${alreadyMember?'Bereits Mitglied':busy?'Beende zuerst deinen aktuellen Dienst':'Dieser Streife beitreten'}" aria-label="${alreadyMember?'Bereits Mitglied':busy?'Beende zuerst deinen aktuellen Dienst':'Dieser Streife beitreten'}" ${disabled?'disabled':''}>${alreadyMember?'<span aria-hidden="true">✓</span>':'<span aria-hidden="true">+</span>'}</button></div>`;
 
-        const statusValue = String(
-            patrol.tenCode || patrol.ten_code || patrol.status || "Unbekannt"
-        ).trim() || "Unbekannt";
-        const statusClass = statusValue
-            .toLowerCase()
-            .replace(/[^a-z0-9]+/g, "-");
-
-        const members = Array.isArray(patrol.members) ? patrol.members : [];
-        const leadMember = members.find(function (member) {
-            return String(member.position || "").toLowerCase() === "lead";
-        }) || members[0];
-
-        // The authoritative callsign is the one stored in the personnel file.
-        // getPatrols() already resolves it for the lead member; patrol.callsign is
-        // kept only as a backwards-compatible fallback for older patrol rows.
-        const patrolCallsign = String(
-            leadMember?.callSign || patrol.callsign || "Unbekannt"
-        ).trim() || "Unbekannt";
-        const patrolNumber = String(patrol.number || "").trim();
-        const patrolLocation = String(patrol.location || "").trim();
-        const patrolActivity = String(patrol.activity || "").trim();
-        const vehicle = String(patrol.vehicleType || patrol.vehicle_type || "—").trim() || "—";
-
-        const splitCallsign = patrolCallsign.match(/^(.+?)[- ]?(\d{1,3})$/);
-        const displayCallsign = splitCallsign ? splitCallsign[1].trim() : patrolCallsign;
-        const explicitNumber = /^\d{1,3}[A-Z]?$/i.test(patrolNumber) ? patrolNumber : "";
-        const displayNumber = explicitNumber || (splitCallsign ? splitCallsign[2] : "");
-
-        const membersHtml = members.length
-            ? members.map(function (member) {
-                const memberName = String(member.name || "Unbekannt").trim();
-                const rank = String(member.rankShortName || member.rank || "—").trim();
-                const memberCallsign = String(member.callSign || "").trim();
-                return `
-                    <div class="patrol-member" title="${escapeHtml(memberName)}${memberCallsign ? " · " + escapeHtml(memberCallsign) : ""}">
-                        <span class="patrol-member-rank">${escapeHtml(rank)}</span>
-                        <span class="patrol-member-name">${escapeHtml(memberName)}</span>
-                        ${memberCallsign ? `<span class="patrol-member-callsign">${escapeHtml(memberCallsign)}</span>` : ""}
-                    </div>
-                `;
-            }).join("")
-            : `<div class="patrol-member patrol-member-empty">Keine Besatzung</div>`;
-
-        const actionAllowed = canEdit() || canDelete();
-        const currentUserId = String(state.currentUserId || window.currentUser?.id || "");
-        const alreadyMember = members.some(function (member) {
-            return String(member.id || member.user_id || "") === currentUserId;
-        });
-
-        card.innerHTML = `
-            <div class="patrol-callsign" title="Funkrufname aus der Personalakte">
-                <span class="patrol-callsign-type">${escapeHtml(displayCallsign)}</span>
-                ${displayNumber ? `<span class="patrol-callsign-number">${escapeHtml(displayNumber)}</span>` : ""}
-            </div>
-
-            <div class="patrol-status status-${escapeHtml(statusClass)}" title="Ten Code">
-                <span class="patrol-status-label">${escapeHtml(statusValue)}</span>
-            </div>
-
-            <div class="patrol-location" title="Einsatzort">
-                ${escapeHtml(patrolLocation || "—")}
-            </div>
-
-            <div class="patrol-vehicle" title="Fahrzeug">
-                ${escapeHtml(vehicle)}
-            </div>
-
-            <div class="patrol-activity-status${patrolActivity ? "" : " is-empty"}" title="Tätigkeit / Status">
-                ${escapeHtml(patrolActivity || "—")}
-            </div>
-
-            <div class="patrol-members" title="Besatzung">
-                ${membersHtml}
-            </div>
-
-            <button
-                class="patrol-action-button patrol-join-button"
-                type="button"
-                title="${alreadyMember ? "Bereits Mitglied dieser Streife" : "Dieser Streife beitreten"}"
-                aria-label="${alreadyMember ? "Bereits Mitglied dieser Streife" : "Dieser Streife beitreten"}"
-                data-patrol-join="${escapeHtml(patrol.id)}"
-                ${alreadyMember ? "disabled" : ""}
-            >${alreadyMember ? "✓" : "+"}</button>
-
-            ${actionAllowed ? `
-                <button
-                    class="patrol-action-button patrol-edit-button"
-                    type="button"
-                    title="Streife bearbeiten"
-                    data-patrol-action="${escapeHtml(patrol.id)}"
-                >
-                    <i class="fa-solid fa-pen"></i>
-                </button>
-            ` : `<div class="patrol-no-action" aria-hidden="true"></div>`}
-        `;
-
-        applyConfiguredPatrolColors(card, statusValue, patrolActivity);
-
+        const config=window.__FIB_PATROL_DUTY_CONFIG__||{};
+        const validColor=value=>typeof value==="string"&&/^(#[0-9a-f]{3,8}|rgba?\([0-9\s.,%+-]+\)|hsla?\([0-9\s.,%+-]+\))$/i.test(value.trim());
+        const codeColor=config.tenCodeColors?.[statusValue];
+        if(validColor(codeColor))card.querySelector('.lspd-row-ten').style.setProperty('--duty-accent',codeColor);
+        const activityColor=config.statusColors?.[patrolActivity];
+        if(validColor(activityColor))card.querySelector('.lspd-row-activity').style.setProperty('--duty-accent',activityColor);
         const joinButton = card.querySelector("[data-patrol-join]");
         if (joinButton && !alreadyMember) {
             joinButton.addEventListener("click", function (event) {
@@ -675,11 +618,10 @@
                 joinButton.disabled = true;
                 CloudApi.run.withSuccessHandler(function () {
                     clearPatrolsCache();
-                    refreshPatrolData();
-                    if (typeof window.showSuccess === "function") window.showSuccess("Du bist der Streife beigetreten.");
+                    showSuccess("Du bist der Streife beigetreten.");
                 }).withFailureHandler(function (error) {
                     joinButton.disabled = false;
-                    if (typeof window.showError === "function") window.showError(error?.message || String(error));
+                    showError(error?.message || String(error));
                 }).joinPatrol(getToken(), patrol.id);
             });
         }
@@ -701,23 +643,24 @@
         return `
             <div class="patrol-form-grid">
                 <div class="patrol-field">
-                    <label>Funkrufname aus der Personalakte</label>
+                    <label>Automatisches Streifen-Callsign</label>
                     <input
                         id="patrolModalCallsign"
                         type="text"
                         maxlength="80"
                         autocomplete="off"
-                        placeholder="Wird aus dem Funkrufnamen übernommen"
+                        placeholder="Wird aus der Personalakte übernommen"
+                        readonly
                     >
                 </div>
 
                 <div class="patrol-field">
-                    <label>Nummer</label>
+                    <label>Dienstnummer (automatisch)</label>
                     <input
                         id="patrolModalNumber"
                         type="text"
                         maxlength="6"
-                        placeholder="z. B. 21"
+                        placeholder="Automatisch" readonly
                     >
                 </div>
 
@@ -735,7 +678,7 @@
                 </div>
 
                 <div class="patrol-field">
-                    <label>Status</label>
+                    <label>Ten Code</label>
                     <select id="patrolModalStatus">
                         ${STATUSES.map(function (value) {
                             return `
@@ -747,34 +690,22 @@
                     </select>
                 </div>
 
+                <div class="patrol-field"><label>Einsatzort</label><select id="patrolModalLocation">${[...new Set([...(window.__FIB_PATROL_DUTY_CONFIG__?.locations||[]),patrol?.location].filter(Boolean))].map(v=>`<option value="${escapeHtml(v)}" ${v===patrol?.location?'selected':''}>${escapeHtml(v)}</option>`).join("")}</select></div>
+                <div class="patrol-field"><label>Status / Tätigkeit</label><select id="patrolModalActivity">${[...new Set([...(window.__FIB_PATROL_DUTY_CONFIG__?.activities||[]),patrol?.activity].filter(Boolean))].map(v=>`<option value="${escapeHtml(v)}" ${v===patrol?.activity?'selected':''}>${escapeHtml(v)}</option>`).join("")}</select></div>
                 <div class="patrol-field full">
                     <div class="patrol-members-box">
                         <div class="patrol-members-header">
                             <span>Besatzung</span>
-                            <button
-                                type="button"
-                                class="patrol-add-member"
-                                id="patrolAddMember"
-                            >
-                                + Beamten hinzufügen
-                            </button>
+                            <select class="patrol-partner-select" id="patrolPartnerSelect" aria-label="Streifenpartner auswählen">
+                                <option value="">Streifenpartner auswählen …</option>
+                            </select>
                         </div>
 
                         <div id="patrolSelectedMembers"></div>
                     </div>
 
-                    <div
-                        class="patrol-member-picker"
-                        id="patrolMemberPicker"
-                        style="display:none;"
-                    >
-                        <input
-                            class="patrol-member-search"
-                            id="patrolMemberSearch"
-                            placeholder="Beamten suchen..."
-                            type="text"
-                            autocomplete="off"
-                        >
+                    <div class="patrol-member-picker" id="patrolMemberPicker" style="display:none;">
+                        <input class="patrol-member-search" id="patrolMemberSearch" placeholder="Beamten suchen..." type="text" autocomplete="off">
                         <div id="patrolMemberOptions"></div>
                     </div>
                 </div>
@@ -786,9 +717,13 @@
         `;
     }
 
-    function openPatrolModal(patrol) {
+    async function openPatrolModal(patrol) {
+        await loadConfiguredTenCodes();
+        if(!active)return;
+        await fetchPatrolUsers(true).catch(()=>{});
+        if(!active)return;
         const editing = !!patrol;
-        const editable = editing ? canEdit() : canCreate();
+        const editable = editing ? canManagePatrol(patrol) : canCreate();
 
         if (!editable) {
             showError(
@@ -817,6 +752,7 @@
                 name: member.name,
                 username: member.username || "",
                 rank: member.rank || "Kein Rang",
+                serviceNumber: member.serviceNumber || "",
                 callSign: member.callSign || "",
                 position: member.position === "Lead" ? "Lead" : "Member"
             };
@@ -829,6 +765,7 @@
             saveVisible: true,
             saveText: editing ? "Änderungen speichern" : "In Dienst gehen",
             cancelText: "Abbrechen",
+            modalClass: "agents",
             onSave: function () {
                 savePatrol(patrol, selectedMembers);
             }
@@ -842,16 +779,18 @@
             document.getElementById("patrolModalVehicle");
         const status =
             document.getElementById("patrolModalStatus");
-        const picker =
-            document.getElementById("patrolMemberPicker");
-        const search =
-            document.getElementById("patrolMemberSearch");
+        const picker = document.getElementById("patrolMemberPicker");
+        const search = document.getElementById("patrolMemberSearch");
+        const partnerSelect = document.getElementById("patrolPartnerSelect");
 
         if (editing && patrol) {
             callsign.value = patrol.callsign || "";
-            number.value = patrol.number || "";
-            vehicle.value = patrol.vehicleType || VEHICLES[0];
-            status.value = patrol.status || STATUSES[0];
+            number.value = (String(patrol.callsign||"").match(/[-\s]+(\d+[A-Z]?)$/i)||[])[1] || patrol.number || "";
+            const currentVehicle=patrol.vehicleType||patrol.vehicle_type||VEHICLES[0];
+            const currentCode=patrol.tenCode||patrol.ten_code||patrol.status||STATUSES[0];
+            if(!VEHICLES.includes(currentVehicle))vehicle.add(new Option(currentVehicle,currentVehicle));
+            if(!STATUSES.includes(currentCode))status.add(new Option(currentCode,currentCode));
+            vehicle.value=currentVehicle; status.value=currentCode;
         } else {
             callsign.value = String(state.ownPersonnelProfile?.callSign || "").trim();
             vehicle.value = VEHICLES[0];
@@ -872,7 +811,14 @@
             element.textContent = "";
         }
 
+        function refreshCallsignPreview(){
+            const numbers=selectedMembers.map(m=>String(m.serviceNumber||((String(m.callSign||"").match(/[-\s]+(\d+[A-Z]?)$/i)||[])[1]||""))).filter(n=>/^\d+[A-Z]?$/i.test(n)).sort((a,b)=>parseInt(a,10)-parseInt(b,10)||a.localeCompare(b,"de",{numeric:true}));
+            const generated=selectedMembers.length===1?String(selectedMembers[0].callSign||""):selectedMembers.length>1&&numbers.length?`Adam-${numbers[0]}`:"";
+            callsign.value=generated;
+            number.value=selectedMembers.length===1?((generated.match(/[-\s]+(\d+[A-Z]?)$/i)||[])[1]||numbers[0]||""):(numbers[0]||"");
+        }
         function renderSelectedMembers() {
+            refreshCallsignPreview();
             const container =
                 document.getElementById("patrolSelectedMembers");
             if (!container) return;
@@ -954,162 +900,50 @@
                             Number(select.dataset.memberPosition);
 
                         if (selectedMembers[index]) {
-                            selectedMembers[index].position = select.value;
-                            if (select.value === "Lead" && selectedMembers[index].callSign) {
-                                const callsignInput = document.getElementById("patrolModalCallsign");
-                                if (callsignInput) callsignInput.value = selectedMembers[index].callSign;
-                            }
+                            if(select.value==="Lead")selectedMembers.forEach((m,i)=>m.position=i===index?"Lead":"Member");
+                            else selectedMembers[index].position="Member";
                             clearModalError();
+                            renderSelectedMembers();
                         }
                     });
                 });
         }
 
         function renderMemberOptions() {
-            const container =
-                document.getElementById("patrolMemberOptions");
-
-            if (!container) return;
-
+            if (!partnerSelect) return;
             if (!state.patrolUsersLoaded) {
-                container.innerHTML = `
-                    <div class="patrol-modal-empty">
-                        Beamte werden geladen...
-                    </div>
-                `;
+                partnerSelect.innerHTML = `<option value="">Beamte werden geladen …</option>`;
+                partnerSelect.disabled = true;
                 return;
             }
-
-            const query =
-                String(search ? search.value : "")
-                    .trim()
-                    .toLowerCase();
-
-            const selectedIds = selectedMembers.map(function (member) {
-                return String(member.id);
-            });
-
-            const available = state.patrolUsers
-                .filter(function (user) {
-                    return !selectedIds.includes(String(user.id));
-                })
-                .filter(function (user) {
-                    if (!query) return true;
-
-                    const haystack = [
-                        user.name,
-                        user.username,
-                        user.rank
-                    ]
-                        .map(function (value) {
-                            return String(value || "").toLowerCase();
-                        })
-                        .join(" ");
-
-                    return haystack.includes(query);
-                });
-
-            if (!available.length) {
-                container.innerHTML = `
-                    <div class="patrol-modal-empty">
-                        Keine passenden Beamten gefunden.
-                    </div>
-                `;
-                return;
-            }
-
-            container.innerHTML = available
-                .map(function (user) {
-                    return `
-                        <button
-                            class="patrol-user-option"
-                            data-user-id="${escapeHtml(user.id)}"
-                            type="button"
-                        >
-                            <div class="patrol-user-option-info">
-                                <div class="patrol-user-option-rank">
-                                    ${escapeHtml(user.rank || "Kein Rang")}
-                                </div>
-                                <div class="patrol-user-option-name">
-                                    ${escapeHtml(user.name || "Unbekannt")}
-                                </div>
-                            </div>
-                            <div style="font-size:9px;color:#687588;">
-                                Hinzufügen
-                            </div>
-                        </button>
-                    `;
-                })
-                .join("");
-
-            container
-                .querySelectorAll("[data-user-id]")
-                .forEach(function (button) {
-                    button.addEventListener("click", function () {
-                        const user = state.patrolUsers.find(function (item) {
-                            return String(item.id) ===
-                                String(button.dataset.userId);
-                        });
-
-                        if (!user) return;
-
-                        if (
-                            selectedMembers.some(function (item) {
-                                return String(item.id) === String(user.id);
-                            })
-                        ) {
-                            return;
-                        }
-
-                        selectedMembers.push({
-                            id: user.id,
-                            name: user.name,
-                            username: user.username || "",
-                            rank: user.rank || "Kein Rang",
-                            callSign: user.callSign || "",
-                            position:
-                                selectedMembers.length === 0
-                                    ? "Lead"
-                                    : "Member"
-                        });
-                        if (selectedMembers[selectedMembers.length - 1].position === "Lead" && user.callSign) {
-                            const callsignInput = document.getElementById("patrolModalCallsign");
-                            if (callsignInput) callsignInput.value = user.callSign;
-                        }
-
-                        clearModalError();
-                        renderSelectedMembers();
-                        renderMemberOptions();
-                    });
-                });
+            partnerSelect.disabled = false;
+            const selectedIds = selectedMembers.map(function(member){ return String(member.id); });
+            const available = state.patrolUsers.filter(function(user){
+                return !selectedIds.includes(String(user.id));
+            }).sort(function(a,b){ return String(a.name||"").localeCompare(String(b.name||""), "de"); });
+            partnerSelect.innerHTML = `<option value="">Streifenpartner auswählen …</option>` + available.map(function(user){
+                const rank = user.rank ? ` · ${escapeHtml(user.rank)}` : "";
+                return `<option value="${escapeHtml(user.id)}">${escapeHtml(user.name || "Unbekannt")}${rank}</option>`;
+            }).join("");
         }
 
         renderSelectedMembers();
         renderMemberOptions();
 
-        const addButton =
-            document.getElementById("patrolAddMember");
-
-        if (addButton && !addButton.dataset.bound) {
-            addButton.dataset.bound = "true";
-            addButton.addEventListener("click", function () {
-                if (!picker) return;
-
-                picker.style.display =
-                    picker.style.display === "none"
-                        ? "block"
-                        : "none";
-
-                if (picker.style.display === "block") {
-                    search?.focus();
-                    renderMemberOptions();
-                }
+        if (partnerSelect && !partnerSelect.dataset.bound) {
+            partnerSelect.dataset.bound = "true";
+            partnerSelect.addEventListener("change", function () {
+                const user = state.patrolUsers.find(function(item){ return String(item.id) === String(partnerSelect.value); });
+                if (!user) return;
+                if (selectedMembers.some(function(item){ return String(item.id) === String(user.id); })) { partnerSelect.value = ""; return; }
+                selectedMembers.push({
+                    id:user.id, name:user.name, username:user.username||"", rank:user.rank||"Kein Rang", callSign:user.callSign||"", serviceNumber:user.serviceNumber||"", position:selectedMembers.length===0?"Lead":"Member"
+                });
+                partnerSelect.value = "";
+                clearModalError();
+                renderSelectedMembers();
+                renderMemberOptions();
             });
-        }
-
-        if (search && !search.dataset.bound) {
-            search.dataset.bound = "true";
-            search.addEventListener("input", renderMemberOptions);
         }
 
         /*
@@ -1171,10 +1005,14 @@
 
         return {
             id: patrol ? patrol.id : null,
+            updatedAt: patrol?.updated_at || null,
             callsign: callsign?.value?.trim() || "",
             number: number?.value?.trim() || "",
             vehicleType: vehicle?.value || "",
             status: status?.value || "",
+            tenCode: status?.value || "",
+            location: document.getElementById("patrolModalLocation")?.value || patrol?.location || "",
+            activity: document.getElementById("patrolModalActivity")?.value || patrol?.activity || "",
             members: selectedMembers.map(function (member) {
                 return {
                     id: member.id,
@@ -1190,22 +1028,13 @@
         const editing = !!patrol;
         const form = readPatrolModalData(selectedMembers, patrol);
 
-        if (!form.number) {
-            showError("Bitte eine Streifennummer angeben.");
-            return;
-        }
-
-        if (!form.callsign || !String(form.callsign).trim()) {
-            showError("Bitte einen Funkrufnamen aus der Personalakte hinterlegen oder eingeben.");
-            return;
-        }
-
-        if (!VEHICLES.includes(form.vehicleType)) {
+        if (!selectedMembers.length) { showError("Mindestens ein Mitglied muss verbleiben."); return; }
+        if (!form.vehicleType || (!VEHICLES.includes(form.vehicleType)&&form.vehicleType!==String(patrol?.vehicleType||patrol?.vehicle_type||""))) {
             showError("Bitte einen gültigen Fahrzeugtyp auswählen.");
             return;
         }
 
-        if (!STATUSES.includes(form.status)) {
+        if (!form.status || (!STATUSES.includes(form.status)&&form.status!==String(patrol?.tenCode||patrol?.ten_code||patrol?.status||""))) {
             showError("Bitte einen gültigen Status auswählen.");
             return;
         }
@@ -1228,46 +1057,9 @@
 
         CloudApi.run
             .withSuccessHandler(function (result) {
-                const saved = result?.patrol || result;
-
-                if (!saved || !saved.id) {
-                    FIB_MDT_MODAL.close();
-                    clearPatrolsCache();
-                    fetchPatrols(true).catch(function () {});
-                    showSuccess(
-                        editing
-                            ? "Die Streife wurde aktualisiert."
-                            : "Die Streife wurde erstellt."
-                    );
-                    return;
-                }
-
-                if (editing) {
-                    const index = state.patrolData.findIndex(function (item) {
-                        return String(item.id) === String(saved.id);
-                    });
-
-                    if (index >= 0) {
-                        state.patrolData[index] = saved;
-                    } else {
-                        state.patrolData.push(saved);
-                    }
-                } else {
-                    state.patrolData.push(saved);
-                }
-
-                window.fibCache.patrols.data = state.patrolData;
-                window.fibCache.patrols.timestamp = Date.now();
-                state.patrolDataLoaded = true;
-
-                renderPatrols();
+                if(!result||result.success!==true){setModalBusy(false,"Änderungen speichern");showError(result?.message||"Speichern fehlgeschlagen.");return;}
                 FIB_MDT_MODAL.close();
-
-                showSuccess(
-                    editing
-                        ? "Die Streife wurde aktualisiert."
-                        : "Die Streife wurde erstellt."
-                );
+                showSuccess(editing?"Die Streife wurde aktualisiert.":"Die Streife wurde erstellt.");
             })
             .withFailureHandler(function (error) {
                 setModalBusy(
@@ -1325,94 +1117,37 @@
     }
 
     function bindStaticEvents() {
-        const createButton = document.getElementById("patrolCreateButton");
-        // Duty creation now happens exclusively in the topbar picker, never in the legacy modal.
-        if (createButton) createButton.style.display = "none";
-        if (!window.fibDutyStartListenerBound) {
-            window.fibDutyStartListenerBound = true;
-            function handleDutySelection(event) {
-                // Serialize rapid topbar changes. updatePatrol replaces membership rows,
-                // so concurrent writes could otherwise delete a newer update.
-                dutySaveQueue = dutySaveQueue.catch(function () {}).then(function () { return persistDutySelection(event); });
-                return dutySaveQueue;
-            }
-            async function persistDutySelection(event) {
-                const detail = event.detail || {};
-                const isStart = event.type === "fib-mdt:duty-start-request";
-                if (!detail.location || !detail.activity || !detail.vehicleType) return;
-                try {
-                    const profile = await fetchOwnPersonnelProfile(false);
-                    const callsign = String(profile?.callSign || profile?.call_sign || "").trim();
-                    if (!callsign) {
-                        showError("Bitte hinterlege zuerst dein Callsign in deiner Personalakte.");
-                        return;
-                    }
-                    const ownId = String(profile.userId || profile.user_id || profile.id || "");
-                    const existing = (state.patrolData || []).find(p => (p.members || []).some(m => String(m.id || m.user_id) === ownId));
-                    // Selection changes only update an existing duty entry; they must never silently start a new shift.
-                    if (!isStart && !existing) return;
-                    const applyButton = document.getElementById("fibDutyStartButton");
-                    if (applyButton) applyButton.disabled = true;
-                    const form = {
-                        ...(existing ? {id: existing.id} : {}),
-                        callsign: callsign,
-                        number: callsign,
-                        vehicleType: detail.vehicleType,
-                        tenCode: detail.tenCode || existing?.tenCode || existing?.ten_code || existing?.status || (detail.activity === "OOV" ? "10-6" : "10-1"),
-                        location: detail.location,
-                        activity: detail.activity,
-                        members: existing ? (existing.members || []).map(m => ({id: m.id || m.user_id, position: m.position || "Member"})) : []
-                    };
-                    const saveMethod = existing ? "updatePatrol" : "createPatrol";
-                    CloudApi.run.withSuccessHandler(function (result) {
-                        const saved = result?.patrol || result;
-                        if (saved && saved.id) {
-                            const idx = (state.patrolData || []).findIndex(p => String(p.id) === String(saved.id));
-                            if (idx >= 0) state.patrolData[idx] = saved; else state.patrolData.push(saved);
-                        }
-                        clearPatrolsCache();
-                        fetchPatrols(true).catch(function () {});
-                        if (isStart) window.dispatchEvent(new CustomEvent("fib-mdt:duty-started", {detail:{...form,callSign:callsign}}));
-                        else window.dispatchEvent(new CustomEvent("fib-mdt:duty-started", {detail:{...form,callSign:callsign}}));
-                        if (isStart && typeof window.showSuccess === "function") window.showSuccess("Du bist jetzt im Dienst.");
-                        if (applyButton) applyButton.disabled = false;
-                    }).withFailureHandler(function (error) {
-                        if (applyButton) applyButton.disabled = false;
-                        if (typeof window.showError === "function") window.showError(error?.message || "Der Dienststatus konnte nicht gespeichert werden.");
-                    })[saveMethod](getToken(), form);
-                } catch (error) {
-                    if (typeof window.showError === "function") window.showError(error?.message || "Dein Callsign konnte nicht aus der Personalakte geladen werden.");
-                }
-            }
-            window.__fibPageLifecycle.on(window, "fib-mdt:duty-start-request", handleDutySelection);
-            window.__fibPageLifecycle.on(window, "fib-mdt:duty-selection-changed", handleDutySelection);
-            window.__fibPageLifecycle.on(window, "fib-mdt:ten-code-changed", async function(event) {
-                const code = String(event.detail?.tenCode || "").trim();
-                if (!code) return;
-                try {
-                    await fetchPatrols(true);
-                    const profile = await fetchOwnPersonnelProfile(true);
-                    const ownId = String(profile.userId || profile.user_id || profile.id || "");
-                    const existing = (state.patrolData || []).find(p => (p.members || []).some(m => String(m.id || m.user_id) === ownId));
-                    if (!existing) { showError("Du bist aktuell keiner Streife zugeordnet."); return; }
-                    const result = await window.runServer("setPatrolTenCode", {id: existing.id, tenCode: code});
-                    if (!result || result.success === false) throw new Error(result?.message || "Ten Code konnte nicht gespeichert werden.");
-                    existing.tenCode = code; existing.ten_code = code;
-                    clearPatrolsCache();
-                    await fetchPatrols(true);
-                    if (typeof window.showSuccess === "function") window.showSuccess("Ten Code der Streife aktualisiert.");
-                } catch (error) {
-                    showError(error?.message || "Ten Code konnte nicht gespeichert werden.");
-                }
-            });
-        }
-
         const refreshButton =
             document.getElementById("patrolRefreshButton");
 
         if (refreshButton && !refreshButton.dataset.bound) {
             refreshButton.dataset.bound = "true";
-            refreshButton.addEventListener("click", refreshPatrolData);
+            refreshButton.addEventListener("click", ()=>{lastRevision=null;window.FIBDuty?.refresh();if(!state.briefingSaving&&document.getElementById("dispatchBriefingEditor")?.hidden)loadDispatchBriefing();});
+        }
+
+        const briefingEdit = document.getElementById("dispatchBriefingEdit");
+        if (briefingEdit && !briefingEdit.dataset.bound) {
+            briefingEdit.dataset.bound = "true";
+            briefingEdit.addEventListener("click", function () {
+                if (!state.canManageBriefing) return;
+                setBriefingEditor(true);
+                document.getElementById("dispatchBriefingInput")?.focus();
+            });
+        }
+        const briefingCancel = document.getElementById("dispatchBriefingCancel");
+        if (briefingCancel && !briefingCancel.dataset.bound) {
+            briefingCancel.dataset.bound = "true";
+            briefingCancel.addEventListener("click", function () { renderDispatchBriefing(); });
+        }
+        const briefingSave = document.getElementById("dispatchBriefingSave");
+        if (briefingSave && !briefingSave.dataset.bound) {
+            briefingSave.dataset.bound = "true";
+            briefingSave.addEventListener("click", function () { saveDispatchBriefing(); });
+        }
+        const briefingInput = document.getElementById("dispatchBriefingInput");
+        if (briefingInput && !briefingInput.dataset.bound) {
+            briefingInput.dataset.bound = "true";
+            briefingInput.addEventListener("input", renderBriefingPreview);
         }
 
         document
@@ -1438,11 +1173,6 @@
     }
 
     function applyPermissionUI() {
-        const createButton =
-            document.getElementById("patrolCreateButton");
-
-        if (createButton) createButton.style.display = "none";
-
         const description =
             document.getElementById("patrolPermissionHint");
 
@@ -1473,55 +1203,39 @@
         }
 
         applyPermissionUI();
-        loadPatrolDutyConfig().then(function(){ const select=document.getElementById("patrolModalStatus"); if(select){const selected=select.value;select.innerHTML=STATUSES.map(v=>`<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join("");if(STATUSES.includes(selected))select.value=selected;} const vehicle=document.getElementById("patrolModalVehicle"); if(vehicle){const selected=vehicle.value;vehicle.innerHTML=VEHICLES.map(v=>`<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join("");if(VEHICLES.includes(selected))vehicle.value=selected;} });
+        loadConfiguredTenCodes().then(()=>{if(active&&state.patrolDataLoaded)renderPatrols();});
         bindStaticEvents();
-
-        if (cacheValid(window.fibCache.patrols)) {
-            state.patrolData = window.fibCache.patrols.data;
-            state.patrolDataLoaded = true;
-            renderPatrols();
-        }
-
-        if (cacheValid(window.fibCache.patrolUsers)) {
-            state.patrolUsers = window.fibCache.patrolUsers.data;
-            state.patrolUsersLoaded = true;
-        }
-
-        fetchOwnPersonnelProfile(false).catch(function () {});
-        fetchPatrols(false).catch(function () {});
-        if (canCreate() || canEdit()) {
-            fetchPatrolUsers(false).catch(function () {});
-        }
-        renderOwnStatus();
+        loadDispatchBriefing();
+        // First load starts with a revision snapshot, then loads the list. A change
+        // during the fetch remains detectable by the next revision check.
+        window.FIBDuty?.refresh();
+        
 
         state.initialized = true;
     }
 
     window.initializePatrols = initializePatrols;
-    // Cross-client live sync: only a tiny patrol revision is checked frequently.
-    // The full patrol payload (with users/ranks/members) is fetched only when the
-    // revision actually changed. This keeps the Leitstelle current without
-    // hammering Supabase with the expensive getPatrols join query.
-    if (!window.fibPatrolLiveSyncTimer) {
-        let lastPatrolRevision = null;
-        window.fibPatrolLiveSyncTimer = window.__fibPageLifecycle.interval(function () {
-            const list = document.getElementById("patrolsList");
-            const modal = document.getElementById("fibGlobalModalOverlay");
-            if (!list || state.saving || (modal && modal.classList.contains("open")) || document.visibilityState !== "visible") return;
-            window.runServer("getPatrolRevision").then(function (snapshot) {
-                const revision = String(snapshot && snapshot.revision || "");
-                if (lastPatrolRevision === null) {
-                    lastPatrolRevision = revision;
-                    return;
-                }
-                if (revision !== lastPatrolRevision) {
-                    lastPatrolRevision = revision;
-                    clearPatrolsCache();
-                    fetchPatrols(true).catch(function () {});
-                }
-            }).catch(function () {});
-        }, 5000);
+    let lastRevision=null, wantedRevision=null, polling=false;
+    async function applyRevision(snapshot){
+        if(!active||!hasPatrolPermission(PATROL_PERMISSIONS.view)||!document.getElementById("patrolsList")||typeof snapshot?.revision!=="string")return;
+        wantedRevision=snapshot.revision;
+        if(polling)return;
+        polling=true;
+        try{
+            while(active&&wantedRevision!==lastRevision){
+                const target=wantedRevision;
+                if(state.patrolDataPromise)await state.patrolDataPromise;
+                if(!active)return;
+                await fetchPatrols(true);
+                lastRevision=target;
+            }
+        }catch(error){console.warn("Leitstellen-Synchronisation:",error);}
+        finally{polling=false;}
     }
-    window.__fibPageLifecycle.on(window, "fib-mdt:refresh-request", function (event) { const modal=document.getElementById("fibGlobalModalOverlay"); if (document.getElementById("patrolsList") && !state.saving && !(modal && modal.classList.contains("open"))) refreshPatrolData(); });
-    window.__fibPageLifecycle.on(window, "fib-mdt:data-changed", function (event) { const modal=document.getElementById("fibGlobalModalOverlay"); if (document.getElementById("patrolsList") && !(modal && modal.classList.contains("open")) && /Patrol|patrol|Member|member/.test(String(event.detail && event.detail.method || ""))) refreshPatrolData(); });
+    window.__fibPageLifecycle.on(window,"fib-mdt:patrol-sync",event=>applyRevision(event.detail));
+    window.__fibPageLifecycle.on(window,"fib-mdt:data-changed",event=>{
+        if(!active||!hasPatrolPermission(PATROL_PERMISSIONS.view))return;
+        if(/ModuleItem/.test(event.detail?.method||"")&&!state.briefingSaving&&document.getElementById("dispatchBriefingEditor")?.hidden)loadDispatchBriefing();
+    });
+
 })();

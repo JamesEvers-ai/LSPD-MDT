@@ -470,9 +470,11 @@ async function moduleDispatch(method,args,env,token){
  const cfg=MODULES[moduleKey]; if(!cfg)throw Object.assign(new Error("Unbekanntes MDT-Modul."),{status:400});
  if(moduleKey==="vacations")throw recordError("Bitte die Urlaubsantragsfunktionen verwenden.",403);
  const auth=await authz(env,token,moduleKey==="calendar"&&action==="list"?undefined:cfg.view);
+ const briefing=moduleKey==="dispatchbriefing";
+ const itemColumns="id,title,description,status,"+(briefing?"":"event_date,")+"metadata,created_by,created_by_name,created_at,updated_at";
  if(moduleKey==="gangs"&&!auth.master&&!auth.departmentPermissions.includes(cfg.view))throw recordError("Keine Abteilungsfreigabe für Gang-Beweise.",403);
  if(action==="list"){
-  const query={select:moduleKey==="logs"?"id,action,module_name,item_id,detail,actor_id,actor_name,created_at":"id,title,description,status,event_date,metadata,created_by,created_by_name,created_at,updated_at",order:"created_at.desc",limit:moduleKey==="logs"?"300":"200"};
+  const query={select:moduleKey==="logs"?"id,action,module_name,item_id,detail,actor_id,actor_name,created_at":itemColumns,order:briefing?"updated_at.desc,id.desc":"created_at.desc",limit:moduleKey==="logs"?"300":briefing?"1":"200"};
   if(moduleKey==="announcements"&&!effectivePermission(auth,cfg.manage)) query.status="eq.active";
   if(moduleKey==="logs")query.module_name="not.in.(classification,classifications,fib_classification)";
   if(moduleKey==="logs"&&!auth.master&&!auth.permissions.includes("*"))await authz(env,token,"logs.view");
@@ -492,15 +494,24 @@ async function moduleDispatch(method,args,env,token){
  if(action==="create"){
   const d=args[2]||{}; const title=text(d.title); if(!title)throw new Error("Ein Titel ist erforderlich.");
   const row={id:id(moduleKey.slice(0,3).toUpperCase()),title,description:text(d.description),status:text(d.status)||"active",event_date:d.eventDate||d.event_date||null,metadata:d.metadata&&typeof d.metadata==="object"?d.metadata:{},created_by:auth.user.id,created_by_name:auth.user.name,created_at:new Date().toISOString(),updated_at:new Date().toISOString()};
-  const saved=await db(env,cfg.table,{method:"POST",query:{select:moduleKey==="logs"?"id,action,module_name,item_id,detail,actor_id,actor_name,created_at":"id,title,description,status,event_date,metadata,created_by,created_by_name,created_at,updated_at"},body:row,prefer:"return=representation"}); return normalizeModuleRow(saved?.[0]||row);
+  if(briefing){
+   delete row.event_date;
+   if(row.description.length>20000)throw recordError("Leitstelleninformationen dürfen maximal 20.000 Zeichen enthalten.",400);
+   row.metadata={entry_type:"dispatch_briefing",application:"lspd",updated_by_name:auth.user.name};
+  }
+  const saved=await db(env,cfg.table,{method:"POST",query:{select:itemColumns},body:row,prefer:"return=representation"}); return normalizeModuleRow(saved?.[0]||row);
  }
  const itemId=text(args[2]); if(!itemId)throw new Error("Ein Eintrag muss ausgewählt werden.");if(moduleKey==="calendar"&&itemId.startsWith("vacation:"))throw recordError("Urlaub nur über den Urlaubsantrag ändern.",403);
  if(action==="delete") {await db(env,cfg.table,{method:"DELETE",query:{id:`eq.${itemId}`},prefer:"return=minimal"});return {success:true};}
  const d=args[3]||{}; const patch={updated_at:new Date().toISOString()};
  for(const k of ["title","description","status"])if(d[k]!==undefined)patch[k]=text(d[k]);
- if(d.eventDate!==undefined||d.event_date!==undefined)patch.event_date=d.eventDate||d.event_date||null;
+ if(!briefing&&(d.eventDate!==undefined||d.event_date!==undefined))patch.event_date=d.eventDate||d.event_date||null;
  if(d.metadata!==undefined)patch.metadata=d.metadata&&typeof d.metadata==="object"?d.metadata:{};
- const saved=await db(env,cfg.table,{method:"PATCH",query:{id:`eq.${itemId}`,select:"id,title,description,status,event_date,metadata,created_by,created_by_name,created_at,updated_at"},body:patch,prefer:"return=representation"});return normalizeModuleRow(saved?.[0]||{id:itemId,...patch});
+ if(briefing){
+  if((patch.description||"").length>20000)throw recordError("Leitstelleninformationen dürfen maximal 20.000 Zeichen enthalten.",400);
+  patch.metadata={entry_type:"dispatch_briefing",application:"lspd",updated_by_name:auth.user.name};
+ }
+ const saved=await db(env,cfg.table,{method:"PATCH",query:{id:`eq.${itemId}`,select:itemColumns},body:patch,prefer:"return=representation"});if(briefing&&!saved?.length)throw recordError("Leitstelleninformation nicht mehr vorhanden. Bitte aktualisieren.",409);return normalizeModuleRow(saved?.[0]||{id:itemId,...patch});
 }
 function academyDepartmentHas(env,au,permission){
  if(au.master)return true;
@@ -1013,6 +1024,29 @@ async function dispatchCore(method,args,env,token){
   }
   return {success:true,codes};
  }
+ // One authenticated synchronization request for both the global duty bar and dispatch.
+ // Dispatch snapshots reuse the same rows for the member's own patrol and the revision.
+ if(method==="getPatrolSync"){
+  const au=await authz(env,token,"patrols.view"), options=args[1]||{}, dispatch=options.dispatch===true, profile=options.profile===true;
+  const columns="id,callsign,vehicle_type,ten_code,status,location,activity,updated_at,created_at";
+  const profileTask=()=>profile?db(env,"personnel",{query:{select:"call_sign",user_id:`eq.${au.user.id}`,limit:"1"}}):Promise.resolve(null);
+  let patrol=null,revision=null,count=null;
+  if(dispatch){
+   const [rows,members]=await Promise.all([
+    db(env,"patrols",{query:{select:columns,order:"id.asc"}}),
+    db(env,"patrol_members",{query:{select:"patrol_id,user_id,position",order:"patrol_id.asc,user_id.asc"}})
+   ]);
+   const all=rows||[], crew=members||[], mine=crew.find(m=>String(m.user_id)===String(au.user.id));
+   patrol=mine?all.find(p=>String(p.id)===String(mine.patrol_id))||null:null;
+   // Include actual values as well as timestamps, so even direct DB changes are detected.
+   revision=await sha256(JSON.stringify([all,crew]));count=all.length;
+  }else{
+   const members=await db(env,"patrol_members",{query:{select:"patrol_id",user_id:`eq.${au.user.id}`,limit:"1"}});
+   if(members?.length)patrol=(await db(env,"patrols",{query:{select:columns,id:`eq.${members[0].patrol_id}`,limit:"1"}}))?.[0]||null;
+  }
+  const people=await profileTask();
+  return {success:true,patrol,revision,count,...(profile?{callSign:text(people?.[0]?.call_sign)}:{})};
+ }
  if(method==="getOwnDuty"){
   const au=await authz(env,token,"patrols.view");
   const [members,people]=await Promise.all([
@@ -1073,11 +1107,15 @@ async function dispatchCore(method,args,env,token){
   return {count:list.length,revision};
  }
  if(method==="getPatrols"){
-  await authz(env,token,"patrols.view");const [ps,ms,us,rs,people]=await Promise.all([
-   db(env,"patrols",{query:{select:"id,callsign,number,vehicle_type,status,ten_code,location,activity,created_at,created_by,updated_at,updated_by",order:"updated_at.desc,created_at.desc"}}),db(env,"patrol_members",{query:{select:"patrol_id,user_id,position"}}),
-   db(env,"users",{query:{select:"id,username,name,rank,active,approved,profile_image"}}),rankRows(env),
-   db(env,"personnel",{query:{select:"user_id,call_sign,service_number,personnel_status,department,unit"}})
+  await authz(env,token,"patrols.view");const [ps,ms]=await Promise.all([
+   db(env,"patrols",{query:{select:"id,callsign,number,vehicle_type,status,ten_code,location,activity,created_at,created_by,updated_at,updated_by",order:"updated_at.desc,created_at.desc"}}),db(env,"patrol_members",{query:{select:"patrol_id,user_id,position"}})
   ]);
+  if(!ps?.length)return [];
+  const activeIds=[...new Set((ms||[]).map(m=>String(m.user_id)).filter(Boolean))];
+  const [us,rs,people]=activeIds.length?await Promise.all([
+   db(env,"users",{query:{select:"id,username,name,rank,active,approved,profile_image",id:`in.(${activeIds.join(",")})`}}),rankRows(env),
+   db(env,"personnel",{query:{select:"user_id,call_sign,service_number,personnel_status,department,unit",user_id:`in.(${activeIds.join(",")})`}})
+  ]):[[],[],[]];
   const usersById=new Map((us||[]).map(u=>[String(u.id),u]));
   const peopleByUserId=new Map((people||[]).map(p=>[String(p.user_id),p]));
   const ranksById=new Map((rs||[]).map(r=>[String(r.id),r]));

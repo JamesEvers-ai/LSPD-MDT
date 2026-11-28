@@ -18,7 +18,7 @@
   let cacheEpoch = 0;
   const inflightReads = new Map();
   const LIVE_OR_AUTH_READS = new Set([
-    "getCurrentUser", "getSessionInfo", "getMyPermissions", "getPatrols", "getPatrolRevision", "getOwnDuty",
+    "getCurrentUser", "getSessionInfo", "getMyPermissions", "getPatrols", "getPatrolRevision", "getOwnDuty", "getPatrolSync",
     "getDashboardStats", "getDashboardStatistics", "getActivePatrols",
     "getLivePatrols", "getCurrentSession", "getNotifications", "getRegulations", "getRegulation", "getRegulationHistory", "getRegulationVersion",
     "getWarrantStatistics", "getRecords", "getRecord", "getRecordShares", "getEquipmentCatalog", "getVacationRequests", "getFinanceAccess", "getBonusData", "getAccountingData", "getPersonnelFileBundle", "getPersonnelHistory"
@@ -70,7 +70,7 @@
     if(lastToken!==null && token!==lastToken) clearDataCache();
     lastToken=token;
     const authRoutes={login:"login",requestAccount:"register",getCurrentUser:"session",getSessionInfo:"session-info",getMyPermissions:"permissions",logout:"logout",changeOwnPassword:"password",uploadOwnProfileImage:"profile-image",removeOwnProfileImage:"profile-image/remove"};
-    const cacheable=isCacheableRead(method) && token && !authRoutes[method];
+    const cacheable=isCacheableRead(method) && token && !authRoutes[method] && !(method==="getModuleItems"&&args[1]==="dispatchbriefing");
     const key=cacheable?stableKey(method,args,token):null;
     if(key){
       const entry=dataCache.get(key);

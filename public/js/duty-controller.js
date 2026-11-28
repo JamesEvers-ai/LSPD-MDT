@@ -10,6 +10,7 @@
   const picker=document.getElementById('fibDutyPicker'); if(!picker)return;
   picker.innerHTML='<div class="fib-duty-picker-head"><strong id="fibDutyPickerTitle">Auswahl</strong><button type="button" id="fibDutyPickerClose" class="fib-duty-close" aria-label="Auswahl schließen">×</button></div><div class="fib-duty-picker-scroll"><div class="fib-duty-options" id="fibDutyOptions"></div></div>';
   let state={location:'',activity:'',vehicle:'',tenCode:'10-1'}, activeKey='location', onDuty=false, saving=false, ready=false, session='', syncing=false, lastSync=0, generation=0, callSign='', patrolCallSign='';
+  let pendingSync=false, profileSyncAt=0, dispatchMode=false;
   let options={tenCode:defaults.tenCodes.slice(),location:defaults.locations.slice(),activity:defaults.activities.slice(),vehicle:defaults.vehicles.slice()};
   let colorConfig={tenCodeColors:{},statusColors:{}};
 
@@ -57,15 +58,27 @@
     update();
   }
   function reset(){onDuty=false;ready=false;callSign='';patrolCallSign='';state={location:'',activity:'',vehicle:'',tenCode:options.tenCode[0]||'10-1'};update();}
+  // Single global sync loop. A mounted dispatch page consumes its revision event;
+  // no second polling loop or cached live response is required.
   async function sync(force=false){
-    const t=token();
-    if(t!==session){session=t;generation++;configPromise=null;lastSync=0;syncing=false;saving=false;reset();if(t)loadConfig().catch(console.warn);}
-    if(!t||saving||syncing||(!force&&Date.now()-lastSync<15000))return;
-    if(typeof window.runServer!=='function')return;
-    const g=generation;syncing=true;
-    try{const result=await window.runServer('getOwnDuty',t);if(g!==generation||saving)return;if(!result||result.success!==true)throw new Error(result?.message||'Dienststatus konnte nicht geladen werden.');callSign=result.callSign||'';ready=true;adopt(result.patrol);lastSync=Date.now();}
-    catch(error){if(g===generation){lastSync=Date.now();if(error.status!==401&&error.status!==403)console.warn('Dienststatus:',error);}}
-    finally{if(g===generation)syncing=false;}
+    const t=token(), dispatch=!!document.getElementById('patrolsList');
+    if(t!==session){session=t;generation++;configPromise=null;lastSync=0;profileSyncAt=0;syncing=false;saving=false;pendingSync=false;reset();if(t)loadConfig().catch(console.warn);}
+    if(!t||typeof window.runServer!=='function')return;
+    if(saving||syncing){if(force)pendingSync=true;return;}
+    if(!force&&document.visibilityState!=='visible')return;
+    const interval=(onDuty||dispatch)?5000:30000;
+    if(!force&&dispatch===dispatchMode&&Date.now()-lastSync<interval)return;
+    const g=generation, profile=!ready||Date.now()-profileSyncAt>=60000;
+    syncing=true;dispatchMode=dispatch;
+    try{
+      const result=await window.runServer('getPatrolSync',t,{dispatch,profile});
+      if(g!==generation||t!==token()||saving||pendingSync)return;
+      if(!result||result.success!==true)throw new Error(result?.message||'Dienststatus konnte nicht geladen werden.');
+      if(Object.hasOwn(result,'callSign')){callSign=result.callSign||'';profileSyncAt=Date.now();}
+      ready=true;adopt(result.patrol);lastSync=Date.now();
+      if(typeof result.revision==='string')window.dispatchEvent(new CustomEvent('fib-mdt:patrol-sync',{detail:{revision:result.revision,count:result.count}}));
+    }catch(error){if(g===generation&&t===token()){lastSync=Date.now();if(error.status===401||error.status===403){reset();}else console.warn('Dienststatus:',error);}}
+    finally{if(g===generation){syncing=false;if(pendingSync&&!saving){pendingSync=false;sync(true);}}}
   }
   async function mutate(method,detail){
     if(saving||!ready||!token())return;
@@ -74,11 +87,11 @@
       const result=await window.runServer(method,t,...(detail?[detail]:[]));
       if(ownGeneration!==generation||t!==token())return;
       if(!result||result.success!==true)throw new Error(result?.message||'Dienständerung konnte nicht gespeichert werden.');
-      if(method==='leavePatrol'){onDuty=false;state={location:'',activity:'',vehicle:'',tenCode:options.tenCode[0]||'10-1'};update();success('Du hast deinen Dienst beendet.');}
+      if(method==='leavePatrol'){onDuty=false;patrolCallSign='';state={location:'',activity:'',vehicle:'',tenCode:options.tenCode[0]||'10-1'};update();success('Du hast deinen Dienst beendet.');}
       else {adopt(result.patrol);if(method==='startDuty')success('Du bist jetzt im Dienst.');}
       lastSync=Date.now();
     }catch(error){if(ownGeneration===generation){report(error);lastSync=0;}}
-    finally{if(ownGeneration===generation){saving=false;update();if(!lastSync)sync(true);}}
+    finally{if(ownGeneration===generation){saving=false;update();pendingSync=false;sync(true);}}
   }
   function update(){
     const values={fibTopPatrolUnit:state.location||'Einsatzort auswählen',fibTopDutyStatus:state.activity||'Status auswählen',fibTopVehicle:state.vehicle||'Fahrzeug auswählen',fibTopTenCode:state.tenCode||'Ten Code auswählen'};
@@ -118,9 +131,10 @@
   document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!picker.hidden)close();if(ready&&!saving&&(e.key==='Enter'||e.key===' ')&&e.target.matches('[data-duty-picker-trigger]')){e.preventDefault();open(e.target.dataset.dutyPickerTrigger,e.target);}});
   // The controller lives in the shell, never in the dynamically mounted page.
   window.addEventListener('fib-mdt:data-changed',e=>{
-    if(/^(joinPatrol|deletePatrol|updatePatrol|createPatrol|setPatrolTenCode)$/.test(e.detail?.method||''))sync(true);
+    if(/^(joinPatrol|deletePatrol|updatePatrol|createPatrol|setPatrolTenCode|savePersonnelDepartment|savePersonnelProfile)$/.test(e.detail?.method||''))sync(true);
   });
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')sync(true);});
+  window.addEventListener('focus',()=>{if(document.visibilityState==='visible')sync(true);});
   window.setInterval(()=>{if(token()!==session||document.visibilityState==='visible')sync();},1000);
   window.fibGetPatrolDutyConfig=loadConfig;
   window.FIBDuty={refresh:()=>sync(true)};

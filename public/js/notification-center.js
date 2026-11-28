@@ -16,5 +16,5 @@
   button.addEventListener('click',()=>{syncSession();if(!panel.hidden){close();return;}panel.hidden=false;button.setAttribute('aria-expanded','true');refresh();});$('fibNotificationClose').addEventListener('click',close);all.addEventListener('click',()=>mark(items.filter(x=>!x.read).map(x=>x.id)));
   document.addEventListener('pointerdown',e=>{if(!panel.hidden&&!panel.contains(e.target)&&!button.contains(e.target))close();});document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!panel.hidden){close();button.focus();}});
   window.addEventListener('fib-mdt:data-changed',e=>{if(e.detail?.method==='logout'){syncSession();close();return;}if(/Vacation|Bonus|Training|ModuleItem/.test(e.detail?.method||''))refresh();});document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh();});
-  setInterval(refresh,30000);setInterval(()=>{if(token()!==session)refresh();},1000);refresh();
+  setInterval(refresh,60000);setInterval(()=>{if(token()!==session)refresh();},1000);refresh();
 })();

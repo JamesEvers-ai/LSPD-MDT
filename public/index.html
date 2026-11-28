@@ -2817,9 +2817,9 @@
     @media(max-width:650px) { .fib-duty-picker { right:8px; width:calc(100vw - 16px); max-height:68vh; } .fib-duty-options { grid-template-columns:repeat(2,minmax(0,1fr)); } }
   </style>
 
-  <script src="/js/cloud-api.js?v=54" defer></script>
+  <script src="/js/cloud-api.js?v=57" defer></script>
 <script src="/js/mdt-rich-text.js?v=3.73" defer></script>
-<link rel="stylesheet" href="/lspd-design.css?v=54">
+<link rel="stylesheet" href="/lspd-design.css?v=57">
 <link rel="stylesheet" href="/lspd-catalogs-v51.css?v=53">
   <link rel="stylesheet" href="/lspd-workspace.css?v=3.75">
 
@@ -3637,7 +3637,7 @@
        ===================================================== */
 
     const SESSION_SYNC_INTERVAL =
-      30 * 1000;
+      60 * 1000;
 
 
     let sessionSyncInterval = null;
@@ -4662,7 +4662,7 @@ const NAVIGATION = [
              * Die Bridge erhält immer nur einen Import gleichzeitig.
              * Erfolgreiche Antworten landen im zentralen CloudApi-Cache.
              */
-            preloadGoogleSheetData();
+            // Reference data is loaded only when the corresponding page is opened.
 
             /* Personalverwaltung bereits nach erfolgreicher Anmeldung
              * im Hintergrund laden. Beim späteren Öffnen greift agents.html
@@ -6945,6 +6945,7 @@ const NAVIGATION = [
 
 
     function syncCurrentSession() {
+      if (document.visibilityState !== "visible") return;
 
       if (
         sessionSyncRunning ||
@@ -8203,7 +8204,7 @@ const NAVIGATION = [
     // request rate on that page with the generic global refresh.
     if (document.getElementById("patrolsList")) return;
     if (safeToRefresh()) window.dispatchEvent(new CustomEvent("fib-mdt:refresh-request", {detail:{source:"poll", at:Date.now()}}));
-  }, 30000);
+  }, 60000);
   // Successful writes emit `fib-mdt:data-changed`; active page modules subscribe directly.
 
 })();
@@ -8417,7 +8418,7 @@ const NAVIGATION = [
 
 
 
-<script src="/js/duty-controller.js?v=48" defer></script>
+<script src="/js/duty-controller.js?v=57" defer></script>
 
 
 <script>
@@ -8428,20 +8429,19 @@ const NAVIGATION = [
  let locked=false;
  function close(){side.classList.remove('is-hover-open');}
  function open(){if(!locked)side.classList.add('is-hover-open');}
- window.fibCollapseSidebar=()=>{locked=true;close();};
- side.addEventListener('pointerenter',()=>{if(!locked)open();});
+ window.fibCollapseSidebar=()=>{locked=side.matches(':hover');close();};
+ side.addEventListener('pointerenter',()=>{locked=false;open();});
  side.addEventListener('pointerleave',()=>{locked=false;close();});
  side.addEventListener('focusin',e=>{if(e.target.matches(':focus-visible')&&!locked)open();});
  side.addEventListener('focusout',e=>{if(!side.contains(e.relatedTarget)&&!side.matches(':hover'))close();});
  side.addEventListener('keydown',e=>{if(e.key==='Escape'){locked=true;close();}});
- side.addEventListener('pointerdown',e=>{if(e.target.closest('.nav-item')){locked=true;close();}});
  side.addEventListener('click',e=>{if(e.target.closest('.nav-item'))window.fibCollapseSidebar();});
  window.addEventListener('blur',()=>{locked=false;close();});
- window.addEventListener('fib-mdt:navigated',()=>{locked=true;close();});
+ window.addEventListener('fib-mdt:navigated',()=>window.fibCollapseSidebar());
 })();</script>
 
 <aside id="fibNotificationPanel" hidden aria-label="Benachrichtigungen"><header><strong>Benachrichtigungen</strong><button type="button" id="fibNotificationClose" aria-label="Schließen">×</button></header><div class="fib-notice-tools"><span id="fibNotificationSummary">Wird geladen …</span><button type="button" id="fibNotificationReadAll">Alle als gelesen</button></div><div id="fibNotificationList" aria-live="polite"></div></aside>
-<script src="/js/notification-center.js?v=54" defer></script>
+<script src="/js/notification-center.js?v=57" defer></script>
 </body>
 
 </html>

@@ -69,60 +69,7 @@
         </div>
     </div>
 
-    <div class="dispatch-overview-shell">
-        <section class="dispatch-overview-card" aria-label="Leitstellenübersicht">
-            <div class="dispatch-overview-header">
-                <div>
-                    <div class="dispatch-overview-title">Leitstellenübersicht</div>
-                    <div class="dispatch-overview-subtitle">Schnelle Lageübersicht zu Fahrzeugen, Einsatzräumen und Spezialeinheiten.</div>
-                </div>
-                <div class="dispatch-overview-total" id="dispatchOverviewTotal">0 Einheiten gesamt</div>
-            </div>
-            <div class="dispatch-overview-grid" id="dispatchOverviewGrid">
-                <div class="dispatch-overview-column">
-                    <div class="dispatch-overview-item"><span>Straßenfahrzeuge</span><strong id="dispatchStatStreet">0</strong></div>
-                    <div class="dispatch-overview-item"><span>Offroadfahrzeuge</span><strong id="dispatchStatOffroad">0</strong></div>
-                    <div class="dispatch-overview-item"><span>Highspeed</span><strong id="dispatchStatHighspeed">0</strong></div>
-                    <div class="dispatch-overview-item"><span>Air-Support</span><strong id="dispatchStatAir">0</strong></div>
-                </div>
-                <div class="dispatch-overview-column">
-                    <div class="dispatch-overview-item"><span>City</span><strong id="dispatchStatCity">0</strong></div>
-                    <div class="dispatch-overview-item"><span>County</span><strong id="dispatchStatCounty">0</strong></div>
-                    <div class="dispatch-overview-item"><span>Highway</span><strong id="dispatchStatHighway">0</strong></div>
-                    <div class="dispatch-overview-item"><span>Spezialeinheiten</span><strong id="dispatchStatMetro">0</strong></div>
-                </div>
-                <div class="dispatch-overview-column">
-                    <div class="dispatch-overview-item"><span>Patrol</span><strong id="dispatchStatPatrol">0</strong></div>
-                    <div class="dispatch-overview-item"><span>KING</span><strong id="dispatchStatKing">0</strong></div>
-                    <div class="dispatch-overview-item"><span>SWAT</span><strong id="dispatchStatSwat">0</strong></div>
-                    <div class="dispatch-overview-item"><span>Besatzung gesamt</span><strong id="dispatchStatCrew">0</strong></div>
-                </div>
-            </div>
-        </section>
 
-        <aside class="dispatch-briefing-card" aria-label="Wichtige Leitstelleninformationen">
-            <div class="dispatch-briefing-header">
-                <div>
-                    <div class="dispatch-briefing-title">Wichtige Informationen</div>
-                    <div class="dispatch-briefing-meta" id="dispatchBriefingMeta">Wird geladen …</div>
-                </div>
-                <button type="button" class="patrol-header-button secondary dispatch-briefing-edit" id="dispatchBriefingEdit" hidden>Bearbeiten</button>
-            </div>
-            <div class="dispatch-briefing-view mdt-rich-content" id="dispatchBriefingView">
-                <p>Noch keine Leitstelleninformation hinterlegt.</p>
-            </div>
-            <div class="dispatch-briefing-editor" id="dispatchBriefingEditor" hidden>
-                <div class="mdt-rich-toolbar" data-rich-toolbar data-target="dispatchBriefingInput"></div>
-                <textarea id="dispatchBriefingInput" class="dispatch-briefing-input" placeholder="Wichtige Hinweise, Funkdisziplin, aktuelle Schwerpunkte oder Lageinformationen …"></textarea>
-                <div class="dispatch-briefing-preview-label">Vorschau</div>
-                <div class="dispatch-briefing-preview mdt-rich-content" id="dispatchBriefingPreview"><p>Keine Vorschau verfügbar.</p></div>
-                <div class="dispatch-briefing-actions">
-                    <button type="button" class="patrol-header-button secondary" id="dispatchBriefingCancel">Abbrechen</button>
-                    <button type="button" class="patrol-header-button" id="dispatchBriefingSave">Speichern</button>
-                </div>
-            </div>
-        </aside>
-    </div>
 
 
     <!-- =====================================================
@@ -131,6 +78,7 @@
 
 
 
+    <div class="dispatch-workspace">
     <div
         class="patrols-content"
         id="patrolsList"
@@ -150,6 +98,29 @@
 
         </div>
 
+    </div>
+        <aside class="dispatch-briefing-card" aria-label="Wichtige Leitstelleninformationen">
+            <div class="dispatch-briefing-header">
+                <div>
+                    <div class="dispatch-briefing-title">Wichtige Informationen</div>
+                    <div class="dispatch-briefing-meta" id="dispatchBriefingMeta">Wird geladen …</div>
+                </div>
+                <button type="button" class="patrol-header-button secondary dispatch-briefing-edit" id="dispatchBriefingEdit" hidden>Bearbeiten</button>
+            </div>
+            <div class="dispatch-briefing-view mdt-rich-content" id="dispatchBriefingView">
+                <p>Noch keine Leitstelleninformation hinterlegt.</p>
+            </div>
+            <div class="dispatch-briefing-editor" id="dispatchBriefingEditor" hidden>
+                <div class="mdt-rich-toolbar" role="toolbar" aria-label="Textformatierung"><button type="button" data-mdt-format="bold" data-target="dispatchBriefingInput" title="Fett"><strong>B</strong></button><button type="button" data-mdt-format="italic" data-target="dispatchBriefingInput" title="Kursiv"><em>I</em></button><button type="button" data-mdt-format="underline" data-target="dispatchBriefingInput" title="Unterstrichen"><u>U</u></button><button type="button" data-mdt-format="h2" data-target="dispatchBriefingInput" title="Überschrift">H2</button><button type="button" data-mdt-format="list" data-target="dispatchBriefingInput" title="Aufzählung">• Liste</button><button type="button" data-mdt-format="table" data-target="dispatchBriefingInput" title="Tabelle">Tabelle</button></div>
+                <textarea id="dispatchBriefingInput" aria-label="Wichtige Leitstelleninformationen" maxlength="20000" class="dispatch-briefing-input" placeholder="Wichtige Hinweise, Funkdisziplin, aktuelle Schwerpunkte oder Lageinformationen …"></textarea>
+                <div class="dispatch-briefing-preview-label">Vorschau</div>
+                <div class="dispatch-briefing-preview mdt-rich-content" id="dispatchBriefingPreview"><p>Keine Vorschau verfügbar.</p></div>
+                <div class="dispatch-briefing-actions">
+                    <button type="button" class="patrol-header-button secondary" id="dispatchBriefingCancel">Abbrechen</button>
+                    <button type="button" class="patrol-header-button" id="dispatchBriefingSave">Speichern</button>
+                </div>
+            </div>
+        </aside>
     </div>
 
 </div>
@@ -175,6 +146,7 @@
         briefingRow: null,
         canManageBriefing: false,
         briefingSaving: false,
+        briefingLoading: false,
         initialized: false,
         instanceId: "",
         mounted: false
@@ -398,46 +370,6 @@
             count === 1 ? "1 Streife" : count + " Streifen";
     }
 
-    function isMetroMember(member) {
-        const values = [member?.department, member?.unit, member?.rank, member?.callSign]
-            .map(value => String(value || "").toLowerCase());
-        return values.some(value => /metropolitan|special weapons|swat|gang enforcement|ged|k9|canine/.test(value));
-    }
-
-    function isMetroPatrol(patrol) {
-        if ((patrol.members || []).some(isMetroMember)) return true;
-        const values = [patrol.callsign, patrol.activity, patrol.location]
-            .map(value => String(value || "").toLowerCase());
-        return values.some(value => /king|swat|metro|sonder|special/.test(value));
-    }
-
-    function updateDispatchOverview(patrols) {
-        const stats = { street: 0, offroad: 0, highspeed: 0, air: 0, city: 0, county: 0, highway: 0, metro: 0, patrol: 0, king: 0, swat: 0, crew: 0, total: Array.isArray(patrols) ? patrols.length : 0 };
-        (Array.isArray(patrols) ? patrols : []).forEach(function (patrol) {
-            const vehicle = String(patrol.vehicleType || patrol.vehicle_type || "").toUpperCase();
-            if (/AIR|HELI|ASU/.test(vehicle)) stats.air += 1;
-            else if (/HSP|HIGH/.test(vehicle)) stats.highspeed += 1;
-            else if (/OFF/.test(vehicle)) stats.offroad += 1;
-            else stats.street += 1;
-            const location = String(patrol.location || "").toLowerCase();
-            if (/highway|hwy|freeway/.test(location)) stats.highway += 1;
-            else if (/county|blaine|paleto|grapeseed|sandy/.test(location)) stats.county += 1;
-            else stats.city += 1;
-            if (isMetroPatrol(patrol)) stats.metro += 1;
-            const callsign = String(patrol.callsign || "").toLowerCase();
-            if (/^king\b|\bking\b/.test(callsign)) stats.king += 1;
-            else if (/^swat\b|\bswat\b/.test(callsign) || String(patrol.activity || "").toLowerCase().includes("swat")) stats.swat += 1;
-            else stats.patrol += 1;
-            stats.crew += Array.isArray(patrol.members) ? patrol.members.length : 0;
-        });
-        Object.entries({ dispatchStatStreet: stats.street, dispatchStatOffroad: stats.offroad, dispatchStatHighspeed: stats.highspeed, dispatchStatAir: stats.air, dispatchStatCity: stats.city, dispatchStatCounty: stats.county, dispatchStatHighway: stats.highway, dispatchStatMetro: stats.metro, dispatchStatPatrol: stats.patrol, dispatchStatKing: stats.king, dispatchStatSwat: stats.swat, dispatchStatCrew: stats.crew }).forEach(function ([id, value]) {
-            const element = document.getElementById(id);
-            if (element) element.textContent = String(value);
-        });
-        const total = document.getElementById("dispatchOverviewTotal");
-        if (total) total.textContent = stats.total + (stats.total === 1 ? " Einheit gesamt" : " Einheiten gesamt");
-    }
-
     function renderBriefingPreview() {
         const preview = document.getElementById("dispatchBriefingPreview");
         const input = document.getElementById("dispatchBriefingInput");
@@ -466,7 +398,7 @@
                 const timestamp = row.updated_at || row.updatedAt || row.created_at || row.createdAt;
                 const date = timestamp ? new Date(timestamp) : null;
                 const label = date && !Number.isNaN(date.getTime()) ? date.toLocaleString("de-DE", { dateStyle: "medium", timeStyle: "short" }) : "ohne Zeitangabe";
-                meta.textContent = "Zuletzt aktualisiert von " + (row.created_by_name || row.createdByName || "Unbekannt") + " · " + label;
+                meta.textContent = "Zuletzt aktualisiert von " + (row.metadata?.updated_by_name || row.created_by_name || row.createdByName || "Unbekannt") + " · " + label;
             } else {
                 meta.textContent = state.canManageBriefing ? "Noch kein Leitstellenbriefing hinterlegt." : "Keine zusätzlichen Leitstelleninformationen vorhanden.";
             }
@@ -481,6 +413,8 @@
     }
 
     async function loadDispatchBriefing() {
+        if (!active || state.briefingLoading) return;
+        state.briefingLoading = true;
         try {
             const [permissions, rows] = await Promise.all([
                 new Promise((resolve, reject) => { CloudApi.run.withSuccessHandler(resolve).withFailureHandler(reject).getMyPermissions(getToken()); }),
@@ -494,6 +428,7 @@
             })[0] : null;
             renderDispatchBriefing();
         } catch (error) {
+            if (!active) return;
             state.canManageBriefing = false;
             state.briefingRow = null;
             const meta = document.getElementById("dispatchBriefingMeta");
@@ -501,7 +436,7 @@
             if (meta) meta.textContent = error?.message || "Leitstelleninformationen konnten nicht geladen werden.";
             if (view) view.innerHTML = "<p>Leitstelleninformationen sind derzeit nicht verfügbar.</p>";
             setBriefingEditor(false);
-        }
+        } finally { state.briefingLoading = false; }
     }
 
     async function saveDispatchBriefing() {
@@ -512,12 +447,15 @@
         state.briefingSaving = true;
         if (saveButton) saveButton.disabled = true;
         try {
-            await new Promise((resolve, reject) => {
+            const saved = await new Promise((resolve, reject) => {
                 const runner = CloudApi.run.withSuccessHandler(resolve).withFailureHandler(reject);
                 if (state.briefingRow?.id) runner.updateModuleItem(getToken(), "dispatchbriefing", state.briefingRow.id, payload);
                 else runner.createModuleItem(getToken(), "dispatchbriefing", payload);
             });
-            await loadDispatchBriefing();
+            if (!active) return;
+            if (!saved?.id) throw new Error("Speicherung konnte nicht bestätigt werden.");
+            state.briefingRow = saved;
+            renderDispatchBriefing();
             showSuccess("Leitstelleninformationen gespeichert.");
         } catch (error) {
             showError(error?.message || "Leitstelleninformationen konnten nicht gespeichert werden.");
@@ -693,7 +631,6 @@
         updateCount();
 
         const filtered = state.patrolData.slice();
-        updateDispatchOverview(filtered);
 
         if (!filtered.length) {
             container.innerHTML = `
@@ -1314,7 +1251,7 @@
 
         if (refreshButton && !refreshButton.dataset.bound) {
             refreshButton.dataset.bound = "true";
-            refreshButton.addEventListener("click", ()=>{refreshPatrolData().catch(()=>{});window.FIBDuty?.refresh();});
+            refreshButton.addEventListener("click", ()=>{lastRevision=null;window.FIBDuty?.refresh();if(!state.briefingSaving&&document.getElementById("dispatchBriefingEditor")?.hidden)loadDispatchBriefing();});
         }
 
         const briefingEdit = document.getElementById("dispatchBriefingEdit");
@@ -1400,45 +1337,34 @@
         loadDispatchBriefing();
         // First load starts with a revision snapshot, then loads the list. A change
         // during the fetch remains detectable by the next revision check.
-        poll(true);
+        window.FIBDuty?.refresh();
         
 
         state.initialized = true;
     }
 
     window.initializePatrols = initializePatrols;
-    let lastRevision=null, polling=false;
-    async function poll(force=false){
-        if(!active||polling||!hasPatrolPermission(PATROL_PERMISSIONS.view)||!document.getElementById("patrolsList"))return;
-        if(!force&&document.visibilityState!=="visible")return;
+    let lastRevision=null, wantedRevision=null, polling=false;
+    async function applyRevision(snapshot){
+        if(!active||!hasPatrolPermission(PATROL_PERMISSIONS.view)||!document.getElementById("patrolsList")||typeof snapshot?.revision!=="string")return;
+        wantedRevision=snapshot.revision;
+        if(polling)return;
         polling=true;
         try{
-            const snapshot=await window.runServer("getPatrolRevision",getToken());
-            if(!active)return;
-            if(!snapshot||typeof snapshot.revision!=="string")throw new Error("Ungültige Leitstellen-Revision");
-            if(force||lastRevision!==snapshot.revision){
-                // If a write happened while a fetch was active, wait for that fetch
-                // and perform a fresh read rather than marking stale data current.
+            while(active&&wantedRevision!==lastRevision){
+                const target=wantedRevision;
                 if(state.patrolDataPromise)await state.patrolDataPromise;
                 if(!active)return;
                 await fetchPatrols(true);
-                lastRevision=snapshot.revision;
+                lastRevision=target;
             }
-        }catch(error){
-            console.warn("Leitstellen-Synchronisation:",error);
-            if(!state.patrolDataLoaded&&active)fetchPatrols(true).catch(()=>{});
-        }finally{polling=false;}
+        }catch(error){console.warn("Leitstellen-Synchronisation:",error);}
+        finally{polling=false;}
     }
-    window.__fibPageLifecycle.interval(()=>poll(),5000);
-    window.__fibPageLifecycle.on(document,"visibilitychange",()=>{if(document.visibilityState==="visible")poll(true);});
+    window.__fibPageLifecycle.on(window,"fib-mdt:patrol-sync",event=>applyRevision(event.detail));
     window.__fibPageLifecycle.on(window,"fib-mdt:data-changed",event=>{
         if(!active||!hasPatrolPermission(PATROL_PERMISSIONS.view))return;
-        if(/^(startDuty|updateOwnDuty|leavePatrol|joinPatrol|deletePatrol|updatePatrol|createPatrol|setPatrolTenCode)$/.test(event.detail?.method||"")){
-            clearPatrolsCache();fetchPatrols(true).catch(()=>{});
-        }
-        if(/ModuleItem/.test(event.detail?.method||"")){
-            loadDispatchBriefing();
-        }
+        if(/ModuleItem/.test(event.detail?.method||"")&&!state.briefingSaving&&document.getElementById("dispatchBriefingEditor")?.hidden)loadDispatchBriefing();
     });
 
 })();
