@@ -62,8 +62,20 @@ const MODULES = {
  calendar:{table:"fib_calendar_events",view:"calendar.view",manage:"calendar.manage",label:"Kalender"},
  gangs:{table:"fib_gang_profiles",view:"gangs.evidence.view",manage:"gangs.evidence.manage",label:"Gang Enforcement Evidence"},
  bonuses:{table:"fib_bonus_entries",view:"bonuses.view",manage:"bonuses.manage",label:"Bonussystem"},
+ dispatchbriefing:{table:"fib_dispatch_briefings",view:"patrols.view",manage:"dispatch.briefing.manage",label:"Leitstelleninformationen"},
  logs:{table:"fib_mdt_logs",view:"logs.view",manage:null,label:"Systemprotokolle"}
 };
+const USED_LSPD_PERMISSION_KEYS=new Set([
+ "dashboard.view","patrols.view","patrols.create","patrols.edit","patrols.delete","dispatch.briefing.manage",
+ "officers.view","officers.edit","officers.deactivate","organization.edit","regulations.view","regulations.manage",
+ "announcements.view","announcements.manage","vacations.view","vacations.manage","ifines.view","ifines.manage",
+ "vehicles.view","vehicles.manage","uniforms.view","uniforms.manage","armory.view","armory.manage",
+ "academy.view","academy.manage","wanted.view","wanted.manage","warrants.view","warrants.manage",
+ "records.view","records.create","records.edit","records.delete","fines.view","fines.manage",
+ "lawyers.view","lawyers.manage","calendar.view","calendar.manage","gangs.evidence.view","gangs.evidence.manage",
+ "bonuses.view","bonuses.manage","accounting.view","accounting.manage","logs.view",
+ "system.users.view","system.users.manage","system.ranks.view","system.ranks.manage","system.permissions.view","system.permissions.manage"
+]);
 function normalizeModuleRow(row){const isLog=Boolean(row.action&&row.module_name);return {...row,title:row.title||row.action||"",description:row.description||row.detail||"",status:isLog?row.action:(row.status||"active"),eventDate:row.event_date||row.created_at||null,metadata:row.metadata||{}};}
 function normalizePersonnelRow(row={}){
  return {...row,
@@ -1064,7 +1076,7 @@ async function dispatchCore(method,args,env,token){
   await authz(env,token,"patrols.view");const [ps,ms,us,rs,people]=await Promise.all([
    db(env,"patrols",{query:{select:"id,callsign,number,vehicle_type,status,ten_code,location,activity,created_at,created_by,updated_at,updated_by",order:"updated_at.desc,created_at.desc"}}),db(env,"patrol_members",{query:{select:"patrol_id,user_id,position"}}),
    db(env,"users",{query:{select:"id,username,name,rank,active,approved,profile_image"}}),rankRows(env),
-   db(env,"personnel",{query:{select:"user_id,call_sign,service_number,personnel_status"}})
+   db(env,"personnel",{query:{select:"user_id,call_sign,service_number,personnel_status,department,unit"}})
   ]);
   const usersById=new Map((us||[]).map(u=>[String(u.id),u]));
   const peopleByUserId=new Map((people||[]).map(p=>[String(p.user_id),p]));
@@ -1073,7 +1085,7 @@ async function dispatchCore(method,args,env,token){
   const membersByPatrol=new Map();
   for(const m of (ms||[])){const key=String(m.patrol_id);const list=membersByPatrol.get(key);if(list)list.push(m);else membersByPatrol.set(key,[m]);}
   return (ps||[]).map(p=>{
-   const members=(membersByPatrol.get(String(p.id))||[]).map(m=>{const u=usersById.get(String(m.user_id))||{};const person=peopleByUserId.get(String(m.user_id))||{};const r=ranksById.get(String(u.rank))||ranksByName.get(String(u.rank));return {id:u.id,name:u.name,username:u.username,rank:r?.name||u.rank||"Kein Rang",rankShortName:r?.short_name||r?.shortName||r?.name||u.rank||"Kein Rang",rankId:r?.id||u.rank,profileImage:u.profile_image||"",callSign:text(person.call_sign),serviceNumber:patrolServiceNumber(person),position:m.position||"Member"};});
+   const members=(membersByPatrol.get(String(p.id))||[]).map(m=>{const u=usersById.get(String(m.user_id))||{};const person=peopleByUserId.get(String(m.user_id))||{};const r=ranksById.get(String(u.rank))||ranksByName.get(String(u.rank));return {id:u.id,name:u.name,username:u.username,rank:r?.name||u.rank||"Kein Rang",rankShortName:r?.short_name||r?.shortName||r?.name||u.rank||"Kein Rang",rankId:r?.id||u.rank,profileImage:u.profile_image||"",callSign:text(person.call_sign),serviceNumber:patrolServiceNumber(person),department:text(person.department),unit:text(person.unit),position:m.position||"Member"};});
    const lead=members.find(m=>String(m.position||"").toLowerCase()==="lead")||members[0];
    return {...p,callsign:pickPrimaryPatrolCallsign(members)||text(p.callsign)||text(lead?.callSign),tenCode:p.ten_code||p.status,vehicleType:p.vehicle_type,members};
   });
@@ -1082,8 +1094,8 @@ async function dispatchCore(method,args,env,token){
   await authz(env,token,"patrols.view");const [us,ms,rs,people]=await Promise.all([
    db(env,"users",{query:{select:"id,username,name,rank,active,approved,profile_image",active:"eq.true",approved:"eq.true",order:"name.asc"}}),
    db(env,"patrol_members",{query:{select:"user_id"}}),rankRows(env),
-   db(env,"personnel",{query:{select:"user_id,call_sign,service_number,personnel_status"}})
-  ]);const busy=new Set((ms||[]).map(m=>String(m.user_id)));const peopleByUserId=new Map((people||[]).map(p=>[String(p.user_id),p]));const ranksById=new Map((rs||[]).map(r=>[String(r.id),r]));const ranksByName=new Map((rs||[]).map(r=>[String(r.name),r]));return (us||[]).filter(u=>!busy.has(String(u.id))).map(u=>{const person=peopleByUserId.get(String(u.id))||{};const rank=ranksById.get(String(u.rank))||ranksByName.get(String(u.rank));return {...u,profileImage:u.profile_image||"",callSign:text(person.call_sign),serviceNumber:patrolServiceNumber(person),personnelStatus:text(person.personnel_status),rank:rank?.name||u.rank||"Kein Rang",rankShortName:rank?.short_name||rank?.name||u.rank||"Kein Rang"};});
+   db(env,"personnel",{query:{select:"user_id,call_sign,service_number,personnel_status,department,unit"}})
+  ]);const busy=new Set((ms||[]).map(m=>String(m.user_id)));const peopleByUserId=new Map((people||[]).map(p=>[String(p.user_id),p]));const ranksById=new Map((rs||[]).map(r=>[String(r.id),r]));const ranksByName=new Map((rs||[]).map(r=>[String(r.name),r]));return (us||[]).filter(u=>!busy.has(String(u.id))).map(u=>{const person=peopleByUserId.get(String(u.id))||{};const rank=ranksById.get(String(u.rank))||ranksByName.get(String(u.rank));return {...u,profileImage:u.profile_image||"",callSign:text(person.call_sign),serviceNumber:patrolServiceNumber(person),personnelStatus:text(person.personnel_status),department:text(person.department),unit:text(person.unit),rank:rank?.name||u.rank||"Kein Rang",rankShortName:rank?.short_name||rank?.name||u.rank||"Kein Rang"};});
  }
  if(method==="setPatrolTenCode"){
   const au=await authz(env,token,"patrols.view");const d=(args[0]&&typeof args[0]==="object"?args[0]:args[1])||{},pid=text(d.id||d.patrolId||d.patrol_id),code=text(d.tenCode||d.code||d.status);
@@ -1219,7 +1231,7 @@ async function dispatchCore(method,args,env,token){
  // System administration
  if(method==="systemGetUsers"){await authz(env,token,"system.users.view");const [us,rs]=await Promise.all([db(env,"users",{query:{select:"id,username,name,rank,active,approved,master,profile_image",order:"name.asc"}}),rankRows(env)]);return (us||[]).map(u=>({...u,rank_name:(rs||[]).find(r=>String(r.id)===String(u.rank)||r.name===u.rank)?.name||u.rank||"Kein Rang"}));}
  if(method==="systemGetUserRanks"||method==="systemGetAllRanks"){await authz(env,token,"system.ranks.view");return await rankRows(env);}
- if(method==="systemGetPermissions"){await authz(env,token,"system.permissions.view");return (await db(env,"permissions",{query:{select:"*",order:"key.asc"}})||[]).filter(isLspdPermission);}
+ if(method==="systemGetPermissions"){await authz(env,token,"system.permissions.view");return ((await db(env,"permissions",{query:{select:"*",order:"key.asc"}})||[]).filter(isLspdPermission)).map(permission=>({...permission,used:USED_LSPD_PERMISSION_KEYS.has(String(permission.key||""))}));}
  if(method==="systemGetRankPermissions"){
   await authz(env,token,"system.permissions.view");const [links,perms]=await Promise.all([db(env,"rank_permissions",{query:{select:"permission_id",rank_id:`eq.${text(args[1])}`}}),db(env,"permissions",{query:{select:"id,key",limit:"5000"}})]);const visible=new Set((perms||[]).filter(isLspdPermission).map(p=>String(p.id)));return (links||[]).map(x=>x.permission_id).filter(pid=>visible.has(String(pid)));
  }
@@ -1454,7 +1466,7 @@ export async function onRequest({request,env}){
    config(env);
    const deep=url.searchParams.get("deep")==="1";
    const required=deep
-    ? ["users","ranks","permissions","rank_permissions","fib_mdt_sessions","fib_records","patrols","fib_wanted","patrol_members","personnel","personnel_notes","personnel_trainings","fib_record_shares","fib_announcements","fib_vacations","fib_internal_fines","fib_internal_fine_catalog","fib_vehicle_catalog","fib_calendar_events","fib_gang_profiles","fib_bonus_entries","fib_mdt_logs","department_permissions","academy_documents","academy_tests","academy_attempts","fib_uniform_catalog","fib_uniform_organization_rules","fib_bonus_payouts","fib_org_account","fib_accounting_entries","patrol_ten_code_settings","patrol_duty_settings","lspd_service_regulations","lspd_service_regulation_versions"]
+    ? ["users","ranks","permissions","rank_permissions","fib_mdt_sessions","fib_records","patrols","fib_wanted","patrol_members","personnel","personnel_notes","personnel_trainings","fib_record_shares","fib_announcements","fib_vacations","fib_internal_fines","fib_internal_fine_catalog","fib_vehicle_catalog","fib_calendar_events","fib_gang_profiles","fib_bonus_entries","fib_mdt_logs","department_permissions","academy_documents","academy_tests","academy_attempts","fib_uniform_catalog","fib_uniform_organization_rules","fib_bonus_payouts","fib_org_account","fib_accounting_entries","patrol_ten_code_settings","patrol_duty_settings","fib_dispatch_briefings","lspd_service_regulations","lspd_service_regulation_versions"]
     : ["users","fib_mdt_sessions"];
    const checks=await Promise.all(required.map(async table=>{
     try { await db(env,table,{query:{select:"*",limit:"0"}}); return {table,ok:true}; }

@@ -5521,7 +5521,7 @@ function createRankFromModal() {
           table.innerHTML = `
             <tr>
               <td
-                colspan="4"
+                colspan="5"
                 class="system-empty"
               >
                 Berechtigungen konnten nicht geladen werden.
@@ -5609,6 +5609,10 @@ function createRankFromModal() {
               permission.category ??
               "Allgemein";
 
+            const used =
+              permission.used === true ||
+              permission.Used === true;
+
 
             return `
               <tr>
@@ -5623,6 +5627,12 @@ function createRankFromModal() {
 
                 <td>
                   ${escapeHtml(category)}
+                </td>
+
+                <td>
+                  <span class="system-badge ${used ? 'success' : 'warning'}">
+                    ${used ? 'Verwendet' : 'Aktuell ungenutzt'}
+                  </span>
                 </td>
 
                 <td>

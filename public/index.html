@@ -3747,6 +3747,14 @@ const NAVIGATION = [
         icon: "⌂",
         permission: "dashboard.view",
         file: "Page_Dashboard"
+      },
+
+      {
+        id: "patrols",
+        title: "Leitstelle",
+        icon: "◉",
+        permission: "patrols.view",
+        file: "Page_Patrols"
       }
 
     ]
@@ -3755,46 +3763,24 @@ const NAVIGATION = [
 
 
   {
-    section: "Department",
+    section: "Dienstbetrieb",
 
     items: [
 
-      {
-        id: "patrols",
-        title: "Leitstelle",
-        icon: "◉",
-        permission: "patrols.view",
-        file: "Page_Patrols"
-      },
-
-      {
-        id: "officers",
-        title: "Personalakte",
-        icon: "♙",
-        permission: "officers.view",
-        file: "Page_Agents"
-      },
-
-      {
-        id: "organization",
-        title: "Organigramm",
-        icon: "▦",
-        permission: "",
-        file: "Page_Organization"
-      },
-      {
-        id: "regulations",
-        title: "Dienstvorschriften",
-        icon: "▤",
-        permission: "regulations.view",
-        file: "Page_Regulations"
-      },
       {
         id: "announcements",
         title: "Bekanntmachungen",
         icon: "ⓘ",
         permission: "announcements.view",
         file: "Page_Announcements"
+      },
+
+      {
+        id: "calendar",
+        title: "Kalender",
+        icon: "▦",
+        permission: "",
+        file: "Page_Calendar"
       },
 
       {
@@ -3806,19 +3792,11 @@ const NAVIGATION = [
       },
 
       {
-        id: "ifines",
-        title: "Interner Bußgeldkatalog",
-        icon: "▤",
-        permission: "ifines.view",
-        file: "Page_IFines"
-      },
-
-      {
-        id: "vehicle-catalog",
-        title: "Fahrzeugkatalog",
-        icon: "▣",
-        permission: "vehicles.view",
-        file: "Page_VehicleCatalog"
+        id: "officers",
+        title: "Personalakte",
+        icon: "♙",
+        permission: "officers.view",
+        file: "Page_Agents"
       },
 
       {
@@ -3828,12 +3806,29 @@ const NAVIGATION = [
         permission: "officers.view",
         file: "Page_UniformCatalog"
       },
+
       {
         id: "armory",
         title: "Waffenkammer & Ausrüstung",
         icon: "▣",
         permission: "armory.view",
         file: "Page_Armory"
+      },
+
+      {
+        id: "organization",
+        title: "Organigramm",
+        icon: "▦",
+        permission: "",
+        file: "Page_Organization"
+      },
+
+      {
+        id: "regulations",
+        title: "Dienstvorschriften",
+        icon: "▤",
+        permission: "regulations.view",
+        file: "Page_Regulations"
       }
 
     ]
@@ -3883,32 +3878,16 @@ const NAVIGATION = [
   },
 
   {
-    section: "Datenbank",
+    section: "Einsatzdaten",
 
     items: [
 
       {
-        id: "fines",
-        title: "Bußgeldkatalog",
-        icon: "▥",
-        permission: "fines.view",
-        file: "Page_Fines"
-      },
-
-      {
-        id: "lawyers",
-        title: "Anwaltskammer",
-        icon: "✎",
-        permission: "lawyers.view",
-        file: "Page_Lawyers"
-      },
-
-      {
-        id: "records",
-        title: "Akten & Berichte",
-        icon: "▤",
-        permission: "records.view",
-        file: "Page_Records"
+        id: "wanted",
+        title: "BOLO",
+        icon: "⌕",
+        permission: "wanted.view",
+        file: "Page_Wanted"
       },
 
       {
@@ -3920,19 +3899,43 @@ const NAVIGATION = [
       },
 
       {
-        id: "wanted",
-        title: "BOLO",
-        icon: "⌕",
-        permission: "wanted.view",
-        file: "Page_Wanted"
+        id: "records",
+        title: "Akten & Berichte",
+        icon: "▤",
+        permission: "records.view",
+        file: "Page_Records"
       },
 
       {
-        id: "calendar",
-        title: "Kalender",
-        icon: "▦",
-        permission: "",
-        file: "Page_Calendar"
+        id: "fines",
+        title: "Bußgeldkatalog",
+        icon: "▥",
+        permission: "fines.view",
+        file: "Page_Fines"
+      },
+
+      {
+        id: "ifines",
+        title: "Interner Bußgeldkatalog",
+        icon: "▤",
+        permission: "ifines.view",
+        file: "Page_IFines"
+      },
+
+      {
+        id: "vehicle-catalog",
+        title: "Fahrzeugkatalog",
+        icon: "▣",
+        permission: "vehicles.view",
+        file: "Page_VehicleCatalog"
+      },
+
+      {
+        id: "lawyers",
+        title: "Anwaltskammer",
+        icon: "✎",
+        permission: "lawyers.view",
+        file: "Page_Lawyers"
       }
 
     ]
@@ -3941,7 +3944,7 @@ const NAVIGATION = [
 
 
   {
-    section: "Command Staff",
+    section: "Spezialbereiche",
 
     items: [
 
@@ -5094,6 +5097,7 @@ const NAVIGATION = [
         pageId;
 
       window.fibCollapseSidebar?.();
+      window.dispatchEvent(new CustomEvent("fib-mdt:navigated", { detail: { pageId } }));
 
       /*
        * Navigation aktualisieren.
@@ -8424,14 +8428,16 @@ const NAVIGATION = [
  let locked=false;
  function close(){side.classList.remove('is-hover-open');}
  function open(){if(!locked)side.classList.add('is-hover-open');}
- window.fibCollapseSidebar=()=>{locked=side.matches(':hover');close();};
- side.addEventListener('pointerenter',()=>{locked=false;open();});
+ window.fibCollapseSidebar=()=>{locked=true;close();};
+ side.addEventListener('pointerenter',()=>{if(!locked)open();});
  side.addEventListener('pointerleave',()=>{locked=false;close();});
  side.addEventListener('focusin',e=>{if(e.target.matches(':focus-visible')&&!locked)open();});
  side.addEventListener('focusout',e=>{if(!side.contains(e.relatedTarget)&&!side.matches(':hover'))close();});
  side.addEventListener('keydown',e=>{if(e.key==='Escape'){locked=true;close();}});
+ side.addEventListener('pointerdown',e=>{if(e.target.closest('.nav-item')){locked=true;close();}});
  side.addEventListener('click',e=>{if(e.target.closest('.nav-item'))window.fibCollapseSidebar();});
  window.addEventListener('blur',()=>{locked=false;close();});
+ window.addEventListener('fib-mdt:navigated',()=>{locked=true;close();});
 })();</script>
 
 <aside id="fibNotificationPanel" hidden aria-label="Benachrichtigungen"><header><strong>Benachrichtigungen</strong><button type="button" id="fibNotificationClose" aria-label="Schließen">×</button></header><div class="fib-notice-tools"><span id="fibNotificationSummary">Wird geladen …</span><button type="button" id="fibNotificationReadAll">Alle als gelesen</button></div><div id="fibNotificationList" aria-live="polite"></div></aside>
