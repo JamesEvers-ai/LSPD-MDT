@@ -188,7 +188,20 @@ async function syncPatrolState(env,patrolId,actorId){
 
 
 
-const EQUIPMENT_COLUMNS="id,name,category,weapon_class,special_key,description,image_url,rank_rules,active,updated_at";
+const EQUIPMENT_COLUMNS="id,name,category,weapon_class,special_key,description,image_url,rank_rules,organization_rules,active,updated_at";
+// Organization labels mirror the personnel-file selection. No inferred membership.
+const EQUIPMENT_ORGANIZATIONS=Object.freeze(["Internal Affairs Division","Central Division","Northern Division","Patrol Division","Investigative Division","Metropolitan Division","Support Division","Internal Affairs","Patrol Unit","Detective Bureau","Special Weapons and Tactics","Gang Enforcement Detail","Canine (K9)","Police Academy","Public Relations Office","Air Support Division","High Command"]);
+const equipmentOrganizationKey=value=>EQUIPMENT_ORGANIZATIONS.find(org=>org.toLowerCase()===text(value).toLowerCase());
+function equipmentRankRules(item,person){
+ const scopes=item.organization_rules;
+ if(scopes==null)return Array.isArray(item.rank_rules)?item.rank_rules:[];
+ if(typeof scopes!=="object"||Array.isArray(scopes))return [];
+ for(const field of [person.unit,person.department]){
+  const key=equipmentOrganizationKey(field);
+  if(key&&Object.hasOwn(scopes,key))return Array.isArray(scopes[key])?scopes[key]:[];
+ }
+ return [];
+}
 const EQUIPMENT_CATEGORIES=new Set(["items","weapons","vests"]);
 const WEAPON_CLASSES=new Set(["pistols","smgs","shotguns","rifles","snipers","machineguns"]);
 const SPECIAL_EQUIPMENT=Object.freeze({unique_lmg:{label:"Einzigartiges LMG",weaponClass:"machineguns"},heavy_sniper:{label:"Schweres Scharfschützengewehr",weaponClass:"snipers"},heavy_sniper_mk2:{label:"Schweres Scharfschützengewehr MKII",weaponClass:"snipers"}});
@@ -218,20 +231,21 @@ async function equipmentDispatch(method,args,env,token){
   return {success:true,grant:row};
  }
  if(method==="getEquipmentCatalog"){
-  const [ranks,items,grants]=await Promise.all([rankRows(env),db(env,"fib_equipment_catalog",{query:{select:EQUIPMENT_COLUMNS,order:"category.asc,name.asc,id.asc",...(canManage?{}:{active:"eq.true"}),limit:"1000"}}),db(env,"lspd_equipment_special_access",{query:{select:"special_key,enabled,updated_at",user_id:`eq.${au.user.id}`,enabled:"eq.true"}})]);
+  const [ranks,items,grants,people]=await Promise.all([rankRows(env),db(env,"fib_equipment_catalog",{query:{select:EQUIPMENT_COLUMNS,order:"category.asc,name.asc,id.asc",...(canManage?{}:{active:"eq.true"}),limit:"1000"}}),db(env,"lspd_equipment_special_access",{query:{select:"special_key,enabled,updated_at",user_id:`eq.${au.user.id}`,enabled:"eq.true"}}),db(env,"personnel",{query:{select:"department,unit",user_id:`eq.${au.user.id}`,limit:"1"}})]);
+  const person=people?.[0]||{};
   const activeRanks=(ranks||[]).filter(r=>r.active!==false);
   const ownRank=activeRanks.find(r=>String(r.id)===String(au.user.rank))||activeRanks.find(r=>r.name===au.user.rank);
   const ownId=String(ownRank?.id||""),ownGrants=new Map((grants||[]).filter(g=>g.enabled===true).map(g=>[g.special_key,g]));
   const blocked=[];
   const personal=(items||[]).filter(x=>x.active!==false).flatMap(x=>{
-   const rule=(Array.isArray(x.rank_rules)?x.rank_rules:[]).find(r=>String(r.rankId)===ownId&&r.enabled!==false&&Number(r.quantity)>0);
+   const rule=equipmentRankRules(x,person).find(r=>String(r.rankId)===ownId&&r.enabled!==false&&Number(r.quantity)>0);
    if(!ownId||!rule)return [];
    const special=x.special_key||specialEquipmentKey(x.name);
    if(special&&!ownGrants.has(special)){blocked.push({id:x.id,name:x.name,special_key:special});return [];}
-   const {rank_rules,...item}=x;
+   const {rank_rules,organization_rules,...item}=x;
    return [{...item,special_key:special,grantVersion:special?ownGrants.get(special)?.updated_at:undefined,quantity:rule.quantity,ammunition:x.category==="weapons"?rule.ammunition:undefined}];
   });
-  return {profile:{id:au.user.id,name:au.user.name,rank:ownRank?.name||"Kein aktiver Rang",rankId:ownId},canManage,canManageSpecial,personal,blocked,specials:SPECIAL_EQUIPMENT,ownSpecial:[...ownGrants.keys()],items:canManage?items:[],ranks:canManage?activeRanks.map(r=>({id:r.id,name:r.name,level:r.level})):[]};
+  return {profile:{id:au.user.id,name:au.user.name,rank:ownRank?.name||"Kein aktiver Rang",rankId:ownId,department:text(person.department),unit:text(person.unit)},organizations:canManage?EQUIPMENT_ORGANIZATIONS:[],canManage,canManageSpecial,personal,blocked,specials:SPECIAL_EQUIPMENT,ownSpecial:[...ownGrants.keys()],items:canManage?items:[],ranks:canManage?activeRanks.map(r=>({id:r.id,name:r.name,level:r.level})):[]};
  }
  if(!canManage)throw recordError("Keine Berechtigung zur Ausrüstungsverwaltung.",403);
  if(method==="deleteEquipmentItem"){
@@ -247,21 +261,32 @@ async function equipmentDispatch(method,args,env,token){
  if(special&&!Object.hasOwn(SPECIAL_EQUIPMENT,special))throw recordError("Ungültige Spezialwaffe.");
  const detected=specialEquipmentKey(name);
  if(detected&&special&&detected!==special)throw recordError("Spezialfreigabe passt nicht zur Bezeichnung.");
- if(itemId){const old=(await db(env,"fib_equipment_catalog",{query:{select:"id,name,special_key",id:`eq.${itemId}`,limit:"1"}}))?.[0];if(!old)throw recordError("Eintrag nicht gefunden.",404);const previous=old.special_key||specialEquipmentKey(old.name);if(previous&&(detected&&detected!==previous||special&&special!==previous))throw recordError("Die hinterlegte Spezialfreigabe kann nicht umgangen werden.");special=previous||special;}
+ let old=null;
+ if(itemId){old=(await db(env,"fib_equipment_catalog",{query:{select:"id,name,special_key,organization_rules",id:`eq.${itemId}`,limit:"1"}}))?.[0];if(!old)throw recordError("Eintrag nicht gefunden.",404);const previous=old.special_key||specialEquipmentKey(old.name);if(previous&&(detected&&detected!==previous||special&&special!==previous))throw recordError("Die hinterlegte Spezialfreigabe kann nicht umgangen werden.");special=previous||special;}
  special=detected||special;
  if(special&&category!=="weapons")throw recordError("Spezialwaffen müssen in der Kategorie Waffen bleiben.");
  if(special)weaponClass=SPECIAL_EQUIPMENT[special].weaponClass;
  if(category!=="weapons")weaponClass=null;
  if(!Array.isArray(d.rankRules))throw recordError("Rangfreigaben fehlen.");
- const ranks=await rankRows(env),validRanks=new Set((ranks||[]).filter(r=>r.active!==false).map(r=>String(r.id))),seen=new Set();
+ const ranks=await rankRows(env),validRanks=new Set((ranks||[]).filter(r=>r.active!==false).map(r=>String(r.id)));
  const number=(v,min)=>{if(typeof v!=="number"||!Number.isSafeInteger(v)||v<min||v>1000000)throw recordError("Mengen müssen gültige ganze Zahlen sein.");return v;};
- const rules=d.rankRules.map(r=>{
+ const validateRules=values=>{
+ if(!Array.isArray(values)||values.length>validRanks.size)throw recordError("Ungültige Rangfreigaben.");
+ const seen=new Set();
+ return values.map(r=>{
   const rankId=text(r?.rankId);if(!validRanks.has(rankId)||seen.has(rankId))throw recordError("Ungültiger oder doppelter Rang.");seen.add(rankId);
   const rule={rankId,quantity:number(r.quantity,1)};
   if(category==="weapons")rule.ammunition=number(r.ammunition,0);
   return rule;
- });
- const row={name,category,weapon_class:weaponClass,special_key:special,description,image_url:imageUrl||null,rank_rules:rules,active:d.active!==false,updated_at:new Date().toISOString(),updated_by:au.user.id};
+ });};
+ const rules=validateRules(d.rankRules);
+ let organizationRules=null;
+ if(d.organizationRules===undefined&&old?.organization_rules!=null)throw recordError("Bitte die aktuelle Waffenkammer laden, um Abteilungsregeln zu bearbeiten.",409);
+ if(d.organizationRules!=null){
+  if(typeof d.organizationRules!=="object"||Array.isArray(d.organizationRules)||Object.keys(d.organizationRules).length>EQUIPMENT_ORGANIZATIONS.length)throw recordError("Ungültige Organisationsfreigaben.");
+  organizationRules=Object.fromEntries(Object.entries(d.organizationRules).map(([key,values])=>{if(!EQUIPMENT_ORGANIZATIONS.includes(key))throw recordError("Unbekannte Abteilung oder Einheit.");return [key,validateRules(values)];}));
+ }
+ const row={name,category,weapon_class:weaponClass,special_key:special,description,image_url:imageUrl||null,rank_rules:rules,organization_rules:organizationRules,active:d.active!==false,updated_at:new Date().toISOString(),updated_by:au.user.id};
  const saved=await db(env,"fib_equipment_catalog",itemId?{method:"PATCH",query:{id:`eq.${itemId}`,select:EQUIPMENT_COLUMNS},body:row,prefer:"return=representation"}:{method:"POST",query:{select:EQUIPMENT_COLUMNS},body:{...row,id:id("EQ"),created_by:au.user.id},prefer:"return=representation"});
  if(!saved?.length)throw recordError("Eintrag konnte nicht gespeichert werden.",404);
  return {success:true,item:saved[0]};
